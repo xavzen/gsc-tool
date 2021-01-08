@@ -11,19 +11,21 @@ namespace IW7
 
 class decompiler : public gsc::decompiler
 {
+    std::string filename_;
     std::unique_ptr<utils::byte_buffer> output_;
-    gsc::script_ptr script_;
+    gsc::program_ptr program_;
     gsc::thread_ptr func_;
     std::uint32_t params_;
     std::unordered_map<std::uint32_t, std::string> labels_;
     std::vector<std::string> expr_labels_;
-    std::vector<std::string> local_vars_;
+    std::vector<std::string> create_local_vars_;
+    std::vector<std::string> stack_local_vars_;
     std::stack<gsc::node_ptr> stack_;
     std::vector<gsc::context> blocks_;
 
 public:
     auto output() -> std::vector<std::uint8_t>;
-    void decompile(std::vector<gsc::function_ptr>& functions);
+    void decompile(const std::string& file, std::vector<gsc::function_ptr>& functions);
 
 private:
     void decompile_function(const gsc::function_ptr& func);

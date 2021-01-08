@@ -9,7 +9,7 @@ auto overwrite_prompt(const std::string& file) -> bool
 {
     auto overwrite = true;
 
-    if (std::filesystem::exists(file))
+    if (utils::file::exists(file))
     {
         do
         {
@@ -31,227 +31,288 @@ auto overwrite_prompt(const std::string& file) -> bool
     return overwrite;
 }
 
-void assemble_file(gsc::assembler& assembler, std::string file)
+auto choose_resolver_file_name(uint16_t id, game& game) -> std::string
 {
-    const auto ext = std::string(".gscasm");
-    const auto extpos = file.find(ext);
-    
-    if (extpos != std::string::npos)
+    switch (game)
     {
-        file.replace(extpos, ext.length(), "");
-    }
-
-    auto data = utils::file::read(file + ext);
-
-    assembler.assemble(data);
-
-    if (overwrite_prompt(file + ".gscbin"))
-    {
-        gsc::asset script;
-
-        auto uncompressed = assembler.output_stack();
-        auto compressed = utils::zlib::compress(uncompressed);
-
-        script.name = file; // add name conversor to ids
-        script.bytecode = assembler.output_script();
-        script.buffer = std::move(compressed);
-        script.len = uncompressed.size();
-        script.compressedLen = script.buffer.size();
-        script.bytecodeLen = script.bytecode.size();
-
-        auto output = script.serialize();
-        utils::file::save(file + ".gscbin", output);
+        case game::IW5:
+            return IW5::resolver::file_name(id);
+            break;
+        case game::IW6:
+            return IW6::resolver::file_name(id);
+            break;
+        case game::IW7:
+            return IW7::resolver::file_name(id);
+            break;
+        case game::S1:
+            return S1::resolver::file_name(id);
+            break;
+        case game::S2:
+            return S2::resolver::file_name(id);
+            break;
+        case game::H1:
+            return H1::resolver::file_name(id);
+            break;
+        case game::H2:
+            return H2::resolver::file_name(id);
+            break;
+        default:
+            printf("Not a valid game value \"%d\"", game);
+            return "";
     }
 }
 
-void disassemble_file(gsc::disassembler& disassembler, std::string file)
+void assemble_file(gsc::assembler& assembler, std::string file, bool zonetool)
 {
-    const auto ext = std::string(".gscbin");
-    const auto extpos = file.find(ext);
-    
-    if (extpos != std::string::npos)
+    try
     {
-        file.replace(extpos, ext.length(), "");
+        const auto ext = std::string(".gscasm");
+        const auto extpos = file.find(ext);
+        
+        if (extpos != std::string::npos)
+        {
+            file.replace(extpos, ext.length(), "");
+        }
+
+        auto data = utils::file::read(file + ext);
+
+        assembler.assemble(file, data);
+
+        if (overwrite_prompt(file + (zonetool ? ".cgsc" : ".gscbin")))
+        {
+            if(zonetool)
+            {
+                utils::file::save(file + ".cgsc", assembler.output_script());
+                utils::file::save(file + ".cgsc.stack", assembler.output_stack());
+            }
+            else
+            {
+                gsc::asset script;
+
+                auto uncompressed = assembler.output_stack();
+                auto compressed = utils::zlib::compress(uncompressed);
+
+                script.name = file;
+                script.bytecode = assembler.output_script();
+                script.buffer = std::move(compressed);
+                script.len = uncompressed.size();
+                script.compressedLen = script.buffer.size();
+                script.bytecodeLen = script.bytecode.size();
+
+                auto output = script.serialize();
+                utils::file::save(file + ".gscbin", output);
+            }
+        }
     }
-
-    auto data = utils::file::read(file + ".gscbin");
-
-    gsc::asset script;
-
-    script.deserialize(data);
-
-    auto stack = utils::zlib::decompress(script.buffer, script.len);
-
-    disassembler.disassemble(script.bytecode, stack);
-    
-    utils::file::save(file + ".gscasm", disassembler.output_data());
-}
-
-void compile_file(gsc::assembler& assembler, gsc::compiler& compiler, std::string file)
-{
-    const auto ext = std::string(".gsc");
-    const auto extpos = file.find(ext);
-    
-    if (extpos != std::string::npos)
+    catch(const std::exception& e)
     {
-        file.replace(extpos, ext.length(), "");
-    }
-
-    auto data = utils::file::read(file + ext);
-
-    compiler.compile(data);
-
-    auto assembly = compiler.output();
-
-    assembler.assemble(assembly);
-
-    if (overwrite_prompt(file + ".gscbin"))
-    {
-        gsc::asset script;
-
-        auto uncompressed = assembler.output_stack();
-        auto compressed = utils::zlib::compress(uncompressed);
-
-        script.name = file; // add name conversor to ids
-        script.bytecode = assembler.output_script();
-        script.buffer = std::move(compressed);
-        script.len = uncompressed.size();
-        script.compressedLen = script.buffer.size();
-        script.bytecodeLen = script.bytecode.size();
-
-        auto output = script.serialize();
-        utils::file::save(file + ".gscbin", output);
+        std::cerr << e.what() << '\n';
     }
 }
 
-void decompile_file(gsc::disassembler& disassembler, gsc::decompiler& decompiler, std::string file)
+void disassemble_file(gsc::disassembler& disassembler, std::string file, game& game, bool zonetool)
 {
-    const auto ext = std::string(".gscbin");
-    const auto extpos = file.find(ext);
-    
-    if (extpos != std::string::npos)
+    try
     {
-        file.replace(extpos, ext.length(), "");
+        if(zonetool)
+        {
+            if (file.find(".stack") != std::string::npos)
+            {
+                printf("Cannot disassemble stack files\n");
+                return;
+            }
+
+            const auto ext = std::string(".cgsc");
+            const auto extpos = file.find(ext);
+
+            if (extpos != std::string::npos)
+            {
+                file.replace(extpos, ext.length(), "");
+            }
+
+            auto script = utils::file::read(file + ".cgsc");
+            auto stack = utils::file::read(file + ".cgsc.stack");
+
+            disassembler.disassemble(file, script, stack);
+        }
+        else
+        {
+            const auto ext = std::string(".gscbin");
+            const auto extpos = file.find(ext);
+            
+            if (extpos != std::string::npos)
+            {
+                file.replace(extpos, ext.length(), "");
+            }
+
+            auto data = utils::file::read(file + ext);
+
+            gsc::asset script;
+
+            script.deserialize(data);
+
+            auto stack = utils::zlib::decompress(script.buffer, script.len);
+
+            disassembler.disassemble(file, script.bytecode, stack);
+        }
+
+        auto scriptid = std::filesystem::path(file).filename().string();
+
+        if (!isdigit(scriptid.data()[0]))
+        {
+            utils::file::save(file + ".gscasm", disassembler.output_data());
+        }
+        else
+        {
+            auto filename = choose_resolver_file_name(std::atoi(scriptid.data()), game);
+            auto count = file.find(scriptid);
+
+            if (count != std::string::npos)
+            {
+                if (!filename.empty())
+                {
+                    file.erase(count, scriptid.length());
+                }
+            }
+
+            utils::file::save(file + filename + ".gscasm", disassembler.output_data());
+        }
     }
-
-    auto data = utils::file::read(file + ".gscbin");
-
-    gsc::asset script;
-
-    script.deserialize(data);
-
-    auto stack = utils::zlib::decompress(script.buffer, script.len);
-
-    disassembler.disassemble(script.bytecode, stack);
-    
-    auto output = disassembler.output();
-
-    decompiler.decompile(output);
-
-    utils::file::save(file + ".gsc", decompiler.output());
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    } 
 }
 
-void zassemble_file(gsc::assembler& assembler, std::string file)
+void compile_file(gsc::assembler& assembler, gsc::compiler& compiler, std::string file, bool zonetool)
 {
-    const auto ext = std::string(".gscasm");
-    const auto extpos = file.find(ext);
-
-    if (extpos != std::string::npos)
+    try
     {
-        file.replace(extpos, ext.length(), "");
+        const auto ext = std::string(".gsc");
+        const auto extpos = file.find(ext);
+        
+        if (extpos != std::string::npos)
+        {
+            file.replace(extpos, ext.length(), "");
+        }
+
+        auto data = utils::file::read(file + ext);
+        compiler.set_readf_callback(utils::file::read);
+        compiler.compile(file, data);
+
+        auto assembly = compiler.output();
+
+        assembler.assemble(file, assembly);
+
+        if (overwrite_prompt(file + (zonetool ? ".cgsc" : ".gscbin")))
+        {
+            if(zonetool)
+            {
+                utils::file::save(file + ".cgsc", assembler.output_script());
+                utils::file::save(file + ".cgsc.stack", assembler.output_stack());
+            }
+            else
+            {
+                gsc::asset script;
+
+                auto uncompressed = assembler.output_stack();
+                auto compressed = utils::zlib::compress(uncompressed);
+
+                script.name = file;
+                script.bytecode = assembler.output_script();
+                script.buffer = std::move(compressed);
+                script.len = uncompressed.size();
+                script.compressedLen = script.buffer.size();
+                script.bytecodeLen = script.bytecode.size();
+
+                auto output = script.serialize();
+                utils::file::save(file + ".gscbin", output);
+            }
+        }
     }
-
-    auto data = utils::file::read(file + ".gscasm");
-
-    assembler.assemble(data);
-
-    if (overwrite_prompt(file + ".cgsc"))
+    catch(const std::exception& e)
     {
-        utils::file::save(file + ".cgsc", assembler.output_script());
-        utils::file::save(file + ".cgsc.stack", assembler.output_stack());
+        std::cerr << e.what() << '\n';
     }
 }
 
-void zdisassemble_file(gsc::disassembler& disassembler, std::string file)
+void decompile_file(gsc::disassembler& disassembler, gsc::decompiler& decompiler, std::string file, game& game, bool zonetool)
 {
-    if (file.find(".stack") != std::string::npos)
+    try
     {
-        printf("Cannot disassemble stack files\n");
-        return;
+        if(zonetool)
+        {
+            if (file.find(".stack") != std::string::npos)
+            {
+                printf("Cannot disassemble stack files\n");
+                return;
+            }
+
+            const auto ext = std::string(".cgsc");
+            const auto extpos = file.find(ext);
+
+            if (extpos != std::string::npos)
+            {
+                file.replace(extpos, ext.length(), "");
+            }
+
+            auto script = utils::file::read(file + ".cgsc");
+            auto stack = utils::file::read(file + ".cgsc.stack");
+
+            disassembler.disassemble(file, script, stack);
+        }
+        else
+        {
+            const auto ext = std::string(".gscbin");
+            const auto extpos = file.find(ext);
+            
+            if (extpos != std::string::npos)
+            {
+                file.replace(extpos, ext.length(), "");
+            }
+
+            auto data = utils::file::read(file + ext);
+
+            gsc::asset script;
+
+            script.deserialize(data);
+
+            auto stack = utils::zlib::decompress(script.buffer, script.len);
+
+            disassembler.disassemble(file, script.bytecode, stack);
+        }
+
+        auto output = disassembler.output();
+
+        decompiler.decompile(file, output);
+
+        auto scriptid = std::filesystem::path(file).filename().string();
+
+        if (!isdigit(scriptid.data()[0]))
+        {
+            utils::file::save(file + ".gsc", decompiler.output());
+        }
+        else
+        {
+            auto filename = choose_resolver_file_name(std::atoi(scriptid.data()), game);
+            auto count = file.find(scriptid);
+
+            if (count != std::string::npos)
+            {
+                if (!filename.empty())
+                {
+                    file.erase(count, scriptid.length());
+                }
+            }
+
+            utils::file::save(file + filename + ".gsc", decompiler.output());
+        }
     }
-
-    const auto ext = std::string(".cgsc");
-    const auto extpos = file.find(ext);
-
-    if (extpos != std::string::npos)
+    catch(const std::exception& e)
     {
-        file.replace(extpos, ext.length(), "");
-    }
-
-    auto script = utils::file::read(file + ".cgsc");
-    auto stack = utils::file::read(file + ".cgsc.stack");
-
-    disassembler.disassemble(script, stack);
-
-    utils::file::save(file + ".gscasm", disassembler.output_data());
-}
-
-void zcompile_file(gsc::assembler& assembler, gsc::compiler& compiler, std::string file)
-{
-    const auto ext = std::string(".gsc");
-    const auto extpos = file.find(ext);
-
-    if (extpos != std::string::npos)
-    {
-        file.replace(extpos, ext.length(), "");
-    }
-
-    auto source = utils::file::read(file + ".gsc");
-
-    compiler.compile(source);
-
-    auto output = compiler.output();
-
-    assembler.assemble(output);
-
-    if (overwrite_prompt(file + ".cgsc"))
-    {
-        utils::file::save(file + ".cgsc", assembler.output_script());
-        utils::file::save(file + ".cgsc.stack", assembler.output_stack());
-    }
-}
-
-void zdecompile_file(gsc::disassembler& disassembler, gsc::decompiler& decompiler, std::string file)
-{
-    if (file.find(".stack") != std::string::npos)
-    {
-        printf("Cannot decompile stack files\n");
-        return;
-    }
-
-    const auto ext = std::string(".cgsc");
-    const auto extpos = file.find(ext);
-
-    if (extpos != std::string::npos)
-    {
-        file.replace(extpos, ext.length(), "");
-    }
-
-    auto script = utils::file::read(file + ".cgsc");
-    auto stack = utils::file::read(file + ".cgsc.stack");
-
-    disassembler.disassemble(script, stack);
-
-    auto output = disassembler.output();
-
-    decompiler.decompile(output);
-
-    if (overwrite_prompt(file + ".gsc"))
-    {
-        utils::file::save(file + ".gsc", decompiler.output());
+        std::cerr << e.what() << '\n';
     }
 }
-
 
 int parse_flags(int argc, char** argv, game& game, mode& mode, bool& zonetool)
 {
@@ -346,37 +407,37 @@ int main(int argc, char** argv)
         if( game == game::IW5)
         {
             IW5::assembler assembler;
-            zonetool ? zassemble_file(assembler, file) : assemble_file(assembler, file);
+            assemble_file(assembler, file, zonetool);
         }
         else if (game == game::IW6)
         {
             IW6::assembler assembler;
-            zonetool ? zassemble_file(assembler, file) : assemble_file(assembler, file);
+            assemble_file(assembler, file, zonetool);
         }
         else if (game == game::IW7)
         {
             IW7::assembler assembler;
-            zonetool ? zassemble_file(assembler, file) : assemble_file(assembler, file);
+            assemble_file(assembler, file, zonetool);
         }
         else if (game == game::S1)
         {
             S1::assembler assembler;
-            zonetool ? zassemble_file(assembler, file) : assemble_file(assembler, file);
+            assemble_file(assembler, file, zonetool);
         }
         else if (game == game::S2)
         {
             S2::assembler assembler;
-            zonetool ? zassemble_file(assembler, file) : assemble_file(assembler, file);
+            assemble_file(assembler, file, zonetool);
         }
         else if (game == game::H1)
         {
             H1::assembler assembler;
-            zonetool ? zassemble_file(assembler, file) : assemble_file(assembler, file);
+            assemble_file(assembler, file, zonetool);
         }
         else if (game == game::H2)
         {
             H2::assembler assembler;
-            zonetool ? zassemble_file(assembler, file) : assemble_file(assembler, file);
+            assemble_file(assembler, file, zonetool);
         }
     }
     else if (mode == mode::DISASM)
@@ -384,37 +445,37 @@ int main(int argc, char** argv)
         if (game == game::IW5)
         {
             IW5::disassembler disassembler;
-            zonetool ? zdisassemble_file(disassembler, file) : disassemble_file(disassembler, file);
+            disassemble_file(disassembler, file, game, zonetool);
         }
         else if (game == game::IW6)
         {
             IW6::disassembler disassembler;
-            zonetool ? zdisassemble_file(disassembler, file) : disassemble_file(disassembler, file);
+            disassemble_file(disassembler, file, game, zonetool);
         }
         else if (game == game::IW7)
         {
             IW7::disassembler disassembler;
-            zonetool ? zdisassemble_file(disassembler, file) : disassemble_file(disassembler, file);
+            disassemble_file(disassembler, file, game, zonetool);
         }
         else if (game == game::S1)
         {
             S1::disassembler disassembler;
-            zonetool ? zdisassemble_file(disassembler, file) : disassemble_file(disassembler, file);
+            disassemble_file(disassembler, file, game, zonetool);
         }
         else if (game == game::S2)
         {
             S2::disassembler disassembler;
-            zonetool ? zdisassemble_file(disassembler, file) : disassemble_file(disassembler, file);
+            disassemble_file(disassembler, file, game, zonetool);
         }
         else if (game == game::H1)
         {
             H1::disassembler disassembler;
-            zonetool ? zdisassemble_file(disassembler, file) : disassemble_file(disassembler, file);
+            disassemble_file(disassembler, file, game, zonetool);
         }
         else if (game == game::H2)
         {
             H2::disassembler disassembler;
-            zonetool ? zdisassemble_file(disassembler, file) : disassemble_file(disassembler, file);
+            disassemble_file(disassembler, file, game, zonetool);
         }
     }
     else if (mode == mode::COMP)
@@ -423,43 +484,43 @@ int main(int argc, char** argv)
         {
             IW5::assembler assembler;
             IW5::compiler compiler;
-            zonetool ? zcompile_file(assembler, compiler, file) : compile_file(assembler, compiler, file);
+            compile_file(assembler, compiler, file ,zonetool);
         }
         else if (game == game::IW6)
         {
             IW6::assembler assembler;
             IW6::compiler compiler;
-            zonetool ? zcompile_file(assembler, compiler, file) : compile_file(assembler, compiler, file);
+            compile_file(assembler, compiler, file ,zonetool);
         }
         else if (game == game::IW7)
         {
             IW7::assembler assembler;
             IW7::compiler compiler;
-            zonetool ? zcompile_file(assembler, compiler, file) : compile_file(assembler, compiler, file);
+            compile_file(assembler, compiler, file ,zonetool);
         }
         else if (game == game::S1)
         {
             S1::assembler assembler;
             S1::compiler compiler;
-            zonetool ? zcompile_file(assembler, compiler, file) : compile_file(assembler, compiler, file);
+            compile_file(assembler, compiler, file ,zonetool);
         }
         else if (game == game::S2)
         {
             S2::assembler assembler;
             S2::compiler compiler;
-            zonetool ? zcompile_file(assembler, compiler, file) : compile_file(assembler, compiler, file);
+            compile_file(assembler, compiler, file ,zonetool);
         }
         else if (game == game::H1)
         {
             H1::assembler assembler;
             H1::compiler compiler;
-            zonetool ? zcompile_file(assembler, compiler, file) : compile_file(assembler, compiler, file);
+            compile_file(assembler, compiler, file ,zonetool);
         }
         else if (game == game::H2)
         {
             H2::assembler assembler;
             H2::compiler compiler;
-            zonetool ? zcompile_file(assembler, compiler, file) : compile_file(assembler, compiler, file);
+            compile_file(assembler, compiler, file ,zonetool);
         }
     }
     else if (mode == mode::DECOMP)
@@ -468,43 +529,43 @@ int main(int argc, char** argv)
         {
             IW5::disassembler disassembler;
             IW5::decompiler decompiler;
-            zonetool ? zdecompile_file(disassembler, decompiler, file) : decompile_file(disassembler, decompiler, file);
+            decompile_file(disassembler, decompiler, file, game, zonetool);
         }
         else if (game == game::IW6)
         {
             IW6::disassembler disassembler;
             IW6::decompiler decompiler;
-            zonetool ? zdecompile_file(disassembler, decompiler, file) : decompile_file(disassembler, decompiler, file);
+            decompile_file(disassembler, decompiler, file, game, zonetool);
         }
         else if (game == game::IW7)
         {
             IW7::disassembler disassembler;
             IW7::decompiler decompiler;
-            zonetool ? zdecompile_file(disassembler, decompiler, file) : decompile_file(disassembler, decompiler, file);
+            decompile_file(disassembler, decompiler, file, game, zonetool);
         }
         else if (game == game::S1)
         {
             S1::disassembler disassembler;
             S1::decompiler decompiler;
-            zonetool ? zdecompile_file(disassembler, decompiler, file) : decompile_file(disassembler, decompiler, file);
+            decompile_file(disassembler, decompiler, file, game, zonetool);
         }
         else if (game == game::S2)
         {
             S2::disassembler disassembler;
             S2::decompiler decompiler;
-            zonetool ? zdecompile_file(disassembler, decompiler, file) : decompile_file(disassembler, decompiler, file);
+            decompile_file(disassembler, decompiler, file, game, zonetool);
         }
         else if (game == game::H1)
         {
             H1::disassembler disassembler;
             H1::decompiler decompiler;
-            zonetool ? zdecompile_file(disassembler, decompiler, file) : decompile_file(disassembler, decompiler, file);
+            decompile_file(disassembler, decompiler, file, game, zonetool);
         }
         else if (game == game::H2)
         {
             H2::disassembler disassembler;
             H2::decompiler decompiler;
-            zonetool ? zdecompile_file(disassembler, decompiler, file) : decompile_file(disassembler, decompiler, file);
+            decompile_file(disassembler, decompiler, file, game, zonetool);
         }
     }
 

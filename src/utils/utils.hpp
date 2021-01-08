@@ -16,6 +16,7 @@
 #endif
 
 // C/C++
+#include <stdexcept>
 #include <stack>
 #include <array>
 #include <vector>
@@ -43,12 +44,15 @@ using namespace std::literals;
 #include "utility/compression.hpp"
 
 // GSC Types
+#include "types/pair.hpp"
 #include "types/asset.hpp"
 #include "types/assembly.hpp"
-#include "types/nodetree.hpp"
 #include "types/context.hpp"
+#include "types/location.hpp"
+#include "types/nodetree.hpp"
 
 // GSC Interfaces
+#include "interfaces/exception.hpp"
 #include "interfaces/assembler.hpp"
 #include "interfaces/disassembler.hpp"
 #include "interfaces/compiler.hpp"

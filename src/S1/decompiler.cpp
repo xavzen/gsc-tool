@@ -14,7 +14,7 @@ auto decompiler::output() -> std::vector<std::uint8_t>
 
     auto data = std::make_unique<utils::byte_buffer>(0x100000);
     data->write_string("// S1 PC GSC\n// Decompiled by https://github.com/xensik/gsc-tool\n");
-    data->write_string(script_->print());
+    data->write_string(program_->print());
 
     output.resize(data->pos());
     std::memcpy(output.data(), data->buffer().data(), output.size());
@@ -22,26 +22,28 @@ auto decompiler::output() -> std::vector<std::uint8_t>
     return output;
 }
 
-void decompiler::decompile(std::vector<gsc::function_ptr>& functions)
+void decompiler::decompile(const std::string& file, std::vector<gsc::function_ptr>& functions)
 {
-    script_ = std::make_unique<gsc::node_script>("");
+    filename_ = file;
+    program_ = std::make_unique<gsc::node_program>();
 
     for (auto& func : functions)
     {
-        auto name = std::make_unique<gsc::node_identifier>("", func->name.substr(4));
-        auto params = std::make_unique<gsc::node_parameters>("");
-        auto block = std::make_unique<gsc::node_block>("");
-        func_ = std::make_unique<gsc::node_thread>("", std::move(name),std::move(params),std::move(block));
+        auto name = std::make_unique<gsc::node_name>(func->name.substr(4));
+        auto params = std::make_unique<gsc::node_parameters>();
+        auto block = std::make_unique<gsc::node_block>();
+        func_ = std::make_unique<gsc::node_thread>(std::move(name),std::move(params),std::move(block));
 
         labels_ = func->labels;
         params_ = 0;
-        local_vars_.clear();
+        create_local_vars_.clear();
+        stack_local_vars_.clear();
         expr_labels_.clear();
         stack_ = std::stack<gsc::node_ptr>();
         
         this->decompile_function(func);
 
-        script_->definitions.push_back(gsc::definition_ptr(std::move(func_)));
+        program_->definitions.push_back(gsc::define_ptr(std::move(func_)));
     }
 }
 
@@ -55,7 +57,7 @@ void decompiler::decompile_function(const gsc::function_ptr& func)
     auto& block = func_->block;
 
     gsc::context ctx;
-    ctx.loc_end = block->stmts.back().as_node->location;
+    ctx.loc_end = utils::string::va("loc_%X", block->stmts.back().as_node->loc.begin.line);
     block->stmts.pop_back(); // remove last return
 
     blocks_.push_back(ctx);
@@ -67,7 +69,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
 {
     for (auto& inst : func->instructions)
     {
-        auto location = utils::string::va("loc_%X", inst->index);
+        auto loc = gsc::location(&filename_, inst->index);
 
         const auto itr = func->labels.find(inst->index);
 
@@ -85,156 +87,9 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
 
         switch (opcode(inst->opcode))
         {
-        case opcode::OP_GetLevel:
-        case opcode::OP_GetLevelObject:
-        {
-            auto node = std::make_unique<gsc::node_level>(location);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetAnim:
-        case opcode::OP_GetAnimObject:
-        {
-            auto node = std::make_unique<gsc::node_anim>(location);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetSelf:
-        case opcode::OP_GetSelfObject:
-        {
-            auto node = std::make_unique<gsc::node_self>(location);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetGame:
-        case opcode::OP_GetGameRef:
-        {
-            auto node = std::make_unique<gsc::node_game>(location);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetUndefined:
-        {
-            auto node = std::make_unique<gsc::node_undefined>(location);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_EmptyArray:
-        {
-            auto node = std::make_unique<gsc::node_empty_array>(location);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetAnimation:
-        {
-            if(inst->data[0] != "\"\"")
-            {
-                auto str_ = std::make_unique<gsc::node_string>(location, inst->data[0]);
-                auto anim = std::make_unique<gsc::node_using_animtree>(location, std::move(str_));
-                script_->definitions.push_back(gsc::definition_ptr(std::move(anim)));
-            }
-            auto node = std::make_unique<gsc::node_animref>(location, inst->data[1].substr(1, inst->data[1].size() - 2));
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetAnimTree:
-        {
-            if(inst->data[0] != "\"\"")
-            {
-                auto str_ = std::make_unique<gsc::node_string>(location, inst->data[0]);
-                auto anim = std::make_unique<gsc::node_using_animtree>(location, std::move(str_));
-                script_->definitions.push_back(gsc::definition_ptr(std::move(anim)));
-            }
-        }
-        break;
-        case opcode::OP_GetString:
-        {
-            auto str = inst->data[0];
-
-            for (auto idx = str.size() - 2; idx > 0; idx--)
-            {
-                if(str.at(idx) == '\"' || str.at(idx) == '\\')
-                {
-                    str.insert(str.begin() + idx, '\\');
-                }
-            }
-
-            auto node = std::make_unique<gsc::node_string>(location, str);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetIString:
-        {
-            auto node = std::make_unique<gsc::node_localized_string>(location, inst->data[0]);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetZero:
-        {
-            auto node = std::make_unique<gsc::node_integer>(location, "0");
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetByte:		
-        case opcode::OP_GetUnsignedShort:
-        case opcode::OP_GetInteger:
-        {
-            auto node = std::make_unique<gsc::node_integer>(location, inst->data[0]);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetNegByte:
-        case opcode::OP_GetNegUnsignedShort:
-        {
-            auto node = std::make_unique<gsc::node_integer>(location, "-" + inst->data[0]);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetFloat:
-        {
-            auto node = std::make_unique<gsc::node_float>(location, inst->data[0]);
-            stack_.push(std::move(node));
-        }
-        break;
-        case opcode::OP_GetVector:
-        {
-            auto node1 = std::make_unique<gsc::node_float>(location, inst->data[0]);
-            auto node2 = std::make_unique<gsc::node_float>(location, inst->data[1]);
-            auto node3 = std::make_unique<gsc::node_float>(location, inst->data[2]);
-            auto node = std::make_unique<gsc::node_vector>(location, std::move(node1), std::move(node2), std::move(node3));
-            stack_.push(std::move(node));
-        }
-        break;
-// FUNC REF
-        case opcode::OP_GetBuiltinFunction:
-        case opcode::OP_GetBuiltinMethod:
-        {
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
-            auto func = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto stmt = std::make_unique<gsc::node_expr_function_ref>(location, std::move(file), std::move(func));
-            stack_.push(std::move(stmt));
-        }
-        break;
-        case opcode::OP_GetLocalFunction:
-        {
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
-            auto func = std::make_unique<gsc::node_identifier>(location, inst->data[0].substr(4));
-            auto stmt = std::make_unique<gsc::node_expr_function_ref>(location, std::move(file), std::move(func));
-            stack_.push(std::move(stmt));
-        }
-        break;
-        case opcode::OP_GetFarFunction:
-        {
-            auto file = std::make_unique<gsc::node_filepath>(location, inst->data[0]);
-            auto func = std::make_unique<gsc::node_identifier>(location, inst->data[1]);
-            auto stmt = std::make_unique<gsc::node_expr_function_ref>(location, std::move(file), std::move(func));
-            stack_.push(std::move(stmt));
-        };
-        break;
-//////
         case opcode::OP_End:
         {
-            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_return>(location, std::make_unique<gsc::node>()));
+            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_return>(loc, std::make_unique<gsc::node>()));
             func_->block->stmts.push_back(std::move(stmt));
         }
         break;
@@ -242,81 +97,237 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto expr = std::move(stack_.top());
             stack_.pop();
-            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_return>(expr->location, std::move(expr)));
+            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_return>(expr->loc, std::move(expr)));
             func_->block->stmts.push_back(std::move(stmt));
         }
         break;
-        case opcode::OP_waitFrame:
-		{
-            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_waitframe>(location));
-            func_->block->stmts.push_back(std::move(stmt));
+        case opcode::OP_GetZero:
+        {
+            auto node = std::make_unique<gsc::node_integer>(loc, "0");
+            stack_.push(std::move(node));
         }
+        break;
+        case opcode::OP_GetByte:		
+        case opcode::OP_GetUnsignedShort:
+        case opcode::OP_GetInteger:
+        {
+            auto node = std::make_unique<gsc::node_integer>(loc, inst->data[0]);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetNegByte:
+        case opcode::OP_GetNegUnsignedShort:
+        {
+            auto node = std::make_unique<gsc::node_integer>(loc, "-" + inst->data[0]);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetFloat:
+        {
+            auto node = std::make_unique<gsc::node_float>(loc, inst->data[0]);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetVector:
+        {
+            auto x = gsc::expr_ptr(std::make_unique<gsc::node_float>(loc, inst->data[0]));
+            auto y = gsc::expr_ptr(std::make_unique<gsc::node_float>(loc, inst->data[1]));
+            auto z = gsc::expr_ptr(std::make_unique<gsc::node_float>(loc, inst->data[2]));
+            auto node = std::make_unique<gsc::node_vector>(loc, std::move(x), std::move(y), std::move(z));
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetString:
+        {
+            auto node = std::make_unique<gsc::node_string>(loc, inst->data[0]);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetIString:
+        {
+            auto node = std::make_unique<gsc::node_istring>(loc, inst->data[0]);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetUndefined:
+        {
+            auto node = std::make_unique<gsc::node_undefined>(loc);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_EmptyArray:
+        {
+            auto node = std::make_unique<gsc::node_empty_array>(loc);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetLevel:
+        case opcode::OP_GetLevelObject:
+        {
+            auto node = std::make_unique<gsc::node_level>(loc);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetAnim:
+        case opcode::OP_GetAnimObject:
+        {
+            auto node = std::make_unique<gsc::node_anim>(loc);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetSelf:
+        case opcode::OP_GetSelfObject:
+        {
+            auto node = std::make_unique<gsc::node_self>(loc);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetGame:
+        case opcode::OP_GetGameRef:
+        {
+            auto node = std::make_unique<gsc::node_game>(loc);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetAnimation:
+        {
+            auto tree = utils::string::unquote(inst->data[0]);
+
+            if(tree != "")
+            {
+                auto treename = std::make_unique<gsc::node_string>(loc, inst->data[0]);
+                auto animtree = std::make_unique<gsc::node_usingtree>(loc, std::move(treename));
+                program_->definitions.push_back(gsc::define_ptr(std::move(animtree)));
+            }
+            auto node = std::make_unique<gsc::node_animation>(loc, utils::string::unquote(inst->data[1]));
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetAnimTree:
+        {
+            auto tree = utils::string::unquote(inst->data[0]);
+
+            if(tree != "")
+            {
+                auto treename = std::make_unique<gsc::node_string>(loc, inst->data[0]);
+                auto animtree = std::make_unique<gsc::node_usingtree>(loc, std::move(treename));
+                program_->definitions.push_back(gsc::define_ptr(std::move(animtree)));
+            }
+        }
+        break;
+        case opcode::OP_GetThisthread:
+        {
+            auto node = std::make_unique<gsc::node_thisthread>(loc);
+            stack_.push(std::move(node));
+        }
+        break;
+        case opcode::OP_GetBuiltinFunction:
+        case opcode::OP_GetBuiltinMethod:
+        {
+            auto file = std::make_unique<gsc::node_file>(loc);
+            auto func = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto stmt = std::make_unique<gsc::node_expr_function>(loc, std::move(file), std::move(func));
+            stack_.push(std::move(stmt));
+        }
+        break;
+        case opcode::OP_GetLocalFunction:
+        {
+            auto file = std::make_unique<gsc::node_file>(loc);
+            auto func = std::make_unique<gsc::node_name>(loc, inst->data[0].substr(4));
+            auto stmt = std::make_unique<gsc::node_expr_function>(loc, std::move(file), std::move(func));
+            stack_.push(std::move(stmt));
+        }
+        break;
+        case opcode::OP_GetFarFunction:
+        {
+            auto file = std::make_unique<gsc::node_file>(loc, inst->data[0]);
+            auto func = std::make_unique<gsc::node_name>(loc, inst->data[1]);
+            auto stmt = std::make_unique<gsc::node_expr_function>(loc, std::move(file), std::move(func));
+            stack_.push(std::move(stmt));
+        };
         break;
         case opcode::OP_CreateLocalVariable:
         {
-            local_vars_.insert(local_vars_.begin(), "var_" + inst->data[0]);
-            // for locations
-            const auto itr = func->labels.find(inst->index);
+            const auto itr = std::find(create_local_vars_.begin(), create_local_vars_.end(), "var" + inst->data[0]);
 
-            if (itr != func->labels.end())
+            if (itr != create_local_vars_.end())
+            {
+                const auto itr = std::find(stack_local_vars_.begin(), stack_local_vars_.end(), "var" + inst->data[0]);
+                if (itr == stack_local_vars_.end())
+                {
+                    stack_local_vars_.push_back(*itr);
+                }
+            }
+            else
+            {
+                create_local_vars_.push_back("var" + inst->data[0]);
+                stack_local_vars_.push_back("var" + inst->data[0]);
+            }
+
+            // for locations
+            const auto it = func->labels.find(inst->index);
+
+            if (it != func->labels.end())
             {
                 auto stmt = std::make_unique<gsc::node>();
-                stmt->location = location;
+                stmt->loc = loc;
                 func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
             }	
         }
         break;
         case opcode::OP_RemoveLocalVariables:
         {
-            // TODO: FIX THIS!!
-            /*for(auto i = std::stoul(inst->data[0]); i > 0; i--)
-                local_vars_.erase(local_vars_.begin());
-            */
-            // needed ????
+            auto count = std::atoi(inst->data[0].data());
+            while(count)
+            {
+                stack_local_vars_.pop_back();
+                count--;
+            }
+
             auto stmt = std::make_unique<gsc::node>();
-            stmt->location = location;
+            stmt->loc = loc;
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_EvalLocalVariableCached0:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(0));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1));
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached1:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(1));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 2));
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached2:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(2));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 3));
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached3:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(3));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 4));
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached4:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(4));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 5));
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached5:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(5));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 6));
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(std::stoul(inst->data[0])));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0])));
             stack_.push(std::move(node));
         }
         break;
@@ -324,8 +335,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_identifier>(location, local_vars_.at(std::stoul(inst->data[0]))));
-            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->location, std::move(obj), std::move(key));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0]))));
+            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->loc, std::move(obj), std::move(key));
             stack_.push(std::move(node));
         }
         break;
@@ -335,35 +346,46 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->location, std::move(obj), std::move(key));
+            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->loc, std::move(obj), std::move(key));
             stack_.push(std::move(node));
         }
         break;
-        case opcode::OP_EvalNewLocalArrayRefCached0: // create a local array and initialize
+        case opcode::OP_EvalNewLocalArrayRefCached0:
         {
-            local_vars_.insert(local_vars_.begin(), "var_" + inst->data[0]);
+            const auto itr = std::find(create_local_vars_.begin(), create_local_vars_.end(), "var" + inst->data[0]);
+            
+            if (itr != create_local_vars_.end())
+            {
+                stack_local_vars_.push_back(*itr);
+            }
+            else
+            {
+                create_local_vars_.push_back("var" + inst->data[0]);
+                stack_local_vars_.push_back("var" + inst->data[0]);
+            }
+
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_identifier>(location, local_vars_.at(0)));
-            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->location, std::move(obj), std::move(key));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1)));
+            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->loc, std::move(obj), std::move(key));
             stack_.push(std::move(node));
         }
         break;
-        case opcode::OP_EvalLocalArrayRefCached0: // get last created local array ref
+        case opcode::OP_EvalLocalArrayRefCached0:
         {
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_identifier>(location, local_vars_.at(0)));
-            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->location, std::move(obj), std::move(key));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1)));
+            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->loc, std::move(obj), std::move(key));
             stack_.push(std::move(node));	
         }
         break;
-        case opcode::OP_EvalLocalArrayRefCached: // get local array ref
+        case opcode::OP_EvalLocalArrayRefCached:
         {
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_identifier>(location, local_vars_.at(std::stoul(inst->data[0]))));
-            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->location, std::move(obj), std::move(key));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0]))));
+            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->loc, std::move(obj), std::move(key));
             stack_.push(std::move(node));
         }
         break;
@@ -373,7 +395,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->location, std::move(obj), std::move(key));
+            auto node = std::make_unique<gsc::node_expr_array>(key.as_node->loc, std::move(obj), std::move(key));
             stack_.push(std::move(node));
         }
         break;
@@ -383,11 +405,11 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = key.as_node->location;
-            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_expr_array>(location, std::move(obj), std::move(key)));
-            auto rvalue = gsc::expr_ptr(std::make_unique<gsc::node_undefined>(location));
-            auto expr = std::make_unique<gsc::node_expr_assign_equal>(location, std::move(lvalue), std::move(rvalue));
-            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_assign>(location, std::move(expr)));
+            loc = key.as_node->loc;
+            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_expr_array>(loc, std::move(obj), std::move(key)));
+            auto rvalue = gsc::expr_ptr(std::make_unique<gsc::node_undefined>(loc));
+            auto expr = std::make_unique<gsc::node_expr_assign_equal>(loc, std::move(lvalue), std::move(rvalue));
+            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_assign>(loc, std::move(expr)));
             func_->block->stmts.push_back(std::move(stmt));
         }
         break;
@@ -398,62 +420,61 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             auto array = std::move(stack_.top());
             stack_.pop();
             
-            if (array->type == gsc::node_type::empty_array)
+            if (array->type == gsc::node_t::data_empty_array)
             {
-                auto args = std::make_unique<gsc::node_expr_arguments>(location);
+                auto args = std::make_unique<gsc::node_expr_arguments>(loc);
                 args->list.push_back(std::move(var));
-                auto expr = std::make_unique<gsc::node_expr_add_array>(array->location, std::move(args));
+                auto expr = std::make_unique<gsc::node_expr_add_array>(array->loc, std::move(args));
                 stack_.push(std::move(expr));
             }
-            else if (array->type == gsc::node_type::expr_add_array)
+            else if (array->type == gsc::node_t::expr_add_array)
             {
                 (*(gsc::expr_add_array_ptr*)&array)->args->list.push_back(std::move(var));
                 stack_.push(std::move(array));
             }
             else
             {
-                GSC_LOG_ERROR("unknown add array type (could be an array variable name?)");
+                throw gsc::decomp_error("unknown add array type (could be an array variable name?)");
             }
         }
         break;
-// CALLS
         case opcode::OP_PreScriptCall:
         {
-            auto node = std::make_unique<gsc::node_asm_prescriptcall>(location);
+            auto node = std::make_unique<gsc::node_asm_prescriptcall>(loc);
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_ScriptLocalFunctionCall2:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0].substr(4));
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0].substr(4));
+            auto file = std::make_unique<gsc::node_file>(loc);
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_ScriptLocalFunctionCall:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0].substr(4));
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0].substr(4));
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             auto var = std::move(stack_.top());
             stack_.pop();
-
-            while(var->type != gsc::node_type::asm_prescriptcall)
+            loc = var->loc;
+            while(var->type != gsc::node_t::asm_prescriptcall)
             {
                 args->list.push_back(std::move(var));
                 var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -461,32 +482,32 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0].substr(4));
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            loc = obj.as_node->loc;
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0].substr(4));
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             auto var = std::move(stack_.top());
             stack_.pop();
-            location = var->location;
-            while(var->type != gsc::node_type::asm_prescriptcall)
+            loc = var->loc;
+            while(var->type != gsc::node_t::asm_prescriptcall)
             {
                 args->list.push_back(std::move(var));
                 var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_ScriptLocalThreadCall:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0].substr(4));
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0].substr(4));
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             auto argnum = std::stoul(inst->data[1]);
 
@@ -494,22 +515,21 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto expr = std::make_unique<gsc::node_expr_call>(location, true, std::move(obj) ,std::move(func));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, true, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_ScriptLocalChildThreadCall:
         {
-            // TODO. take a look at all child things
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0].substr(4));
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0].substr(4));
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             auto argnum = std::stoul(inst->data[1]);
 
@@ -517,13 +537,13 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto expr = std::make_unique<gsc::node_expr_call>(location, true, std::move(obj) ,std::move(func));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, true, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -531,10 +551,10 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0].substr(4));
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            loc = obj.as_node->loc;
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0].substr(4));
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             auto argnum = std::stoul(inst->data[1]);
 
@@ -542,12 +562,12 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, true, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, true, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -556,10 +576,10 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             // TODO: child things...
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0].substr(4));
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            loc = obj.as_node->loc;
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0].substr(4));
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             auto argnum = std::stoul(inst->data[1]);
 
@@ -567,46 +587,46 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, true, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, true, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_ScriptFarFunctionCall2:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[1]);
-            auto file = std::make_unique<gsc::node_filepath>(location, inst->data[0]);
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[1]);
+            auto file = std::make_unique<gsc::node_file>(loc, inst->data[0]);
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_ScriptFarFunctionCall:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[1]);
-            auto file = std::make_unique<gsc::node_filepath>(location, inst->data[0]);
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[1]);
+            auto file = std::make_unique<gsc::node_file>(loc, inst->data[0]);
 
             auto var = std::move(stack_.top());
             stack_.pop();
-
-            while(var->type != gsc::node_type::asm_prescriptcall)
+            loc = var->loc;
+            while(var->type != gsc::node_t::asm_prescriptcall)
             {
                 args->list.push_back(std::move(var));
                 var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -614,32 +634,32 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[1]);
-            auto file = std::make_unique<gsc::node_filepath>(location, inst->data[0]);
+            loc = obj.as_node->loc;
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[1]);
+            auto file = std::make_unique<gsc::node_file>(loc, inst->data[0]);
 
             auto var = std::move(stack_.top());
             stack_.pop();
-            location = var->location;
-            while(var->type != gsc::node_type::asm_prescriptcall)
+            loc = var->loc;
+            while(var->type != gsc::node_t::asm_prescriptcall)
             {
                 args->list.push_back(std::move(var));
                 var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_ScriptFarThreadCall:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[2]);
-            auto file = std::make_unique<gsc::node_filepath>(location, inst->data[1]);
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[2]);
+            auto file = std::make_unique<gsc::node_file>(loc, inst->data[1]);
 
             auto argnum = std::stoul(inst->data[0]);
 
@@ -647,13 +667,13 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto expr = std::make_unique<gsc::node_expr_call>(location, true, std::move(obj) ,std::move(func));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, true, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -661,10 +681,10 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[2]);
-            auto file = std::make_unique<gsc::node_filepath>(location, inst->data[1]);
+            loc = obj.as_node->loc;
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[2]);
+            auto file = std::make_unique<gsc::node_file>(loc, inst->data[1]);
 
             auto argnum = std::stoul(inst->data[0]);
 
@@ -672,35 +692,35 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, true, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, true, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_ScriptFunctionCallPointer:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
             auto exprf = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = exprf.as_node->location;
+            loc = exprf.as_node->loc;
             auto var = std::move(stack_.top());
             stack_.pop();
-            location = var->location;
-            while(var->type != gsc::node_type::asm_prescriptcall)
+            loc = var->loc;
+            while(var->type != gsc::node_t::asm_prescriptcall)
             {
                 args->list.push_back(std::move(var));
                 var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(location, false, std::move(exprf), std::move(args)));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(loc, false, std::move(exprf), std::move(args)));
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -711,76 +731,122 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
 
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
+            loc = obj.as_node->loc;
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
             auto var = std::move(stack_.top());
             stack_.pop();
-            location = var->location;
-            while(var->type != gsc::node_type::asm_prescriptcall)
+            loc = var->loc;
+            while(var->type != gsc::node_t::asm_prescriptcall)
             {
                 args->list.push_back(std::move(var));
                 var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(location, false, std::move(exprf), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(loc, false, std::move(exprf), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_ScriptThreadCallPointer:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
             auto exprf = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = exprf.as_node->location;
+            loc = exprf.as_node->loc;
             auto argnum = std::stoul(inst->data[0]);
 
             for (size_t i = argnum; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(location, false, std::move(exprf), std::move(args)));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(loc, false, std::move(exprf), std::move(args)));
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto expr = std::make_unique<gsc::node_expr_call>(location, true, std::move(obj) ,std::move(func));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, true, false, std::move(obj) ,std::move(func));
+            stack_.push(std::move(expr));
+        }
+        break;
+        case opcode::OP_ScriptChildThreadCallPointer:
+        {
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto exprf = gsc::expr_ptr(std::move(stack_.top()));
+            stack_.pop();
+            loc = exprf.as_node->loc;
+            auto argnum = std::stoul(inst->data[0]);
+
+            for (size_t i = argnum; i > 0; i--)
+            {
+                auto var = std::move(stack_.top());
+                stack_.pop();
+                loc = var->loc;
+                args->list.push_back(std::move(var));
+            }
+
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(loc, false, std::move(exprf), std::move(args)));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, true, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_ScriptMethodThreadCallPointer:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
             auto exprf = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
 
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
+            loc = obj.as_node->loc;
             auto argnum = std::stoul(inst->data[0]);
 
             for (size_t i = argnum; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(location, false, std::move(exprf), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, true, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(loc, false, std::move(exprf), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, true, false, std::move(obj) ,std::move(func));
+            stack_.push(std::move(expr));
+        }
+        break;
+        case opcode::OP_ScriptMethodChildThreadCallPointer:
+        {
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto exprf = gsc::expr_ptr(std::move(stack_.top()));
+            stack_.pop();
+
+            auto obj = gsc::expr_ptr(std::move(stack_.top()));
+            stack_.pop();
+            loc = obj.as_node->loc;
+            auto argnum = std::stoul(inst->data[0]);
+
+            for (size_t i = argnum; i > 0; i--)
+            {
+                auto var = std::move(stack_.top());
+                stack_.pop();
+                loc = var->loc;
+                args->list.push_back(std::move(var));
+            }
+
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(loc, false, std::move(exprf), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, true, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_CallBuiltinPointer:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
             auto exprf = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = exprf.as_node->location;
+            loc = exprf.as_node->loc;
 
             auto argnum = std::stoul(inst->data[0]);
 
@@ -788,157 +854,157 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(location, true, std::move(exprf), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(loc, true, std::move(exprf), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_CallBuiltinMethodPointer:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
             auto exprf = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
 
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
+            loc = obj.as_node->loc;
             auto argnum = std::stoul(inst->data[0]);
 
             for (size_t i = argnum; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(location, true, std::move(exprf), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_pointer>(loc, true, std::move(exprf), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_CallBuiltin0:
         {
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_CallBuiltin1:
         {
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             for (size_t i = 1; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
             
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_CallBuiltin2:
         {
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             for (size_t i = 2; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
             
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_CallBuiltin3:
         {
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             for (size_t i = 3; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
             
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_CallBuiltin4:
         {
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             for (size_t i = 4; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
             
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_CallBuiltin5:
         {
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             for (size_t i = 5; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
             
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
         case opcode::OP_CallBuiltin:
         {
             auto obj = gsc::expr_ptr(std::make_unique<gsc::node>());
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[1]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[1]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             auto argnum = std::stoul(inst->data[0]);
 
@@ -946,12 +1012,12 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -959,13 +1025,13 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            loc = obj.as_node->loc;
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -974,20 +1040,20 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
 
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             for (size_t i = 1; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -996,20 +1062,20 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
 
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             for (size_t i = 2; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -1018,20 +1084,20 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
 
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             for (size_t i = 3; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -1040,20 +1106,20 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
 
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             for (size_t i = 4; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -1062,20 +1128,20 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
 
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             for (size_t i = 5; i > 0; i--)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -1083,10 +1149,10 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto name = std::make_unique<gsc::node_identifier>(location, inst->data[1]);
-            auto file = std::make_unique<gsc::node_filepath>(location, "");
+            loc = obj.as_node->loc;
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto name = std::make_unique<gsc::node_name>(loc, inst->data[1]);
+            auto file = std::make_unique<gsc::node_file>(loc);
 
             auto argnum = std::stoul(inst->data[0]);
 
@@ -1094,12 +1160,12 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             {
                 auto var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
                 args->list.push_back(std::move(var));
             }
 
-            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(location, std::move(file), std::move(name), std::move(args)));
-            auto expr = std::make_unique<gsc::node_expr_call>(location, false, std::move(obj) ,std::move(func));
+            auto func = gsc::expr_call_type_ptr(std::make_unique<gsc::node_expr_call_function>(loc, std::move(file), std::move(name), std::move(args)));
+            auto expr = std::make_unique<gsc::node_expr_call>(loc, false, false, std::move(obj) ,std::move(func));
             stack_.push(std::move(expr));
         }
         break;
@@ -1107,18 +1173,17 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto expr = std::move(stack_.top());
             stack_.pop();
-            location = expr->location;
-            auto stmt = std::make_unique<gsc::node_stmt_call>(location, std::move(*(gsc::expr_call_ptr*)&expr));
+            loc = expr->loc;
+            auto stmt = std::make_unique<gsc::node_stmt_call>(loc, std::move(*(gsc::expr_call_ptr*)&expr));
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
-// EXPR
         case opcode::OP_inc:
         {
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_increment>(location, std::move(lvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_increment>(loc, std::move(lvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1126,8 +1191,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_decrement>(location, std::move(lvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_decrement>(loc, std::move(lvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1137,8 +1202,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_bitwise_or>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_bitwise_or>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1148,8 +1213,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_bitwise_exor>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_bitwise_exor>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1159,8 +1224,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_bitwise_and>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_bitwise_and>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1170,8 +1235,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_equality>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_equality>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1181,8 +1246,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_inequality>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_inequality>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1192,8 +1257,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_less>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_less>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1203,8 +1268,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_greater>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_greater>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1214,8 +1279,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_less_equal>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_less_equal>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1225,8 +1290,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_greater_equal>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_greater_equal>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1236,8 +1301,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_shift_left>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_shift_left>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1247,8 +1312,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_shift_right>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_shift_right>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1258,8 +1323,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_add>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_add>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1269,8 +1334,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_sub>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_sub>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1280,8 +1345,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_mult>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_mult>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1291,8 +1356,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_div>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_div>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1302,25 +1367,23 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_mod>(location, std::move(lvalue), std::move(rvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_mod>(loc, std::move(lvalue), std::move(rvalue));
             stack_.push(std::move(expr));
         }
         break;
-
-// WAIT NOTIFY
         case opcode::OP_wait:
         {
             auto expr = std::move(stack_.top());
             stack_.pop();
-            location = expr->location;
-            auto stmt = std::make_unique<gsc::node_stmt_wait>(location, std::move(expr));
+            loc = expr->loc;
+            auto stmt = std::make_unique<gsc::node_stmt_wait>(loc, std::move(expr));
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_waittillFrameEnd:
         {
-            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_waittillframeend>(location));
+            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_waittillframeend>(loc));
             func_->block->stmts.push_back(std::move(stmt));
         }
         break;
@@ -1330,9 +1393,9 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto nstr = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = nstr.as_node->location;
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
-            auto stmt = std::make_unique<gsc::node_stmt_waittill>(location, std::move(obj) , std::move(nstr), std::move(args));
+            loc = nstr.as_node->loc;
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
+            auto stmt = std::make_unique<gsc::node_stmt_waittill>(loc, std::move(obj) , std::move(nstr), std::move(args));
             stack_.push(std::move(stmt));
         }
         break;
@@ -1340,29 +1403,41 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
+            auto expr = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
-            stack_.pop();
-            location = rvalue.as_node->location;
-            auto stmt = std::make_unique<gsc::node_stmt_waittillmatch>(location, std::move(obj), std::move(lvalue), std::move(rvalue));
+            loc = expr.as_node->loc;
+
+            gsc::expr_arguments_ptr args = std::make_unique<gsc::node_expr_arguments>();
+            args->loc = loc;
+
+            while(stack_.size() > 0)
+            {
+                auto node = std::move(stack_.top());
+                stack_.pop();
+                args->loc = node->loc;
+                args->list.push_back(std::move(node));
+                
+            }
+            loc = args->loc;
+
+            auto stmt = std::make_unique<gsc::node_stmt_waittillmatch>(loc, std::move(obj), std::move(expr), std::move(args));
             stack_.push(std::move(stmt));
         }
         break;
         case opcode::OP_clearparams:
         {
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
             auto var = std::move(stack_.top());
             stack_.pop();
 
-            while(var->type != gsc::node_type::stmt_waittill && var->type != gsc::node_type::stmt_waittillmatch)
+            while(var->type != gsc::node_t::stmt_waittill && var->type != gsc::node_t::stmt_waittillmatch)
             {
                 args->list.push_back(std::move(var));
                 var = std::move(stack_.top());
                 stack_.pop();
             }
 
-            if(var->type == gsc::node_type::stmt_waittill)
+            if(var->type == gsc::node_t::stmt_waittill)
             {
                 (*(gsc::stmt_waittill_ptr*)&var)->args = std::move(args);
             }
@@ -1372,11 +1447,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         break;
         case opcode::OP_checkclearparams:
         {
-            for (size_t i = 0; i < params_; i++)
-            {
-                local_vars_.at(i).append(utils::string::va("%i", params_ - 1 - i));
-                func_->params->list.insert(func_->params->list.begin(), std::make_unique<gsc::node_identifier>(location, local_vars_.at(i)));
-            }
+            // no needed
         }
         break;
         case opcode::OP_notify:
@@ -1387,20 +1458,20 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             auto nstr = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
 
-            auto args = std::make_unique<gsc::node_expr_arguments>(location);
+            auto args = std::make_unique<gsc::node_expr_arguments>(loc);
             
             auto var = std::move(stack_.top());
             stack_.pop();
-            location = var->location;
-            while(var->type != gsc::node_type::asm_voidcodepos)
+            loc = var->loc;
+            while(var->type != gsc::node_t::asm_voidcodepos)
             {
                 args->list.push_back(std::move(var));
                 var = std::move(stack_.top());
                 stack_.pop();
-                location = var->location;
+                loc = var->loc;
             }
 
-            auto stmt = std::make_unique<gsc::node_stmt_notify>(location, std::move(obj) , std::move(nstr), std::move(args));
+            auto stmt = std::make_unique<gsc::node_stmt_notify>(loc, std::move(obj) , std::move(nstr), std::move(args));
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
@@ -1410,18 +1481,17 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto nstr = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = nstr.as_node->location;
-            auto stmt = std::make_unique<gsc::node_stmt_endon>(location, std::move(obj) , std::move(nstr));
+            loc = nstr.as_node->loc;
+            auto stmt = std::make_unique<gsc::node_stmt_endon>(loc, std::move(obj) , std::move(nstr));
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_voidCodepos:
         {
-            auto node = std::make_unique<gsc::node_asm_voidcodepos>(location);
+            auto node = std::make_unique<gsc::node_asm_voidcodepos>(loc);
             stack_.push(std::move(node));
         }
         break;
-/// 
         case opcode::OP_vector:
         {
             auto x = gsc::expr_ptr(std::move(stack_.top()));
@@ -1430,8 +1500,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             stack_.pop();
             auto z = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = z.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_vector>(location, std::move(x), std::move(y),  std::move(z));
+            loc = z.as_node->loc;
+            auto expr = std::make_unique<gsc::node_vector>(loc, std::move(x), std::move(y),  std::move(z));
             stack_.push(std::move(expr));
         }
         break;
@@ -1439,32 +1509,32 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_size>(location, std::move(lvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_size>(loc, std::move(lvalue));
             stack_.push(std::move(expr));
         }
         break;		
         case opcode::OP_EvalLevelFieldVariable:
         {
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_level>(location));
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto stmt = std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_level>(loc));
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto stmt = std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field));
             stack_.push(std::move(stmt));
         }
         break;
         case opcode::OP_EvalAnimFieldVariable:
         {
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_anim>(location));
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto stmt = std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_anim>(loc));
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto stmt = std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field));
             stack_.push(std::move(stmt));
         }
         break;
         case opcode::OP_EvalSelfFieldVariable:
         {
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_self>(location));
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto stmt = std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_self>(loc));
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto stmt = std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field));
             stack_.push(std::move(stmt));
         }
         break;
@@ -1472,33 +1542,33 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto stmt = std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field));
+            loc = obj.as_node->loc;
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto stmt = std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field));
             stack_.push(std::move(stmt));
         }
         break;
         case opcode::OP_EvalLevelFieldVariableRef:
         {
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_level>(location));
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto stmt = std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_level>(loc));
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto stmt = std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field));
             stack_.push(std::move(stmt));
         }
         break;
         case opcode::OP_EvalAnimFieldVariableRef:
         {
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_anim>(location));
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto stmt = std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_anim>(loc));
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto stmt = std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field));
             stack_.push(std::move(stmt));
         }
         break;
         case opcode::OP_EvalSelfFieldVariableRef:
         {
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_self>(location));
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto stmt = std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_self>(loc));
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto stmt = std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field));
             stack_.push(std::move(stmt));
         }
         break;
@@ -1506,9 +1576,9 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto stmt = std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field));
+            loc = obj.as_node->loc;
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto stmt = std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field));
             stack_.push(std::move(stmt));
         }
         break;
@@ -1516,48 +1586,49 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = obj.as_node->location;
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto expr = gsc::expr_ptr(std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field)));
-            auto undef = gsc::expr_ptr(std::make_unique<gsc::node_undefined>(location));
-            auto e = std::make_unique<gsc::node_expr_assign_equal>(location, std::move(expr), std::move(undef));
-            func_->block->stmts.push_back(gsc::stmt_ptr(std::make_unique<gsc::node_stmt_assign>(location, std::move(e))));
+            loc = obj.as_node->loc;
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto expr = gsc::expr_ptr(std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field)));
+            auto undef = gsc::expr_ptr(std::make_unique<gsc::node_undefined>(loc));
+            auto e = std::make_unique<gsc::node_expr_assign_equal>(loc, std::move(expr), std::move(undef));
+            func_->block->stmts.push_back(gsc::stmt_ptr(std::make_unique<gsc::node_stmt_assign>(loc, std::move(e))));
         }
         break;
         case opcode::OP_SafeCreateVariableFieldCached:
         {
-            params_++;
-            local_vars_.push_back("var");
+            create_local_vars_.push_back("var" + inst->data[0]);
+            stack_local_vars_.push_back("var" + inst->data[0]);
+            func_->params->list.push_back(std::make_unique<gsc::node_name>(loc, stack_local_vars_.back()));
         }
         break;
         case opcode::OP_SafeSetWaittillVariableFieldCached:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(std::stoul(inst->data[0])));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0])));
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableRefCached0:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(0));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.back());
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableRefCached:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(std::stoul(inst->data[0])));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0])));
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_SetLevelFieldVariableField:
         {
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_level>(location));
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field)));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_level>(loc));
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field)));
             auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = rvalue.as_node->location;
-            auto e = std::make_unique<gsc::node_expr_assign_equal>(location,std::move(lvalue), std::move(rvalue));
-            auto stmt = std::make_unique<gsc::node_stmt_assign>(location, std::move(e));
+            loc = rvalue.as_node->loc;
+            auto e = std::make_unique<gsc::node_expr_assign_equal>(loc,std::move(lvalue), std::move(rvalue));
+            auto stmt = std::make_unique<gsc::node_stmt_assign>(loc, std::move(e));
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
@@ -1565,87 +1636,97 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
+            loc = lvalue.as_node->loc;
 
-            if(lvalue.as_node->type == gsc::node_type::expr_increment)
+            if(lvalue.as_node->type == gsc::node_t::expr_increment)
             {
-                auto stmt = std::make_unique<gsc::node_stmt_assign>(location, std::move(lvalue.as_increment));
+                auto stmt = std::make_unique<gsc::node_stmt_assign>(loc, std::move(lvalue.as_increment));
                 func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
             }
-            else if(lvalue.as_node->type == gsc::node_type::expr_decrement)
+            else if(lvalue.as_node->type == gsc::node_t::expr_decrement)
             {
-                auto stmt = std::make_unique<gsc::node_stmt_assign>(location, std::move(lvalue.as_decrement));
+                auto stmt = std::make_unique<gsc::node_stmt_assign>(loc, std::move(lvalue.as_decrement));
                 func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
             }
             else
             {
                 auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
                 stack_.pop();
-                location = rvalue.as_node->location;
-                auto e = std::make_unique<gsc::node_expr_assign_equal>(location, std::move(lvalue), std::move(rvalue));
-                auto stmt = std::make_unique<gsc::node_stmt_assign>(location, std::move(e));
+                loc = rvalue.as_node->loc;
+                auto e = std::make_unique<gsc::node_expr_assign_equal>(loc, std::move(lvalue), std::move(rvalue));
+                auto stmt = std::make_unique<gsc::node_stmt_assign>(loc, std::move(e));
                 func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
             }
         }
         break;
         case opcode::OP_SetAnimFieldVariableField:
         {
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_anim>(location));
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field)));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_anim>(loc));
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field)));
             auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = rvalue.as_node->location;
-            auto e = std::make_unique<gsc::node_expr_assign_equal>(location, std::move(lvalue), std::move(rvalue));
-            auto stmt = std::make_unique<gsc::node_stmt_assign>(location, std::move(e));
+            loc = rvalue.as_node->loc;
+            auto e = std::make_unique<gsc::node_expr_assign_equal>(loc, std::move(lvalue), std::move(rvalue));
+            auto stmt = std::make_unique<gsc::node_stmt_assign>(loc, std::move(e));
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_SetSelfFieldVariableField:
         {
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_self>(location));
-            auto field = std::make_unique<gsc::node_identifier>(location, inst->data[0]);
-            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_expr_field>(location, std::move(obj), std::move(field)));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_self>(loc));
+            auto field = std::make_unique<gsc::node_name>(loc, inst->data[0]);
+            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_expr_field>(loc, std::move(obj), std::move(field)));
             auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = rvalue.as_node->location;
-            auto e = std::make_unique<gsc::node_expr_assign_equal>(location, std::move(lvalue), std::move(rvalue));
-            auto stmt = std::make_unique<gsc::node_stmt_assign>(location, std::move(e));
+            loc = rvalue.as_node->loc;
+            auto e = std::make_unique<gsc::node_expr_assign_equal>(loc, std::move(lvalue), std::move(rvalue));
+            auto stmt = std::make_unique<gsc::node_stmt_assign>(loc, std::move(e));
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_SetLocalVariableFieldCached0:
         {
-            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_identifier>(location, local_vars_.at(0)));
+            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.back()));
             auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = rvalue.as_node->location;
-            auto e = std::make_unique<gsc::node_expr_assign_equal>(location, std::move(lvalue), std::move(rvalue));
-            auto stmt = std::make_unique<gsc::node_stmt_assign>(location, std::move(e));
+            loc = rvalue.as_node->loc;
+            auto e = std::make_unique<gsc::node_expr_assign_equal>(loc, std::move(lvalue), std::move(rvalue));
+            auto stmt = std::make_unique<gsc::node_stmt_assign>(loc, std::move(e));
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_SetNewLocalVariableFieldCached0:
         {
-            local_vars_.insert(local_vars_.begin(), "var_" + inst->data[0]);
+            const auto itr = std::find(create_local_vars_.begin(), create_local_vars_.end(), "var" + inst->data[0]);
+            
+            if (itr != create_local_vars_.end())
+            {
+                stack_local_vars_.push_back(*itr);
+            }
+            else
+            {
+                create_local_vars_.push_back("var" + inst->data[0]);
+                stack_local_vars_.push_back("var" + inst->data[0]);
+            }
 
-            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_identifier>(location, local_vars_.at(0)));
+            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.back()));
             auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = rvalue.as_node->location;
-            auto e = std::make_unique<gsc::node_expr_assign_equal>(location, std::move(lvalue), std::move(rvalue));
-            auto stmt = std::make_unique<gsc::node_stmt_assign>(location, std::move(e));
+            loc = rvalue.as_node->loc;
+            auto e = std::make_unique<gsc::node_expr_assign_equal>(loc, std::move(lvalue), std::move(rvalue));
+            auto stmt = std::make_unique<gsc::node_stmt_assign>(loc, std::move(e));
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_SetLocalVariableFieldCached:
         {
-            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_identifier>(location, local_vars_.at(std::stoul(inst->data[0]))));
+            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0]))));
             auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = rvalue.as_node->location;
-            auto e = std::make_unique<gsc::node_expr_assign_equal>(location, std::move(lvalue), std::move(rvalue));
-            auto stmt = std::make_unique<gsc::node_stmt_assign>(location, std::move(e));
+            loc = rvalue.as_node->loc;
+            auto e = std::make_unique<gsc::node_expr_assign_equal>(loc, std::move(lvalue), std::move(rvalue));
+            auto stmt = std::make_unique<gsc::node_stmt_assign>(loc, std::move(e));
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
@@ -1654,7 +1735,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             // TODO: used in for, foreach
             // make a null node to save locations
             auto stmt = std::make_unique<gsc::node>();
-            stmt->location = location;
+            stmt->loc = loc;
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
@@ -1663,25 +1744,32 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             // TODO: used in for, foreach
             // make a null node to save locations
             auto stmt = std::make_unique<gsc::node>();
-            stmt->location = location;
+            stmt->loc = loc;
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_EvalLocalVariableObjectCached:
         {
-            auto node = std::make_unique<gsc::node_identifier>(location, local_vars_.at(std::stoul(inst->data[0])));
+            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0])));
             stack_.push(std::move(node));
         }
         break;
-        case opcode::OP_CastFieldObject: // no needed
-        case opcode::OP_CastBool: // no needed
+        case opcode::OP_CastFieldObject:
+        {
+            //continue;
+        }
+        break;
+        case  opcode::OP_CastBool:
+        {
+            //continue;
+        }
         break;
         case opcode::OP_BoolNot:
         {
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_not>(location, std::move(lvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_not>(loc, std::move(lvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1689,8 +1777,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_expr_complement>(location, std::move(lvalue));
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_complement>(loc, std::move(lvalue));
             stack_.push(std::move(expr));
         }
         break;
@@ -1698,8 +1786,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto expr = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = expr.as_node->location;
-            auto sw = std::make_unique<gsc::node_asm_switch>(location, std::move(expr), inst->data[0]);
+            loc = expr.as_node->loc;
+            auto sw = std::make_unique<gsc::node_asm_switch>(loc, std::move(expr), inst->data[0]);
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(sw)));
         }
         break;
@@ -1708,20 +1796,20 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             auto count = inst->data[0];
             inst->data.erase(inst->data.begin());
             auto data = inst->data;
-            auto end = std::make_unique<gsc::node_asm_endswitch>(location, data, count);
+            auto end = std::make_unique<gsc::node_asm_endswitch>(loc, data, count);
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(end)));
         }
         break;
         case opcode::OP_jump:
         {
-            auto expr = std::make_unique<gsc::node_asm_jump>(location, inst->data[0]);
+            auto expr = std::make_unique<gsc::node_asm_jump>(loc, inst->data[0]);
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(expr)));
 
         }
         break;
         case opcode::OP_jumpback:
         {
-            auto expr = std::make_unique<gsc::node_asm_jump_back>(location, inst->data[0]);
+            auto expr = std::make_unique<gsc::node_asm_jump_back>(loc, inst->data[0]);
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(expr)));
         }
         break;
@@ -1729,9 +1817,9 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto e_not = gsc::expr_ptr(std::make_unique<gsc::node_expr_not>(location, std::move(lvalue)));
-            auto expr = std::make_unique<gsc::node_asm_jump_cond>(location, std::move(e_not), inst->data[0]);
+            loc = lvalue.as_node->loc;
+            auto e_not = gsc::expr_ptr(std::make_unique<gsc::node_expr_not>(loc, std::move(lvalue)));
+            auto expr = std::make_unique<gsc::node_asm_jump_cond>(loc, std::move(e_not), inst->data[0]);
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(expr)));
         }
         break;
@@ -1739,8 +1827,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_asm_jump_cond>(location, std::move(lvalue), inst->data[0]);
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_asm_jump_cond>(loc, std::move(lvalue), inst->data[0]);
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(expr)));
         }
         break;
@@ -1748,8 +1836,8 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_asm_jump_true_expr>(location, std::move(lvalue), inst->data[0]);
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_asm_jump_true_expr>(loc, std::move(lvalue), inst->data[0]);
             stack_.push(std::move(expr));
             expr_labels_.push_back(inst->data[0]);
         }
@@ -1758,14 +1846,14 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            location = lvalue.as_node->location;
-            auto expr = std::make_unique<gsc::node_asm_jump_false_expr>(location, std::move(lvalue), inst->data[0]);
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_asm_jump_false_expr>(loc, std::move(lvalue), inst->data[0]);
             stack_.push(std::move(expr));
             expr_labels_.push_back(inst->data[0]);
         }
         break;
         default:
-            GSC_LOG_ERROR("unhandled opcode '%s'!", resolver::opcode_name(opcode(inst->opcode)).data());
+            throw gsc::decomp_error("unhandled opcode " + resolver::opcode_name(inst->opcode));
         break;
         }
     }
@@ -1778,25 +1866,25 @@ void decompiler::decompile_expr()
 
     auto jump_expr = std::move(stack_.top());
     stack_.pop();
-    auto location = jump_expr->location;
+    auto loc = jump_expr->loc;
     
-    if(jump_expr->type == gsc::node_type::asm_jump_true_expr)
+    if(jump_expr->type == gsc::node_t::asm_jump_true_expr)
     {
         auto lvalue = std::move((*(gsc::asm_jump_true_expr_ptr*)&jump_expr)->expr);
         auto rvalue = gsc::expr_ptr(std::move(expr));
-        auto e = std::make_unique<gsc::node_expr_or>(location, std::move(lvalue), std::move(rvalue));
+        auto e = std::make_unique<gsc::node_expr_or>(loc, std::move(lvalue), std::move(rvalue));
         stack_.push(std::move(e));
     }
-    else if(jump_expr->type == gsc::node_type::asm_jump_false_expr)
+    else if(jump_expr->type == gsc::node_t::asm_jump_false_expr)
     {
         auto lvalue = std::move((*(gsc::asm_jump_false_expr_ptr*)&jump_expr)->expr);
         auto rvalue = gsc::expr_ptr(std::move(expr));
-        auto e = std::make_unique<gsc::node_expr_and>(location, std::move(lvalue), std::move(rvalue));
+        auto e = std::make_unique<gsc::node_expr_and>(loc, std::move(lvalue), std::move(rvalue));
         stack_.push(std::move(e));
     }
     else
     {
-        GSC_LOG_ERROR("TRIED TO DECOMPILE INVALID JUMP EXPR!");
+        throw gsc::decomp_error("TRIED TO DECOMPILE INVALID JUMP EXPR!");
     }
 }
 
@@ -1815,7 +1903,7 @@ void decompiler::decompile_nulls(const gsc::block_ptr& block)
     auto index = 0;
     while(index < block->stmts.size())
     {
-        if(block->stmts.at(index).as_node->type == gsc::node_type::null)
+        if(block->stmts.at(index).as_node->type == gsc::node_t::null)
         {
             block->stmts.erase(block->stmts.begin() + index);
         }
@@ -1829,13 +1917,13 @@ void decompiler::decompile_search_infinite(const gsc::block_ptr& block)
 
     while(index >= 0)
     {
-        if(block->stmts.at(index).as_node->type == gsc::node_type::asm_jump_back)
+        if(block->stmts.at(index).as_node->type == gsc::node_t::asm_jump_back)
         {
-            auto break_loc = last_location_index(block, index) ?  blocks_.back().loc_end : block->stmts.at(index+1).as_node->location;
+            auto break_loc = last_location_index(block, index) ?  blocks_.back().loc_end : utils::string::va("loc_%X", block->stmts.at(index+1).as_node->loc.begin.line);
             auto begin_loc = block->stmts.at(index).as_jump_back->value;
             auto start = find_location_index(block, begin_loc);
 
-            if(block->stmts.at(start).as_node->type != gsc::node_type::asm_jump_cond)
+            if(block->stmts.at(start).as_node->type != gsc::node_t::asm_jump_cond)
             {
                 decompile_infinite(block, start, index);
                 index = start;
@@ -1859,7 +1947,7 @@ void decompiler::decompile_search_loop(const gsc::block_ptr& block)
     {
         auto& stmt = block->stmts.at(index);
 
-        if(stmt.as_node->type == gsc::node_type::asm_jump_cond)
+        if(stmt.as_node->type == gsc::node_t::asm_jump_cond)
         {
             std::uint32_t end;
             if(stmt.as_cond->value == blocks_.back().loc_end)
@@ -1871,8 +1959,8 @@ void decompiler::decompile_search_loop(const gsc::block_ptr& block)
                 end = find_location_index(block, stmt.as_cond->value) - 1;
             }
             
-            if(block->stmts.at(end).as_node->type == gsc::node_type::asm_jump_back
-                && block->stmts.at(index).as_node->location == block->stmts.at(end).as_jump_back->value)
+            if(block->stmts.at(end).as_node->type == gsc::node_t::asm_jump_back
+                && utils::string::va("loc_%X", block->stmts.at(index).as_node->loc.begin.line) == block->stmts.at(end).as_jump_back->value)
             {
                 decompile_loop(block, index, end);
                 index = 0;
@@ -1888,7 +1976,7 @@ void decompiler::decompile_search_switch(const gsc::block_ptr& block)
 
     while(index < block->stmts.size())
     {
-        if(block->stmts.at(index).as_node->type == gsc::node_type::asm_switch)
+        if(block->stmts.at(index).as_node->type == gsc::node_t::asm_switch)
         {
             decompile_switch(block, index);
         }
@@ -1905,7 +1993,7 @@ void decompiler::decompile_search_ifelse(const gsc::block_ptr& block)
     {
         auto& stmt = block->stmts.at(index);
 
-        if(stmt.as_node->type == gsc::node_type::asm_jump_cond)
+        if(stmt.as_node->type == gsc::node_t::asm_jump_cond)
         {
             std::uint32_t end;
             if(stmt.as_cond->value == blocks_.back().loc_end)
@@ -1919,7 +2007,7 @@ void decompiler::decompile_search_ifelse(const gsc::block_ptr& block)
             
             auto last_loc = blocks_.back().loc_end;
 
-            if(block->stmts.at(end).as_node->type == gsc::node_type::asm_jump)
+            if(block->stmts.at(end).as_node->type == gsc::node_t::asm_jump)
             {
                 // if block is a loop check break, continue
                 if(block->stmts.at(end).as_jump->value == blocks_.back().loc_continue)
@@ -1944,8 +2032,8 @@ void decompiler::decompile_search_ifelse(const gsc::block_ptr& block)
                     decompile_ifelse(block, index, end);
                 }
             }
-            else if(block->stmts.at(end).as_node->type == gsc::node_type::stmt_return
-                && block->stmts.at(end).as_return->expr.as_node->type == gsc::node_type::null)
+            else if(block->stmts.at(end).as_node->type == gsc::node_t::stmt_return
+                && block->stmts.at(end).as_return->expr.as_node->type == gsc::node_t::null)
             {
                 if(blocks_.back().loc_break != "" || blocks_.back().loc_continue != "")
                 {
@@ -1955,11 +2043,11 @@ void decompiler::decompile_search_ifelse(const gsc::block_ptr& block)
                 {
                     decompile_if(block, index, end); // only one explicit return
                 }
-                else if(block->stmts.back().as_node->type != gsc::node_type::stmt_return)
+                else if(block->stmts.back().as_node->type != gsc::node_t::stmt_return)
                 {
                     decompile_if(block, index, end); // block end is not a last return
                 }
-                else if(blocks_.back().is_last && block->stmts.back().as_node->type != gsc::node_type::stmt_return)
+                else if(blocks_.back().is_last && block->stmts.back().as_node->type != gsc::node_t::stmt_return)
                 {
                     decompile_if(block, index, end); // inside a last block but is not and inner last
                 }
@@ -1987,21 +2075,21 @@ void decompiler::decompile_break_continue(const gsc::block_ptr& block)
 
     while(index < block->stmts.size())
     {
-        if(block->stmts.at(index).as_node->type == gsc::node_type::asm_jump)
+        if(block->stmts.at(index).as_node->type == gsc::node_t::asm_jump)
         {
-            auto location = block->stmts.at(index).as_node->location;
+            auto loc = block->stmts.at(index).as_node->loc;
             auto jump_loc = block->stmts.at(index).as_jump->value;
     
             if(jump_loc == blocks_.back().loc_continue)
             {
                 block->stmts.erase(block->stmts.begin() + index);
-                auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_continue>(location));
+                auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_continue>(loc));
                 block->stmts.insert(block->stmts.begin() + index, std::move(stmt));
             }
             else if(jump_loc == blocks_.back().loc_break)
             {
                 block->stmts.erase(block->stmts.begin() + index);
-                auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_break>(location));
+                auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_break>(loc));
                 block->stmts.insert(block->stmts.begin() + index, std::move(stmt));
             }
         }
@@ -2013,16 +2101,16 @@ void decompiler::decompile_break_continue(const gsc::block_ptr& block)
 void decompiler::decompile_if(const gsc::block_ptr& block, std::uint32_t begin, std::uint32_t end)
 {
     gsc::context ctx;
-    ctx.loc_end =block->stmts.at(begin).as_cond->value;
+    ctx.loc_end = block->stmts.at(begin).as_cond->value;
     ctx.loc_break = blocks_.back().loc_break;
     ctx.loc_continue = blocks_.back().loc_continue;
 
-    auto location = block->stmts.at(begin).as_node->location;
+    auto loc = block->stmts.at(begin).as_node->loc;
     auto expr = std::move(block->stmts.at(begin).as_cond->expr);
 
     block->stmts.erase(block->stmts.begin() + begin); // remove condition
 
-    auto if_block = std::make_unique<gsc::node_block>(location);
+    auto if_block = std::make_unique<gsc::node_block>(loc);
 
     for(auto i = begin; i < end; i++)
     {
@@ -2034,24 +2122,24 @@ void decompiler::decompile_if(const gsc::block_ptr& block, std::uint32_t begin, 
     decompile_block(if_block);
     blocks_.pop_back();
 
-    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_if>(location, std::move(expr), std::move(if_block)));
+    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_if>(loc, std::move(expr), std::move(if_block)));
     block->stmts.insert(block->stmts.begin() + begin, std::move(stmt));
 }
 
 void decompiler::decompile_ifelse(const gsc::block_ptr& block, std::uint32_t start, std::uint32_t end)
 {
     gsc::context ctx;
-    ctx.loc_end = block->stmts.at(end).as_node->location;
+    ctx.loc_end = utils::string::va("loc_%X", block->stmts.at(end).as_node->loc.begin.line);
     ctx.loc_break = blocks_.back().loc_break;
     ctx.loc_continue = blocks_.back().loc_continue;
 
-    auto location = block->stmts.at(start).as_node->location;
+    auto loc = block->stmts.at(start).as_node->loc;
     auto expr = std::move(block->stmts.at(start).as_cond->expr);
 
     block->stmts.erase(block->stmts.begin() + start); // remove condition
     end = end - 1;
 
-    auto if_block = std::make_unique<gsc::node_block>(location);
+    auto if_block = std::make_unique<gsc::node_block>(loc);
 
     for(auto i = start; i < end; i++) // skip the jump
     {
@@ -2083,7 +2171,7 @@ void decompiler::decompile_ifelse(const gsc::block_ptr& block, std::uint32_t sta
     ctx2.loc_break = blocks_.back().loc_break;
     ctx2.loc_continue = blocks_.back().loc_continue;
 
-    auto else_block = std::make_unique<gsc::node_block>(location);
+    auto else_block = std::make_unique<gsc::node_block>(loc);
 
     for(auto i = start; i < end_index; i++)
     {
@@ -2095,7 +2183,7 @@ void decompiler::decompile_ifelse(const gsc::block_ptr& block, std::uint32_t sta
     decompile_block(else_block);
     blocks_.pop_back();
 
-    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_ifelse>(location, std::move(expr), std::move(if_block), std::move(else_block)));
+    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_ifelse>(loc, std::move(expr), std::move(if_block), std::move(else_block)));
     block->stmts.insert(block->stmts.begin() + start, std::move(stmt));
 }
 
@@ -2105,14 +2193,14 @@ void decompiler::decompile_last_ifelse(const gsc::block_ptr& block, std::uint32_
     ctx.is_last = true;
 
     auto inner_end = find_location_index(block, block->stmts.at(start).as_cond->value) - 1;
-    ctx.loc_end = block->stmts.at(inner_end).as_node->location;
-    auto location = block->stmts.at(start).as_node->location;
+    ctx.loc_end = utils::string::va("loc_%X",block->stmts.at(inner_end).as_node->loc.begin.line);
+    auto loc = block->stmts.at(start).as_node->loc;
     auto expr = std::move(block->stmts.at(start).as_cond->expr);
 
     block->stmts.erase(block->stmts.begin() + start); // remove condition
     end = end - 1;
 
-    auto if_block = std::make_unique<gsc::node_block>(location);
+    auto if_block = std::make_unique<gsc::node_block>(loc);
 
     for(auto i = start; i < end; i++)
     {
@@ -2128,7 +2216,7 @@ void decompiler::decompile_last_ifelse(const gsc::block_ptr& block, std::uint32_
 
     if(start == block->stmts.size())
     {
-        auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_if>(location, std::move(expr), std::move(if_block)));
+        auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_if>(loc, std::move(expr), std::move(if_block)));
         block->stmts.insert(block->stmts.begin() + start, std::move(stmt));
     }
     else
@@ -2136,10 +2224,10 @@ void decompiler::decompile_last_ifelse(const gsc::block_ptr& block, std::uint32_
         gsc::context ctx2;
         ctx2.is_last = true;
 
-        auto else_block = std::make_unique<gsc::node_block>(location);
+        auto else_block = std::make_unique<gsc::node_block>(loc);
 
         end = block->stmts.size();
-        ctx2.loc_end = block->stmts.at(end - 1).as_node->location; // return is the block end
+        ctx2.loc_end = utils::string::va("loc_%X", block->stmts.at(end - 1).as_node->loc.begin.line); // return is the block end
 
         for(auto i = start; i < end; i++)
         {
@@ -2153,7 +2241,7 @@ void decompiler::decompile_last_ifelse(const gsc::block_ptr& block, std::uint32_
         decompile_block(else_block);
         blocks_.pop_back();
 
-        auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_ifelse>(location, std::move(expr), std::move(if_block), std::move(else_block)));
+        auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_ifelse>(loc, std::move(expr), std::move(if_block), std::move(else_block)));
         block->stmts.insert(block->stmts.begin() + start, std::move(stmt));
     }
 }
@@ -2161,15 +2249,15 @@ void decompiler::decompile_last_ifelse(const gsc::block_ptr& block, std::uint32_
 void decompiler::decompile_infinite(const gsc::block_ptr& block, std::uint32_t start, std::uint32_t end)
 {
     gsc::context ctx;
-    ctx.loc_break = last_location_index(block, end) ? blocks_.back().loc_end : block->stmts.at(end+1).as_node->location;
-    ctx.loc_end = block->stmts.at(end).as_node->location;
-    ctx.loc_continue = block->stmts.at(end).as_node->location;
+    ctx.loc_break = last_location_index(block, end) ? blocks_.back().loc_end : utils::string::va("loc_%X", block->stmts.at(end+1).as_node->loc.begin.line);
+    ctx.loc_end = utils::string::va("loc_%X", block->stmts.at(end).as_node->loc.begin.line);
+    ctx.loc_continue = utils::string::va("loc_%X", block->stmts.at(end).as_node->loc.begin.line);
 
-    auto location = block->stmts.at(start).as_node->location;
+    auto loc = block->stmts.at(start).as_node->loc;
 
     block->stmts.erase(block->stmts.begin() + end); // remove jump back
 
-    auto for_block = std::make_unique<gsc::node_block>(location);
+    auto for_block = std::make_unique<gsc::node_block>(loc);
 
     for(auto i = start; i < end; i++)
     {
@@ -2184,25 +2272,25 @@ void decompiler::decompile_infinite(const gsc::block_ptr& block, std::uint32_t s
     auto expr = gsc::expr_ptr(std::make_unique<gsc::node>());
     auto pre_expr = gsc::expr_ptr(std::make_unique<gsc::node>());
     auto post_expr = gsc::expr_ptr(std::make_unique<gsc::node>());
-    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_for>(location, std::move(pre_expr), std::move(expr), std::move(post_expr), std::move(for_block)));
+    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_for>(loc, std::move(pre_expr), std::move(expr), std::move(post_expr), std::move(for_block)));
     block->stmts.insert(block->stmts.begin() + start, std::move(stmt));
 }
 
 void decompiler::decompile_loop(const gsc::block_ptr& block, std::uint32_t start, std::uint32_t end)
 {
     auto& last_stmt = block->stmts.at(end-1);
-    if(last_stmt.as_node->type == gsc::node_type::stmt_assign)
+    if(last_stmt.as_node->type == gsc::node_t::stmt_assign)
     {
-        if(last_stmt.as_assign->expr->type == gsc::node_type::expr_assign_equal)
+        if(last_stmt.as_assign->expr->type == gsc::node_t::expr_assign_equal)
         {
             auto& rval = last_stmt.as_assign->expr->rvalue;
-            if(rval.as_node->type == gsc::node_type::expr_call)
+            if(rval.as_node->type == gsc::node_t::expr_call)
             {
-                if(rval.as_call->func.as_node->type == gsc::node_type::expr_call_function)
+                if(rval.as_call->func.as_node->type == gsc::node_t::expr_call_function)
                 {
                     if(utils::string::to_lower(rval.as_call->func.as_func->name->value) == "getnextarraykey")
                     {
-                        auto ref2 = block->stmts.at(start).as_node->location;
+                        auto ref2 = utils::string::va("loc_%X", block->stmts.at(start).as_node->loc.begin.line);
                         if(find_location_reference(block, 0, start, ref2))
                         {
                             // begin is at condition, not pre-expr
@@ -2222,10 +2310,10 @@ void decompiler::decompile_loop(const gsc::block_ptr& block, std::uint32_t start
         if(start > 0) // while at func start
         {
             auto& first_stmt = block->stmts.at(start - 1);
-            if(first_stmt.as_node->type == gsc::node_type::stmt_assign)
+            if(first_stmt.as_node->type == gsc::node_t::stmt_assign)
             {
-                auto ref = block->stmts.at(end).as_node->location;
-                auto ref2 = block->stmts.at(start).as_node->location;
+                auto ref = utils::string::va("loc_%X", block->stmts.at(end).as_node->loc.begin.line);
+                auto ref2 = utils::string::va("loc_%X", block->stmts.at(start).as_node->loc.begin.line);
 
                 if(find_location_reference(block, start, end, ref))
                 {
@@ -2255,17 +2343,17 @@ void decompiler::decompile_while(const gsc::block_ptr& block, std::uint32_t star
 {
     gsc::context ctx;
     ctx.loc_break = block->stmts.at(start).as_cond->value;
-    ctx.loc_end = block->stmts.at(end).as_node->location;
-    ctx.loc_continue = block->stmts.at(end).as_node->location;
+    ctx.loc_end = utils::string::va("loc_%X", block->stmts.at(end).as_node->loc.begin.line);
+    ctx.loc_continue = utils::string::va("loc_%X",block->stmts.at(end).as_node->loc.begin.line);
 
-    auto location = block->stmts.at(start).as_node->location;
+    auto loc = block->stmts.at(start).as_node->loc;
     auto expr = std::move(block->stmts.at(start).as_cond->expr);
 
     block->stmts.erase(block->stmts.begin() + end); // remove jump back
     block->stmts.erase(block->stmts.begin() + start); // remove condition
     end = end - 1;
 
-    auto while_block = std::make_unique<gsc::node_block>(location);
+    auto while_block = std::make_unique<gsc::node_block>(loc);
 
     for(auto i = start; i < end; i++)
     {
@@ -2277,7 +2365,7 @@ void decompiler::decompile_while(const gsc::block_ptr& block, std::uint32_t star
     decompile_block(while_block);
     blocks_.pop_back();
 
-    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_while>(location, std::move(expr), std::move(while_block)));
+    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_while>(loc, std::move(expr), std::move(while_block)));
     block->stmts.insert(block->stmts.begin() + start, std::move(stmt));
 }
 
@@ -2285,10 +2373,10 @@ void decompiler::decompile_for(const gsc::block_ptr& block, std::uint32_t start,
 {
     gsc::context ctx;
     ctx.loc_break = block->stmts.at(start).as_cond->value;
-    ctx.loc_end = block->stmts.at(end - 1).as_node->location;
-    ctx.loc_continue = block->stmts.at(end - 1).as_node->location;
+    ctx.loc_end = utils::string::va("loc_%X", block->stmts.at(end - 1).as_node->loc.begin.line);
+    ctx.loc_continue = utils::string::va("loc_%X", block->stmts.at(end - 1).as_node->loc.begin.line);
 
-    auto location = block->stmts.at(start - 1).as_node->location;
+    auto loc = block->stmts.at(start - 1).as_node->loc;
     auto expr = std::move(block->stmts.at(start).as_cond->expr);
     auto pre_expr = gsc::expr_ptr(std::move(block->stmts.at(start - 1).as_assign->expr));
     auto post_expr = gsc::expr_ptr(std::move(block->stmts.at(end - 1).as_assign->expr));
@@ -2306,7 +2394,7 @@ void decompiler::decompile_for(const gsc::block_ptr& block, std::uint32_t start,
         block->stmts.erase(block->stmts.begin() + end);
     }
 
-    auto for_block = std::make_unique<gsc::node_block>(location);
+    auto for_block = std::make_unique<gsc::node_block>(loc);
 
     for(auto i = start; i < end; i++)
     {
@@ -2318,7 +2406,7 @@ void decompiler::decompile_for(const gsc::block_ptr& block, std::uint32_t start,
     decompile_block(for_block);
     blocks_.pop_back();
 
-    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_for>(location, std::move(pre_expr), std::move(expr), std::move(post_expr), std::move(for_block)));
+    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_for>(loc, std::move(pre_expr), std::move(expr), std::move(post_expr), std::move(for_block)));
     block->stmts.insert(block->stmts.begin() + start, std::move(stmt));
 }
 
@@ -2326,12 +2414,12 @@ void decompiler::decompile_foreach(const gsc::block_ptr& block, std::uint32_t be
 {
     gsc::context ctx;
     ctx.loc_break = block->stmts.at(begin).as_cond->value;
-    ctx.loc_end = block->stmts.at(end - 1).as_node->location;
-    ctx.loc_continue = block->stmts.at(end - 1).as_node->location;
+    ctx.loc_end = utils::string::va("loc_%X", block->stmts.at(end - 1).as_node->loc.begin.line);
+    ctx.loc_continue = utils::string::va("loc_%X", block->stmts.at(end - 1).as_node->loc.begin.line);
 
-    auto location = block->stmts.at(begin - 2).as_node->location;
+    auto loc = block->stmts.at(begin - 2).as_node->loc;
     auto array = std::move(block->stmts[begin-2].as_assign->expr->rvalue);
-    auto element = std::move(block->stmts[begin+1].as_assign->expr->lvalue);
+    auto element = std::move(block->stmts[begin+1].as_assign->expr->lvalue.as_name);
 
     begin = begin - 2;
     end = end - 4;
@@ -2347,7 +2435,7 @@ void decompiler::decompile_foreach(const gsc::block_ptr& block, std::uint32_t be
         block->stmts.erase(block->stmts.begin() + end);
     }
 
-    auto foreach_block = std::make_unique<gsc::node_block>(location);
+    auto foreach_block = std::make_unique<gsc::node_block>(loc);
 
     for(auto i = begin; i < end; i++)
     {
@@ -2359,7 +2447,7 @@ void decompiler::decompile_foreach(const gsc::block_ptr& block, std::uint32_t be
     decompile_block(foreach_block);
     blocks_.pop_back();
 
-    auto foreach_stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_foreach>(location, std::move(element), std::move(array), std::move(foreach_block)));
+    auto foreach_stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_foreach>(loc, std::move(element), std::move(array), std::move(foreach_block)));
     block->stmts.insert(block->stmts.begin() + begin, std::move(foreach_stmt));
 }
 
@@ -2368,7 +2456,7 @@ void decompiler::decompile_switch(const gsc::block_ptr& block, std::uint32_t sta
     gsc::context ctx;
     ctx.loc_continue = blocks_.back().loc_continue;
 
-    auto location = block->stmts.at(start).as_node->location;
+    auto loc = block->stmts.at(start).as_node->loc;
     auto expr = std::move(block->stmts.at(start).as_asm_switch->expr);
     auto end_loc = block->stmts.at(start).as_asm_switch->value;
     auto end = find_location_index(block, end_loc);
@@ -2379,7 +2467,7 @@ void decompiler::decompile_switch(const gsc::block_ptr& block, std::uint32_t sta
     }
     else
     {
-        ctx.loc_break = block->stmts.at(end + 1).as_node->location;
+        ctx.loc_break = utils::string::va("loc_%X", block->stmts.at(end + 1).as_node->loc.begin.line);
     }
 
     // collect cases
@@ -2391,8 +2479,8 @@ void decompiler::decompile_switch(const gsc::block_ptr& block, std::uint32_t sta
     {
         if(data.at(idx) == "case")
         {
-            auto loc = data.at(idx+2);
-            auto loc_idx = find_location_index(block, loc);
+            auto loc_str = data.at(idx+2);
+            auto loc_idx = find_location_index(block, loc_str);
             auto value = gsc::expr_ptr(std::make_unique<gsc::node_string>(loc, data.at(idx+1)));
             auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_case>(loc, std::move(value)));
             block->stmts.insert(block->stmts.begin() + loc_idx, std::move(stmt));
@@ -2400,8 +2488,8 @@ void decompiler::decompile_switch(const gsc::block_ptr& block, std::uint32_t sta
         }
         else if(data.at(idx) == "default")
         {
-            auto loc = data.at(idx+1);
-            auto loc_idx = find_location_index(block, loc);
+            auto loc_str = data.at(idx+1);
+            auto loc_idx = find_location_index(block, loc_str);
             auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_default>(loc));
             block->stmts.insert(block->stmts.begin() + loc_idx, std::move(stmt));
             idx += 2;
@@ -2413,7 +2501,7 @@ void decompiler::decompile_switch(const gsc::block_ptr& block, std::uint32_t sta
     block->stmts.erase(block->stmts.begin() + end); // remove endswitch
 
     //decompile block
-    auto sw_block = std::make_unique<gsc::node_block>(location);
+    auto sw_block = std::make_unique<gsc::node_block>(loc);
 
     for(auto i = start; i < end; i++)
     {
@@ -2425,7 +2513,7 @@ void decompiler::decompile_switch(const gsc::block_ptr& block, std::uint32_t sta
     decompile_block(sw_block);
     blocks_.pop_back();
 
-    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_switch>(location, std::move(expr), std::move(sw_block)));
+    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_switch>(loc, std::move(expr), std::move(sw_block)));
     block->stmts.insert(block->stmts.begin() + start, std::move(stmt));
 }
 
@@ -2433,12 +2521,12 @@ auto decompiler::find_location_reference(const gsc::block_ptr& block, std::uint3
 {
     for(auto i = start; i < end; i++)
     {
-        if(block->stmts.at(i).as_node->type == gsc::node_type::asm_jump_cond)
+        if(block->stmts.at(i).as_node->type == gsc::node_t::asm_jump_cond)
         {
             if(block->stmts.at(i).as_cond->value == location)
                 return true;
         }
-        else if(block->stmts.at(i).as_node->type == gsc::node_type::asm_jump)
+        else if(block->stmts.at(i).as_node->type == gsc::node_t::asm_jump)
         {
             if(block->stmts.at(i).as_jump->value == location)
                 return true;
@@ -2457,13 +2545,13 @@ auto decompiler::find_location_index(const gsc::block_ptr& block, const std::str
 
     for(auto& stmt : block->stmts)
     {
-        if(stmt.as_node->location == location)
+        if(stmt.as_node->loc.begin.line == std::stol(location.substr(4), 0, 16))
             return index;
 
         index++;
     }
 
-    GSC_LOG_ERROR("LOCATION NOT FOUND! (%s)", location.data());
+    throw gsc::decomp_error("LOCATION NOT FOUND! (" + location + ")");
     return 0;
 }
 

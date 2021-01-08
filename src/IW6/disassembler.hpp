@@ -11,6 +11,7 @@ namespace IW6
 
 class disassembler : public gsc::disassembler
 {
+    std::string filename_;
     utils::byte_buffer_ptr script_;
     utils::byte_buffer_ptr stack_;
     utils::byte_buffer_ptr output_;
@@ -20,7 +21,7 @@ class disassembler : public gsc::disassembler
 public:
     auto output() -> std::vector<gsc::function_ptr>;
     auto output_data() -> std::vector<std::uint8_t>;
-    void disassemble(std::vector<std::uint8_t>& script, std::vector<std::uint8_t>& stack);
+    void disassemble(const std::string& file, std::vector<std::uint8_t>& script, std::vector<std::uint8_t>& stack);
 
 private:
     void dissasemble_function(const gsc::function_ptr& func);

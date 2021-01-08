@@ -8,7 +8,13 @@
 namespace IW5
 {
 
-auto resolver::opcode_id(const std::string& name) -> opcode
+std::unordered_map<std::uint8_t, std::string> opcode_map;
+std::unordered_map<std::uint16_t, std::string> function_map;
+std::unordered_map<std::uint16_t, std::string> method_map;
+std::unordered_map<std::uint16_t, std::string> file_map;
+std::unordered_map<std::uint16_t, std::string> token_map;
+
+auto resolver::opcode_id(const std::string& name) -> std::uint8_t
 {
     for (auto& opcode : opcode_map)
     {
@@ -18,11 +24,11 @@ auto resolver::opcode_id(const std::string& name) -> opcode
         }
     }
 
-    GSC_LOG_ERROR("Couldn't resolve opcode id for name '%s'!", name.data());
-    return opcode::OP_Count;
+    throw gsc::error(utils::string::va("Couldn't resolve opcode id for name '%s'!", name.data()));
+    return 0xFF;
 }
 
-auto resolver::opcode_name(opcode id) -> std::string
+auto resolver::opcode_name(std::uint8_t id) -> std::string
 {
     const auto itr = opcode_map.find(id);
 
@@ -31,13 +37,13 @@ auto resolver::opcode_name(opcode id) -> std::string
         return itr->second;
     }
 
-    GSC_LOG_ERROR("Couldn't resolve opcode name for id '0x%hhX'!", id);
+    throw gsc::error(utils::string::va("Couldn't resolve opcode name for id '0x%hhX'!", id));
     return "";
 }
 
-auto resolver::builtin_func_id(const std::string& name) -> std::uint16_t
+auto resolver::function_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& func : builtin_function_map)
+    for (auto& func : function_map)
     {
         if (func.second == name)
         {
@@ -45,26 +51,26 @@ auto resolver::builtin_func_id(const std::string& name) -> std::uint16_t
         }
     }
 
-    GSC_LOG_ERROR("Couldn't resolve builtin function id for name '%s'!", name.data());
+    throw gsc::error(utils::string::va("Couldn't resolve builtin function id for name '%s'!", name.data()));
     return 0xFFFF;
 }
 
-auto resolver::builtin_func_name(std::uint16_t id) -> std::string
+auto resolver::function_name(std::uint16_t id) -> std::string
 {
-    const auto itr = builtin_function_map.find(id);
+    const auto itr = function_map.find(id);
 
-    if (itr != builtin_function_map.end())
+    if (itr != function_map.end())
     {
         return itr->second;
     }
 
-    GSC_LOG_ERROR("Couldn't resolve builtin function name for id '%i'!", id);
+    throw gsc::error(utils::string::va("Couldn't resolve builtin function name for id '%i'!", id));
     return utils::string::va("_ID%i", id);
 }
 
-auto resolver::builtin_method_id(const std::string& name) -> std::uint16_t
+auto resolver::method_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& method : builtin_method_map)
+    for (auto& method : method_map)
     {
         if (method.second == name)
         {
@@ -72,20 +78,20 @@ auto resolver::builtin_method_id(const std::string& name) -> std::uint16_t
         }
     }
 
-    GSC_LOG_ERROR("Couldn't resolve builtin method id for name '%s'!", name.data());
+    throw gsc::error(utils::string::va("Couldn't resolve builtin method id for name '%s'!", name.data()));
     return 0xFFFF;
 }
 
-auto resolver::builtin_method_name(std::uint16_t id) -> std::string
+auto resolver::method_name(std::uint16_t id) -> std::string
 {
-    const auto itr = builtin_method_map.find(id);
+    const auto itr = method_map.find(id);
 
-    if (itr != builtin_method_map.end())
+    if (itr != method_map.end())
     {
         return itr->second;
     }
 
-    GSC_LOG_ERROR("Couldn't resolve builtin method name for id '%i'!", id);
+    throw gsc::error(utils::string::va("Couldn't resolve builtin method name for id '%i'!", id));
     return utils::string::va("_ID%i", id);
 }
 
@@ -140,9 +146,9 @@ auto resolver::token_name(std::uint16_t id) -> std::string
     return utils::string::va("_ID%i", id);
 }
 
-auto resolver::find_builtin_func(const std::string& name) -> bool
+auto resolver::find_function(const std::string& name) -> bool
 {
-    for (auto& func : builtin_function_map)
+    for (auto& func : function_map)
     {
         if (func.second == name)
         {
@@ -153,9 +159,9 @@ auto resolver::find_builtin_func(const std::string& name) -> bool
     return false;
 }
 
-auto resolver::find_builtin_meth(const std::string& name) -> bool
+auto resolver::find_method(const std::string& name) -> bool
 {
-    for (auto& method : builtin_method_map)
+    for (auto& method : method_map)
     {
         if (method.second == name)
         {
@@ -166,165 +172,165 @@ auto resolver::find_builtin_meth(const std::string& name) -> bool
     return false;
 }
 
-std::unordered_map<opcode, std::string> resolver::opcode_map
-{
-    { opcode::OP_End, "END" },
-    { opcode::OP_Return, "RETN" },
-    { opcode::OP_GetByte, "GET_BYTE" },
-    { opcode::OP_GetNegByte, "GET_NBYTE" },
-    { opcode::OP_GetUnsignedShort, "GET_USHORT" },
-    { opcode::OP_GetNegUnsignedShort, "GET_NUSHORT" },
-    { opcode::OP_GetInteger, "GET_INT" },
-    { opcode::OP_GetBuiltinFunction, "GET_BUILTIN_FUNC" },
-    { opcode::OP_GetBuiltinMethod, "GET_BUILTIN_METHOD" },
-    { opcode::OP_GetFloat, "GET_FLOAT" },
-    { opcode::OP_GetString, "GET_STRING" },
-    { opcode::OP_GetUndefined, "GET_UNDEFINED" },
-    { opcode::OP_GetZero, "GET_ZERO" },
-    { opcode::OP_waittillFrameEnd, "WAITTILLFRAMEEND" },
-    { opcode::OP_CreateLocalVariable, "CREATE_LOCAL_VARIABLE" },
-    { opcode::OP_RemoveLocalVariables, "REMOVE_LOCAL_VARIABLES" },
-    { opcode::OP_EvalLocalVariableCached0, "EVAL_LOCAL_VARIABLE_CACHED0" },
-    { opcode::OP_EvalLocalVariableCached1, "EVAL_LOCAL_VARIABLE_CACHED1" },
-    { opcode::OP_EvalLocalVariableCached2, "EVAL_LOCAL_VARIABLE_CACHED2" },
-    { opcode::OP_EvalLocalVariableCached3, "EVAL_LOCAL_VARIABLE_CACHED3" },
-    { opcode::OP_EvalLocalVariableCached4, "EVAL_LOCAL_VARIABLE_CACHED4" },
-    { opcode::OP_EvalLocalVariableCached5, "EVAL_LOCAL_VARIABLE_CACHED5" },
-    { opcode::OP_EvalLocalVariableCached, "EVAL_LOCAL_VARIABLE_CACHED" },
-    { opcode::OP_EvalLocalArrayCached, "EVAL_LOCAL_ARRAY_CACHED" },
-    { opcode::OP_EvalArray, "EVAL_ARRAY" },
-    { opcode::OP_EvalNewLocalArrayRefCached0, "EVAL_NEW_LOCAL_ARRAY_REF_CACHED0" },
-    { opcode::OP_EvalLocalArrayRefCached0, "EVAL_LOCAL_ARRAY_REF_CACHED0" },
-    { opcode::OP_EvalLocalArrayRefCached, "EVAL_LOCAL_ARRAY_REF_CACHED" },
-    { opcode::OP_EvalArrayRef, "EVAL_ARRAY_REF" },
-    { opcode::OP_ClearArray, "CLEAR_ARRAY" },
-    { opcode::OP_EmptyArray, "EMPTY_ARRAY" },
-    { opcode::OP_AddArray, "ADD_ARRAY" },
-    { opcode::OP_PreScriptCall, "PRE_CALL" },
-    { opcode::OP_ScriptLocalFunctionCall2, "CALL_LOCAL_FUNC2" },
-    { opcode::OP_ScriptLocalFunctionCall, "CALL_LOCAL_FUNC" },
-    { opcode::OP_ScriptLocalMethodCall, "CALL_LOCAL_METHOD" },
-    { opcode::OP_ScriptLocalThreadCall, "CALL_LOCAL_FUNC_THREAD" },
-    { opcode::OP_ScriptLocalChildThreadCall, "CALL_LOCAL_FUNC_CHILD_THREAD" },
-    { opcode::OP_ScriptLocalMethodThreadCall, "CALL_LOCAL_METHOD_THREAD" },
-    { opcode::OP_ScriptLocalMethodChildThreadCall, "CALL_LOCAL_METHOD_CHILD_THREAD" },
-    { opcode::OP_ScriptFarFunctionCall2, "CALL_FAR_FUNC2" },
-    { opcode::OP_ScriptFarFunctionCall, "CALL_FAR_FUNC" },
-    { opcode::OP_ScriptFarMethodCall, "CALL_FAR_METHOD" },
-    { opcode::OP_ScriptFarThreadCall, "CALL_FAR_FUNC_THREAD" },
-    { opcode::OP_ScriptFarChildThreadCall, "CALL_FAR_FUNC_CHILD_THREAD"},
-    { opcode::OP_ScriptFarMethodThreadCall, "CALL_FAR_METHOD_THEAD" },
-    { opcode::OP_ScriptFarMethodChildThreadCall, "CALL_FAR_METHOD_CHILD_THEAD" },
-    { opcode::OP_ScriptFunctionCallPointer, "CALL_FUNC_POINTER" },
-    { opcode::OP_ScriptMethodCallPointer, "CALL_METHOD_POINTER" },
-    { opcode::OP_ScriptThreadCallPointer, "CALL_FUNC_THREAD_POINTER" },
-    { opcode::OP_ScriptChildThreadCallPointer, "CALL_FUNC_CHILD_THREAD_POINTER" },
-    { opcode::OP_ScriptMethodThreadCallPointer, "CALL_METHOD_THREAD_POINTER" },
-    { opcode::OP_ScriptMethodChildThreadCallPointer, "CALL_METHOD_CHILD_THREAD_POINTER" },
-    { opcode::OP_CallBuiltinPointer, "CALL_BUILTIN_FUNC_POINTER" },
-    { opcode::OP_CallBuiltinMethodPointer, "CALL_BUILTIN_METHOD_POINTER" },
-    { opcode::OP_GetIString, "GET_ISTRING" },
-    { opcode::OP_GetVector, "GET_VECTOR" },
-    { opcode::OP_GetLevelObject, "GET_LEVEL_OBJ" },
-    { opcode::OP_GetAnimObject, "GET_ANIM_OBJ" },
-    { opcode::OP_GetSelf, "GET_SELF" },
-    { opcode::OP_GetThisthread, "GET_THISTHREAD" },
-    { opcode::OP_GetLevel, "GET_LEVEL" },
-    { opcode::OP_GetGame, "GET_GAME" },
-    { opcode::OP_GetAnim, "GET_ANIM" },
-    { opcode::OP_GetAnimation, "GET_ANIMATION" },
-    { opcode::OP_GetGameRef, "GET_GAME_REF" },
-    { opcode::OP_inc, "INC" },
-    { opcode::OP_dec, "DEC" },
-    { opcode::OP_bit_or, "BIT_OR" },
-    { opcode::OP_JumpOnFalseExpr, "JMP_EXPR_FALSE" },
-    { opcode::OP_bit_ex_or, "BIT_EXOR" },
-    { opcode::OP_bit_and, "BIT_AND" },
-    { opcode::OP_equality, "EQUALITY" },
-    { opcode::OP_inequality, "INEQUALITY" },
-    { opcode::OP_less, "LESS" },
-    { opcode::OP_greater, "GREATER" },
-    { opcode::OP_JumpOnTrueExpr, "JMP_EXPR_TRUE" },
-    { opcode::OP_less_equal, "LESSEQUAL" },
-    { opcode::OP_jumpback, "JMP_BACK" },
-    { opcode::OP_waittillmatch2, "WAITTILLMATCH2" },
-    { opcode::OP_waittill, "WAITTILL" },
-    { opcode::OP_notify, "NOTIFY" },
-    { opcode::OP_endon, "ENDON" },
-    { opcode::OP_voidCodepos, "VOIDCODEPOS" },
-    { opcode::OP_switch, "SWITCH" },
-    { opcode::OP_endswitch, "ENDSWITCH" },
-    { opcode::OP_vector, "VECTOR" },
-    { opcode::OP_JumpOnFalse, "JMP_FALSE" },
-    { opcode::OP_greater_equal, "GREATEREQUAL" },
-    { opcode::OP_shift_left, "SHIFT_LEFT" },
-    { opcode::OP_shift_right, "SHIFT_RIGHT" },
-    { opcode::OP_plus, "PLUS" },
-    { opcode::OP_jump, "JMP" },
-    { opcode::OP_minus, "MINUS" },
-    { opcode::OP_multiply, "MULT" },
-    { opcode::OP_divide, "DIV" },
-    { opcode::OP_mod, "MOD" },
-    { opcode::OP_JumpOnTrue, "JMP_TRUE" },
-    { opcode::OP_size, "SIZE" },
-    { opcode::OP_waittillmatch, "WAITTILLMATCH" },
-    { opcode::OP_GetLocalFunction, "GET_LOCAL_FUNC" },
-    { opcode::OP_GetFarFunction, "GET_FAR_FUNC" },
-    { opcode::OP_GetSelfObject, "GET_SELF_OBJ" },
-    { opcode::OP_EvalLevelFieldVariable, "EVAL_LEVEL_FIELD_VARIABLE" },
-    { opcode::OP_EvalAnimFieldVariable, "EVAL_ANIM_FIELD_VARIABLE" },
-    { opcode::OP_EvalSelfFieldVariable, "EVAL_SELF_FIELD_VARIABLE" },
-    { opcode::OP_EvalFieldVariable, "EVAL_FIELD_VARIABLE" },
-    { opcode::OP_EvalLevelFieldVariableRef, "EVAL_LEVEL_FIELD_VARIABLE_REF" },
-    { opcode::OP_EvalAnimFieldVariableRef, "EVAL_ANIM_FIELD_VARIABLE_REF" },
-    { opcode::OP_EvalSelfFieldVariableRef, "EVAL_SELF_FIELD_VARIABLE_REF" },
-    { opcode::OP_EvalFieldVariableRef, "EVAL_FIELD_VARIABLE_REF" },
-    { opcode::OP_ClearFieldVariable, "CLEAR_FIELD_VARIABLE" },
-    { opcode::OP_SafeCreateVariableFieldCached, "SAFE_CREATE_VARIABLE_FIELD_CACHED" },
-    { opcode::OP_SafeSetVariableFieldCached0, "SAFE_SET_VARIABLE_FIELD_CACHED0" },
-    { opcode::OP_SafeSetVariableFieldCached, "SAFE_SET_VARIABLE_FIELD_CACHED" },
-    { opcode::OP_SafeSetWaittillVariableFieldCached, "SAFE_SET_WAITTILL_VARIABLE_FIELD_CACHED" },
-    { opcode::OP_GetAnimTree, "GET_ANIMTREE" },
-    { opcode::OP_clearparams, "CLEAR_PARAMS" },
-    { opcode::OP_checkclearparams, "CHECK_CLEAR_PARAMS" },
-    { opcode::OP_EvalLocalVariableRefCached0, "EVAL_LOCAL_VARIABLE_REF_CACHED0" },
-    { opcode::OP_EvalNewLocalVariableRefCached0, "EVAL_NEW_LOCAL_VARIABLE_REF_CACHED0" },
-    { opcode::OP_EvalLocalVariableRefCached, "EVAL_LOCAL_VARIABLE_REF_CACHED" },
-    { opcode::OP_SetLevelFieldVariableField, "SET_LEVEL_FIELD_VARIABLE_FIELD" },
-    { opcode::OP_SetVariableField, "SET_VARIABLE_FIELD" },
-    { opcode::OP_ClearVariableField, "CLEAR_VARIABLE_FIELD" },
-    { opcode::OP_SetAnimFieldVariableField, "SET_ANIM_FIELD_VARIABLE_FIELD" },
-    { opcode::OP_SetSelfFieldVariableField, "SET_SELF_FIELD_VARIABLE_FIELD" },
-    { opcode::OP_SetLocalVariableFieldCached0, "SET_LOCAL_VARIABLE_FIELD_CACHED0" },
-    { opcode::OP_SetNewLocalVariableFieldCached0, "SET_NEW_LOCAL_VARIABLE_FIELD_CACHED0" },
-    { opcode::OP_SetLocalVariableFieldCached, "SET_LOCAL_VARIABLE_FIELD_CACHED" },
-    { opcode::OP_ClearLocalVariableFieldCached, "CLEAR_LOCAL_VARIABLE_FIELD_CACHED" },
-    { opcode::OP_ClearLocalVariableFieldCached0, "CLEAR_LOCAL_VARIABLE_FIELD_CACHED0" },
-    { opcode::OP_CallBuiltin0, "CALL_BUILTIN_FUNC_0" },
-    { opcode::OP_CallBuiltin1, "CALL_BUILTIN_FUNC_1" },
-    { opcode::OP_CallBuiltin2, "CALL_BUILTIN_FUNC_2" },
-    { opcode::OP_CallBuiltin3, "CALL_BUILTIN_FUNC_3" },
-    { opcode::OP_CallBuiltin4, "CALL_BUILTIN_FUNC_4" },
-    { opcode::OP_CallBuiltin5, "CALL_BUILTIN_FUNC_5" },
-    { opcode::OP_CallBuiltin, "CALL_BUILTIN_FUNC" },
-    { opcode::OP_CallBuiltinMethod0, "CALL_BUILTIN_METHOD_0" },
-    { opcode::OP_CallBuiltinMethod1, "CALL_BUILTIN_METHOD_1" },
-    { opcode::OP_CallBuiltinMethod2, "CALL_BUILTIN_METHOD_2" },
-    { opcode::OP_CallBuiltinMethod3, "CALL_BUILTIN_METHOD_3" },
-    { opcode::OP_CallBuiltinMethod4, "CALL_BUILTIN_METHOD_4" },
-    { opcode::OP_CallBuiltinMethod5, "CALL_BUILTIN_METHOD_5" },
-    { opcode::OP_CallBuiltinMethod, "CALL_BUILTIN_METHOD" },
-    { opcode::OP_wait, "WAIT" },
-    { opcode::OP_DecTop, "DEC_TOP" },
-    { opcode::OP_CastFieldObject, "CAST_FIELD_OBJ" },
-    { opcode::OP_EvalLocalVariableObjectCached, "EVAL_LOCAL_VARIABLE_OBJECT_CACHED" },
-    { opcode::OP_CastBool, "CAST_BOOL" },
-    { opcode::OP_BoolNot, "BOOL_NOT" },
-    { opcode::OP_BoolComplement, "BOOL_COMPLEMENT" },
-};
+const std::array<gsc::pair_8C, 153> opcode_list
+{{
+    { std::uint8_t(opcode::OP_End),"END" },
+    { std::uint8_t(opcode::OP_Return),"RETN" },
+    { std::uint8_t(opcode::OP_GetByte),"GET_BYTE" },
+    { std::uint8_t(opcode::OP_GetNegByte),"GET_NBYTE" },
+    { std::uint8_t(opcode::OP_GetUnsignedShort),"GET_USHORT" },
+    { std::uint8_t(opcode::OP_GetNegUnsignedShort),"GET_NUSHORT" },
+    { std::uint8_t(opcode::OP_GetInteger),"GET_INT" },
+    { std::uint8_t(opcode::OP_GetBuiltinFunction),"GET_BUILTIN_FUNC" },
+    { std::uint8_t(opcode::OP_GetBuiltinMethod),"GET_BUILTIN_METHOD" },
+    { std::uint8_t(opcode::OP_GetFloat),"GET_FLOAT" },
+    { std::uint8_t(opcode::OP_GetString),"GET_STRING" },
+    { std::uint8_t(opcode::OP_GetUndefined),"GET_UNDEFINED" },
+    { std::uint8_t(opcode::OP_GetZero),"GET_ZERO" },
+    { std::uint8_t(opcode::OP_waittillFrameEnd),"WAITTILLFRAMEEND" },
+    { std::uint8_t(opcode::OP_CreateLocalVariable),"CREATE_LOCAL_VARIABLE" },
+    { std::uint8_t(opcode::OP_RemoveLocalVariables),"REMOVE_LOCAL_VARIABLES" },
+    { std::uint8_t(opcode::OP_EvalLocalVariableCached0),"EVAL_LOCAL_VARIABLE_CACHED0" },
+    { std::uint8_t(opcode::OP_EvalLocalVariableCached1),"EVAL_LOCAL_VARIABLE_CACHED1" },
+    { std::uint8_t(opcode::OP_EvalLocalVariableCached2),"EVAL_LOCAL_VARIABLE_CACHED2" },
+    { std::uint8_t(opcode::OP_EvalLocalVariableCached3),"EVAL_LOCAL_VARIABLE_CACHED3" },
+    { std::uint8_t(opcode::OP_EvalLocalVariableCached4),"EVAL_LOCAL_VARIABLE_CACHED4" },
+    { std::uint8_t(opcode::OP_EvalLocalVariableCached5),"EVAL_LOCAL_VARIABLE_CACHED5" },
+    { std::uint8_t(opcode::OP_EvalLocalVariableCached),"EVAL_LOCAL_VARIABLE_CACHED" },
+    { std::uint8_t(opcode::OP_EvalLocalArrayCached),"EVAL_LOCAL_ARRAY_CACHED" },
+    { std::uint8_t(opcode::OP_EvalArray),"EVAL_ARRAY" },
+    { std::uint8_t(opcode::OP_EvalNewLocalArrayRefCached0),"EVAL_NEW_LOCAL_ARRAY_REF_CACHED0" },
+    { std::uint8_t(opcode::OP_EvalLocalArrayRefCached0),"EVAL_LOCAL_ARRAY_REF_CACHED0" },
+    { std::uint8_t(opcode::OP_EvalLocalArrayRefCached),"EVAL_LOCAL_ARRAY_REF_CACHED" },
+    { std::uint8_t(opcode::OP_EvalArrayRef),"EVAL_ARRAY_REF" },
+    { std::uint8_t(opcode::OP_ClearArray),"CLEAR_ARRAY" },
+    { std::uint8_t(opcode::OP_EmptyArray),"EMPTY_ARRAY" },
+    { std::uint8_t(opcode::OP_AddArray),"ADD_ARRAY" },
+    { std::uint8_t(opcode::OP_PreScriptCall),"PRE_CALL" },
+    { std::uint8_t(opcode::OP_ScriptLocalFunctionCall2),"CALL_LOCAL_FUNC2" },
+    { std::uint8_t(opcode::OP_ScriptLocalFunctionCall),"CALL_LOCAL_FUNC" },
+    { std::uint8_t(opcode::OP_ScriptLocalMethodCall),"CALL_LOCAL_METHOD" },
+    { std::uint8_t(opcode::OP_ScriptLocalThreadCall),"CALL_LOCAL_FUNC_THREAD" },
+    { std::uint8_t(opcode::OP_ScriptLocalChildThreadCall),"CALL_LOCAL_FUNC_CHILD_THREAD" },
+    { std::uint8_t(opcode::OP_ScriptLocalMethodThreadCall),"CALL_LOCAL_METHOD_THREAD" },
+    { std::uint8_t(opcode::OP_ScriptLocalMethodChildThreadCall),"CALL_LOCAL_METHOD_CHILD_THREAD" },
+    { std::uint8_t(opcode::OP_ScriptFarFunctionCall2),"CALL_FAR_FUNC2" },
+    { std::uint8_t(opcode::OP_ScriptFarFunctionCall),"CALL_FAR_FUNC" },
+    { std::uint8_t(opcode::OP_ScriptFarMethodCall),"CALL_FAR_METHOD" },
+    { std::uint8_t(opcode::OP_ScriptFarThreadCall),"CALL_FAR_FUNC_THREAD" },
+    { std::uint8_t(opcode::OP_ScriptFarChildThreadCall),"CALL_FAR_FUNC_CHILD_THREAD"},
+    { std::uint8_t(opcode::OP_ScriptFarMethodThreadCall),"CALL_FAR_METHOD_THEAD" },
+    { std::uint8_t(opcode::OP_ScriptFarMethodChildThreadCall),"CALL_FAR_METHOD_CHILD_THEAD" },
+    { std::uint8_t(opcode::OP_ScriptFunctionCallPointer),"CALL_FUNC_POINTER" },
+    { std::uint8_t(opcode::OP_ScriptMethodCallPointer),"CALL_METHOD_POINTER" },
+    { std::uint8_t(opcode::OP_ScriptThreadCallPointer),"CALL_FUNC_THREAD_POINTER" },
+    { std::uint8_t(opcode::OP_ScriptChildThreadCallPointer),"CALL_FUNC_CHILD_THREAD_POINTER" },
+    { std::uint8_t(opcode::OP_ScriptMethodThreadCallPointer),"CALL_METHOD_THREAD_POINTER" },
+    { std::uint8_t(opcode::OP_ScriptMethodChildThreadCallPointer),"CALL_METHOD_CHILD_THREAD_POINTER" },
+    { std::uint8_t(opcode::OP_CallBuiltinPointer),"CALL_BUILTIN_FUNC_POINTER" },
+    { std::uint8_t(opcode::OP_CallBuiltinMethodPointer),"CALL_BUILTIN_METHOD_POINTER" },
+    { std::uint8_t(opcode::OP_GetIString),"GET_ISTRING" },
+    { std::uint8_t(opcode::OP_GetVector),"GET_VECTOR" },
+    { std::uint8_t(opcode::OP_GetLevelObject),"GET_LEVEL_OBJ" },
+    { std::uint8_t(opcode::OP_GetAnimObject),"GET_ANIM_OBJ" },
+    { std::uint8_t(opcode::OP_GetSelf),"GET_SELF" },
+    { std::uint8_t(opcode::OP_GetThisthread),"GET_THISTHREAD" },
+    { std::uint8_t(opcode::OP_GetLevel),"GET_LEVEL" },
+    { std::uint8_t(opcode::OP_GetGame),"GET_GAME" },
+    { std::uint8_t(opcode::OP_GetAnim),"GET_ANIM" },
+    { std::uint8_t(opcode::OP_GetAnimation),"GET_ANIMATION" },
+    { std::uint8_t(opcode::OP_GetGameRef),"GET_GAME_REF" },
+    { std::uint8_t(opcode::OP_inc),"INC" },
+    { std::uint8_t(opcode::OP_dec),"DEC" },
+    { std::uint8_t(opcode::OP_bit_or),"BIT_OR" },
+    { std::uint8_t(opcode::OP_JumpOnFalseExpr),"JMP_EXPR_FALSE" },
+    { std::uint8_t(opcode::OP_bit_ex_or),"BIT_EXOR" },
+    { std::uint8_t(opcode::OP_bit_and),"BIT_AND" },
+    { std::uint8_t(opcode::OP_equality),"EQUALITY" },
+    { std::uint8_t(opcode::OP_inequality),"INEQUALITY" },
+    { std::uint8_t(opcode::OP_less),"LESS" },
+    { std::uint8_t(opcode::OP_greater),"GREATER" },
+    { std::uint8_t(opcode::OP_JumpOnTrueExpr),"JMP_EXPR_TRUE" },
+    { std::uint8_t(opcode::OP_less_equal),"LESSEQUAL" },
+    { std::uint8_t(opcode::OP_jumpback),"JMP_BACK" },
+    { std::uint8_t(opcode::OP_waittillmatch2),"WAITTILLMATCH2" },
+    { std::uint8_t(opcode::OP_waittill),"WAITTILL" },
+    { std::uint8_t(opcode::OP_notify),"NOTIFY" },
+    { std::uint8_t(opcode::OP_endon),"ENDON" },
+    { std::uint8_t(opcode::OP_voidCodepos),"VOIDCODEPOS" },
+    { std::uint8_t(opcode::OP_switch),"SWITCH" },
+    { std::uint8_t(opcode::OP_endswitch),"ENDSWITCH" },
+    { std::uint8_t(opcode::OP_vector),"VECTOR" },
+    { std::uint8_t(opcode::OP_JumpOnFalse),"JMP_FALSE" },
+    { std::uint8_t(opcode::OP_greater_equal),"GREATEREQUAL" },
+    { std::uint8_t(opcode::OP_shift_left),"SHIFT_LEFT" },
+    { std::uint8_t(opcode::OP_shift_right),"SHIFT_RIGHT" },
+    { std::uint8_t(opcode::OP_plus),"PLUS" },
+    { std::uint8_t(opcode::OP_jump),"JMP" },
+    { std::uint8_t(opcode::OP_minus),"MINUS" },
+    { std::uint8_t(opcode::OP_multiply),"MULT" },
+    { std::uint8_t(opcode::OP_divide),"DIV" },
+    { std::uint8_t(opcode::OP_mod),"MOD" },
+    { std::uint8_t(opcode::OP_JumpOnTrue),"JMP_TRUE" },
+    { std::uint8_t(opcode::OP_size),"SIZE" },
+    { std::uint8_t(opcode::OP_waittillmatch),"WAITTILLMATCH" },
+    { std::uint8_t(opcode::OP_GetLocalFunction),"GET_LOCAL_FUNC" },
+    { std::uint8_t(opcode::OP_GetFarFunction),"GET_FAR_FUNC" },
+    { std::uint8_t(opcode::OP_GetSelfObject),"GET_SELF_OBJ" },
+    { std::uint8_t(opcode::OP_EvalLevelFieldVariable),"EVAL_LEVEL_FIELD_VARIABLE" },
+    { std::uint8_t(opcode::OP_EvalAnimFieldVariable),"EVAL_ANIM_FIELD_VARIABLE" },
+    { std::uint8_t(opcode::OP_EvalSelfFieldVariable),"EVAL_SELF_FIELD_VARIABLE" },
+    { std::uint8_t(opcode::OP_EvalFieldVariable),"EVAL_FIELD_VARIABLE" },
+    { std::uint8_t(opcode::OP_EvalLevelFieldVariableRef),"EVAL_LEVEL_FIELD_VARIABLE_REF" },
+    { std::uint8_t(opcode::OP_EvalAnimFieldVariableRef),"EVAL_ANIM_FIELD_VARIABLE_REF" },
+    { std::uint8_t(opcode::OP_EvalSelfFieldVariableRef),"EVAL_SELF_FIELD_VARIABLE_REF" },
+    { std::uint8_t(opcode::OP_EvalFieldVariableRef),"EVAL_FIELD_VARIABLE_REF" },
+    { std::uint8_t(opcode::OP_ClearFieldVariable),"CLEAR_FIELD_VARIABLE" },
+    { std::uint8_t(opcode::OP_SafeCreateVariableFieldCached),"SAFE_CREATE_VARIABLE_FIELD_CACHED" },
+    { std::uint8_t(opcode::OP_SafeSetVariableFieldCached0),"SAFE_SET_VARIABLE_FIELD_CACHED0" },
+    { std::uint8_t(opcode::OP_SafeSetVariableFieldCached),"SAFE_SET_VARIABLE_FIELD_CACHED" },
+    { std::uint8_t(opcode::OP_SafeSetWaittillVariableFieldCached),"SAFE_SET_WAITTILL_VARIABLE_FIELD_CACHED" },
+    { std::uint8_t(opcode::OP_GetAnimTree),"GET_ANIMTREE" },
+    { std::uint8_t(opcode::OP_clearparams),"CLEAR_PARAMS" },
+    { std::uint8_t(opcode::OP_checkclearparams),"CHECK_CLEAR_PARAMS" },
+    { std::uint8_t(opcode::OP_EvalLocalVariableRefCached0),"EVAL_LOCAL_VARIABLE_REF_CACHED0" },
+    { std::uint8_t(opcode::OP_EvalNewLocalVariableRefCached0),"EVAL_NEW_LOCAL_VARIABLE_REF_CACHED0" },
+    { std::uint8_t(opcode::OP_EvalLocalVariableRefCached),"EVAL_LOCAL_VARIABLE_REF_CACHED" },
+    { std::uint8_t(opcode::OP_SetLevelFieldVariableField),"SET_LEVEL_FIELD_VARIABLE_FIELD" },
+    { std::uint8_t(opcode::OP_SetVariableField),"SET_VARIABLE_FIELD" },
+    { std::uint8_t(opcode::OP_ClearVariableField),"CLEAR_VARIABLE_FIELD" },
+    { std::uint8_t(opcode::OP_SetAnimFieldVariableField),"SET_ANIM_FIELD_VARIABLE_FIELD" },
+    { std::uint8_t(opcode::OP_SetSelfFieldVariableField),"SET_SELF_FIELD_VARIABLE_FIELD" },
+    { std::uint8_t(opcode::OP_SetLocalVariableFieldCached0),"SET_LOCAL_VARIABLE_FIELD_CACHED0" },
+    { std::uint8_t(opcode::OP_SetNewLocalVariableFieldCached0),"SET_NEW_LOCAL_VARIABLE_FIELD_CACHED0" },
+    { std::uint8_t(opcode::OP_SetLocalVariableFieldCached),"SET_LOCAL_VARIABLE_FIELD_CACHED" },
+    { std::uint8_t(opcode::OP_ClearLocalVariableFieldCached),"CLEAR_LOCAL_VARIABLE_FIELD_CACHED" },
+    { std::uint8_t(opcode::OP_ClearLocalVariableFieldCached0),"CLEAR_LOCAL_VARIABLE_FIELD_CACHED0" },
+    { std::uint8_t(opcode::OP_CallBuiltin0),"CALL_BUILTIN_FUNC_0" },
+    { std::uint8_t(opcode::OP_CallBuiltin1),"CALL_BUILTIN_FUNC_1" },
+    { std::uint8_t(opcode::OP_CallBuiltin2),"CALL_BUILTIN_FUNC_2" },
+    { std::uint8_t(opcode::OP_CallBuiltin3),"CALL_BUILTIN_FUNC_3" },
+    { std::uint8_t(opcode::OP_CallBuiltin4),"CALL_BUILTIN_FUNC_4" },
+    { std::uint8_t(opcode::OP_CallBuiltin5),"CALL_BUILTIN_FUNC_5" },
+    { std::uint8_t(opcode::OP_CallBuiltin),"CALL_BUILTIN_FUNC" },
+    { std::uint8_t(opcode::OP_CallBuiltinMethod0),"CALL_BUILTIN_METHOD_0" },
+    { std::uint8_t(opcode::OP_CallBuiltinMethod1),"CALL_BUILTIN_METHOD_1" },
+    { std::uint8_t(opcode::OP_CallBuiltinMethod2),"CALL_BUILTIN_METHOD_2" },
+    { std::uint8_t(opcode::OP_CallBuiltinMethod3),"CALL_BUILTIN_METHOD_3" },
+    { std::uint8_t(opcode::OP_CallBuiltinMethod4),"CALL_BUILTIN_METHOD_4" },
+    { std::uint8_t(opcode::OP_CallBuiltinMethod5),"CALL_BUILTIN_METHOD_5" },
+    { std::uint8_t(opcode::OP_CallBuiltinMethod),"CALL_BUILTIN_METHOD" },
+    { std::uint8_t(opcode::OP_wait),"WAIT" },
+    { std::uint8_t(opcode::OP_DecTop),"DEC_TOP" },
+    { std::uint8_t(opcode::OP_CastFieldObject),"CAST_FIELD_OBJ" },
+    { std::uint8_t(opcode::OP_EvalLocalVariableObjectCached),"EVAL_LOCAL_VARIABLE_OBJECT_CACHED" },
+    { std::uint8_t(opcode::OP_CastBool),"CAST_BOOL" },
+    { std::uint8_t(opcode::OP_BoolNot),"BOOL_NOT" },
+    { std::uint8_t(opcode::OP_BoolComplement),"BOOL_COMPLEMENT" },
+}};
 
-std::unordered_map<std::uint16_t, std::string> resolver::builtin_function_map
-{
+const std::array<gsc::pair_16C, 455> function_list
+{{
     { 0x001, "precacheturret" },
     { 0x002, "getweaponarray" },
     { 0x003, "createprintchannel" },
@@ -780,10 +786,10 @@ std::unordered_map<std::uint16_t, std::string> resolver::builtin_function_map
     { 0x1C5, "precachefxontag" },
     { 0x1C6, "precachetag" },
     { 0x1C7, "precachesound" },
-};
+}};
 
-std::unordered_map<std::uint16_t, std::string> resolver::builtin_method_map
-{
+const std::array<gsc::pair_16C, 780> method_list
+{{
     { 0x8000, "thermaldrawdisable" },
     { 0x8001, "setturretdismountorg" },
     { 0x8002, "setdamagestate" },
@@ -1565,10 +1571,10 @@ std::unordered_map<std::uint16_t, std::string> resolver::builtin_method_map
     { 0x830A, "setscriptmoverkillcam" },
     { 0x830B, "setmapnamestring" },
     { 0x830C, "setgametypestring" },
-};
+}};
 
-std::unordered_map<std::uint16_t, std::string> resolver::file_map
-{
+const std::array<gsc::pair_16C, 587> file_list
+{{
 
 // "character\\character_mp_ally_juggernaut"
 // "xmodelalias\\alias_us_army_heads"
@@ -2067,6 +2073,8 @@ std::unordered_map<std::uint16_t, std::string> resolver::file_map
     { 501, "character\\character_hero_europe_soap_injured" },
     { 512, "common_scripts\\_createfx" },
 // ...
+    { 528, "maps\\so_survival_mp_paris_precache" },
+// ...
     { 532, "character\\mp_character_sas_urban_lmg" },
     { 533, "character\\mp_character_sas_urban_shotgun" },
     { 534, "character\\mp_character_sas_urban_smg" },
@@ -2096,6 +2104,9 @@ std::unordered_map<std::uint16_t, std::string> resolver::file_map
     { 598, "xmodelalias\\alias_russian_military_arctic_heads" },
     { 599, "character\\mp_character_opforce_snow_assault" },
     { 600, "character\\mp_character_opforce_snow_lmg" },
+// ...
+    { 610, "maps\\so_survival_mp_plaza2_precache" },
+    { 611, "maps\\so_survival_mp_hardhat_precache" },
 // ...
     { 621, "character\\mp_character_opforce_snow_shotgun" },
     { 622, "character\\mp_character_opforce_snow_smg" },
@@ -2161,6 +2172,17 @@ std::unordered_map<std::uint16_t, std::string> resolver::file_map
     { 734, "mptype\\mptype_gign_paris_lmg" },
     { 735, "mptype\\mptype_gign_paris_shotgun" },
     { 736, "mptype\\mptype_gign_paris_smg" },
+    { 737, "maps\\so_survival_mp_alpha_precache" },
+    { 738, "maps\\so_survival_mp_carbon_precache" },
+    { 739, "maps\\so_survival_mp_village_precache" },
+    { 740, "maps\\so_survival_mp_seatown_precache" },
+    { 741, "maps\\so_survival_mp_lambeth_precache" },
+    { 742, "maps\\so_survival_mp_bootleg_precache" },
+    { 743, "maps\\so_survival_mp_exchange_precache" },
+    { 744, "maps\\so_survival_mp_mogadishu_precache" },
+// ...
+    { 750, "maps\\so_survival_mp_underground_precache" },
+    { 751, "maps\\so_survival_mp_interchange_precache" },
 // ...
     { 767, "mptype\\mptype_gign_paris_sniper" },
     { 768, "mptype\\mptype_gign_paris_riot" },
@@ -2193,6 +2215,9 @@ std::unordered_map<std::uint16_t, std::string> resolver::file_map
     { 795, "mptype\\mptype_opforce_woodland_lmg" },
     { 796, "mptype\\mptype_opforce_woodland_shotgun" },
 // ...
+    { 816, "maps\\so_survival_mp_dome_precache" },
+    { 817, "maps\\so_survival_mp_radar_precache" },
+    { 818, "maps\\so_survival_mp_bravo_precache" },
     { 819, "mptype\\mptype_opforce_woodland_smg" },
     { 820, "mptype\\mptype_opforce_woodland_sniper" },
     { 821, "mptype\\mptype_opforce_woodland_riot" },
@@ -2387,9 +2412,44 @@ std::unordered_map<std::uint16_t, std::string> resolver::file_map
 //  { 1647, "vehicle_scripts\\_stryker50cal" },
 // ------- files chunck end ---------
 //  { 1721,
+// ...
+    { 6358, "maps\\createart\\so_survival_mp_plaza2_art" },
+    { 6359, "maps\\createart\\so_survival_mp_seatown_fog" },
+    { 6360, "maps\\createart\\so_survival_mp_seatown_art" },
+    { 6361, "maps\\createart\\so_survival_mp_underground_fog" },
+    { 6362, "maps\\createart\\so_survival_mp_underground_art" },
+    { 6363, "maps\\createart\\so_survival_mp_village_fog" },
+    { 6364, "maps\\createart\\so_survival_mp_village_art" },
+// ...
 //  { 8217,
 //  { 8218,
 //  { 8219,
+// ...
+    { 8224, "maps\\createart\\so_survival_mp_hardhat_fog" },
+    { 8225, "maps\\createart\\so_survival_mp_hardhat_art" },
+    { 8226, "maps\\createart\\so_survival_mp_alpha_fog" },
+    { 8227, "maps\\createart\\so_survival_mp_alpha_art" },
+    { 8228, "maps\\createart\\so_survival_mp_bootleg_fog" },
+    { 8229, "maps\\createart\\so_survival_mp_bootleg_art" },
+    { 8230, "maps\\createart\\so_survival_mp_bravo_fog" },
+    { 8231, "maps\\createart\\so_survival_mp_bravo_art" },
+    { 8232, "maps\\createart\\so_survival_mp_carbon_fog" },
+    { 8233, "maps\\createart\\so_survival_mp_carbon_art" },
+    { 8234, "maps\\createart\\so_survival_mp_exchange_fog" },
+    { 8235, "maps\\createart\\so_survival_mp_exchange_art" },
+    { 8236, "maps\\createart\\so_survival_mp_interchange_fog" },
+    { 8237, "maps\\createart\\so_survival_mp_interchange_art" },
+    { 8238, "maps\\createart\\so_survival_mp_lambeth_fog" },
+    { 8239, "maps\\createart\\so_survival_mp_lambeth_art" },
+    { 8240, "maps\\createart\\so_survival_mp_mogadishu_fog" },
+    { 8241, "maps\\createart\\so_survival_mp_mogadishu_art" },
+    { 8242, "maps\\createart\\so_survival_mp_paris_fog" },
+    { 8243, "maps\\createart\\so_survival_mp_paris_art" },
+    { 8244, "maps\\createart\\so_survival_mp_plaza2_fog" },
+// ...
+    { 18378, "maps\\createart\\so_survival_mp_dome_fog" },
+    { 18379, "maps\\createart\\so_survival_mp_dome_art" },
+    { 18380, "character\\character_so_juggernaut_lite" },
 // ...
     { 18649, "common_scripts\\_destructible_types_anim_generator" },
     { 18650, "common_scripts\\_destructible_types_anim_lockers" },
@@ -2401,8 +2461,8 @@ std::unordered_map<std::uint16_t, std::string> resolver::file_map
     { 18656, "maps\\createart\\mp_radar_art" },
     { 18657, "maps\\createfx\\mp_radar_fx" },
     { 18658, "maps\\createart\\mp_radar_fog" },
-//  { 18659, "" },
-//  { 18660, "" },
+    { 18659, "maps\\createart\\so_survival_mp_radar_fog" },
+    { 18660, "maps\\createart\\so_survival_mp_radar_art" },
     { 18661, "common_scripts\\_destructible_types_anim_chicken" },
     { 18662, "maps\\animated_models\\hanging_sheet_wind_medium" },
     { 18663, "maps\\createart\\mp_village_art" },
@@ -2516,15 +2576,43 @@ std::unordered_map<std::uint16_t, std::string> resolver::file_map
     { 18771, "maps\\createart\\mp_alpha_art" },
     { 18772, "maps\\createfx\\mp_alpha_fx" },
     { 18773, "maps\\createart\\mp_alpha_fog" },
-};
+// ...
+    { 33361, "maps\\mp\\mp_italy_precache" },
+    { 33362, "maps\\createart\\mp_italy_art" },
+    { 33363, "maps\\mp\\mp_italy_fx" },
+    { 33364, "maps\\createfx\\mp_italy_fx" },
+    { 33365, "maps\\createart\\mp_italy_fog" },
+    { 33366, "maps\\mp\\mp_park_precache" },
+    { 33367, "maps\\createart\\mp_park_art" },
+    { 33368, "maps\\mp\\mp_park_fx" },
+    { 33369, "maps\\createfx\\mp_park_fx" },
+    { 33370, "maps\\createart\\mp_park_fog" },
+    { 33371, "maps\\mp\\mp_overwatch_precache" },
+    { 33372, "maps\\createart\\mp_overwatch_art" },
+    { 33373, "maps\\mp\\mp_overwatch_fx" },
+    { 33374, "maps\\createfx\\mp_overwatch_fx" },
+    { 33375, "maps\\createart\\mp_overwatch_fog" },
+    { 33376, "maps\\mp\\mp_morningwood_precache" },
+    { 33377, "maps\\createart\\mp_morningwood_art" },
+    { 33378, "maps\\mp\\mp_morningwood_fx" },
+    { 33379, "maps\\createfx\\mp_morningwood_fx" },
+    { 33380, "maps\\createart\\mp_morningwood_fog" },
+    { 33381, "maps\\createart\\so_survival_mp_italy_fog" },
+    { 33382, "maps\\createart\\so_survival_mp_italy_art" },
+    { 33383, "maps\\so_survival_mp_italy_precache" },
+    { 33384, "maps\\createart\\so_survival_mp_park_fog" },
+    { 33385, "maps\\createart\\so_survival_mp_park_art" },
+    { 33386, "maps\\so_survival_mp_park_precache" },
+}};
 
-std::unordered_map<std::uint16_t, std::string> resolver::token_map
-{
+const std::array<gsc::pair_16C, 1823> token_list
+{{
     { 56, "onDisconnect" },
     { 371, "getNextGun" },
     { 372, "addAttachments" },
     { 421, "hideCarryIconOnGameEnd" },
     { 442, "cac_getCustomClassLoc" },
+    { 443, "reInitializeMatchRulesOnMigration" }, 
     { 444, "initializeMatchRules" },
     { 448, "reInitializeScoreLimitOnMigration" },
     { 950, "getHighestProgressedPlayers" },
@@ -3301,6 +3389,7 @@ std::unordered_map<std::uint16_t, std::string> resolver::token_map
     { 2577, "players" },
     { 2623, "isPrimaryWeapon" },
     { 2711, "A" },
+    { 2738, "voice" },
     { 2944, "isTeamSpeaking" },
     { 3226, "primaryWeapon" },
     { 3297, "isSniper" },
@@ -3349,6 +3438,7 @@ std::unordered_map<std::uint16_t, std::string> resolver::token_map
     { 4864, "canReadText" },
     { 4865, "isFlashbanged" },
     { 4866, "dispatchNotify" },
+    { 4867, "registerScoreInfo" },
     { 6695, "hud_damagefeedback" },
     { 6702, "updateDamageFeedback" },
     { 6797, "hidden" },
@@ -3372,6 +3462,15 @@ std::unordered_map<std::uint16_t, std::string> resolver::token_map
     { 6875, "limit" },
     { 6876, "updateFogFromScript" },
     { 6877, "artfxprintlnFog" },
+    { 6890, "startdist" },
+    { 6891, "halfwaydist" },
+    { 6892, "red" },
+    { 6893, "green" },
+    { 6894, "blue" },
+    { 6895, "maxopacity" },
+    { 6930, "create_vision_set_fog" },
+    { 6931, "transitionTime" },
+    { 6973, "vision_set_fog_changes" },
     { 7163, "watchGrenadeUsage" },
     { 7177, "beginGrenadeTracking" },
     { 7178, "grenade_earthQuake" },
@@ -3493,7 +3592,9 @@ std::unordered_map<std::uint16_t, std::string> resolver::token_map
     { 7449, "player_init" },
     { 7450, "touchTriggers" },
     { 7451, "ai_init" },
+    { 7475, "gameType" },
     { 7478, "value" },
+    { 7480, "mapCenter" },
     { 7567, "gameEnded" },
     { 7765, "setModelFromArray" },
     { 7766, "precacheModelArray" },
@@ -4016,6 +4117,9 @@ std::unordered_map<std::uint16_t, std::string> resolver::token_map
     { 12789, "trackTeamChanges" },
     { 12790, "trackLastStandChanges" },
     { 12791, "reviveTriggerThink" },
+    { 12799, "gamemodeModifyPlayerDamage" },
+    { 12800, "matchRules_damageMultiplier" },
+    { 12801, "matchRules_vampirism" },
     { 12836, "initGametypeAwards" },
     { 12926, "clearKillstreaks" },
     { 13109, "getStreakCost" },
@@ -4056,6 +4160,12 @@ std::unordered_map<std::uint16_t, std::string> resolver::token_map
     { 13326, "SetDefaultCallbacks" },
     { 13327, "AbortLevel" },
     { 13328, "callbackVoid" },
+
+    { 13429, "findBoxCenter" },
+    { 13435, "spawnMins" },
+    { 13436, "spawnMaxs" },
+    { 13437, "placeSpawnPoints" },
+
     { 13658, "spawnFxDelay" },
     { 13780, "update_ui_timers" },
     { 13996, "isSpecialist" },
@@ -4145,6 +4255,21 @@ std::unordered_map<std::uint16_t, std::string> resolver::token_map
     { 14264, "endSelectionOnEMP" },
     { 14265, "endSelectionOnAction" },
     { 14266, "endSelectionOnEndGame" },
+
+    { 14299, "setObjectiveText" },
+    { 14300, "setObjectiveScoreText" },
+    { 14301, "setObjectiveHintText" },
+    { 14308, "registerRoundSwitchDvar" },
+    { 14312, "registerRoundLimitDvar" },
+    { 14313, "registerWinLimitDvar" },
+    { 14314, "registerScoreLimitDvar" },
+    { 14315, "registerTimeLimitDvar" },
+    { 14316, "registerHalfTimeDvar" },
+    { 14317, "registerNumLivesDvar" },
+
+    { 14338, "objectiveBased" },
+
+    { 14370, "setCommonRulesFromMatchRulesData" },
     { 14374, "audio" },
     { 14375, "init_reverb" },
     { 14376, "add_reverb" },
@@ -4312,10 +4437,48 @@ std::unordered_map<std::uint16_t, std::string> resolver::token_map
     { 14985, "activateNuke" },
     { 14986, "setUseBarScore" },
     { 14987, "updateHudElems" },
+    { 15006, "tweakfile" },
     { 15008, "audio_settings" },
     { 15107, "meleeingPlayer" },
     { 17433, "attachmentMap" },
     { 17434, "checkRoundWin" },
+}};
+
+struct __init__
+{
+    __init__()
+    {
+        static bool init = false;
+        if(init) return;
+        init = true;
+        
+        for(const auto& entry : opcode_list)
+        {
+            opcode_map.insert({ entry.key, entry.value });
+        }
+
+        for(const auto& entry : function_list)
+        {
+            function_map.insert({ entry.key, entry.value });
+        }
+
+        for(const auto& entry : method_list)
+        {
+            method_map.insert({ entry.key, entry.value });
+        }
+
+        for(const auto& entry : file_list)
+        {
+            file_map.insert({ entry.key, entry.value });
+        }
+
+        for(const auto& entry : token_list)
+        {
+            token_map.insert({ entry.key, entry.value });
+        }
+    }
 };
+
+__init__ _;
 
 } // namespace IW5

@@ -33,8 +33,9 @@ auto disassembler::output_data() -> std::vector<std::uint8_t>
     return output;
 }
 
-void disassembler::disassemble(std::vector<std::uint8_t>& script, std::vector<std::uint8_t>& stack)
+void disassembler::disassemble(const std::string& file, std::vector<std::uint8_t>& script, std::vector<std::uint8_t>& stack)
 {
+    filename_ = file;
     script_ = std::make_unique<utils::byte_buffer>(script);
     stack_ = std::make_unique<utils::byte_buffer>(stack);
     functions_.clear();
@@ -71,7 +72,7 @@ void disassembler::dissasemble_function(const gsc::function_ptr& func)
         auto& inst = func->instructions.back();
         inst->index = static_cast<std::uint32_t>(script_->pos());
         inst->opcode = script_->read<std::uint8_t>();
-        inst->size = opcode_size(opcode(inst->opcode));
+        inst->size = opcode_size(inst->opcode);
         
         this->dissasemble_instruction(inst);
         
@@ -183,12 +184,12 @@ void disassembler::dissasemble_instruction(const gsc::instruction_ptr& inst)
         break;
     case opcode::OP_GetAnimation:
         script_->seek(8);
-        inst->data.push_back(utils::string::quote(stack_->read_c_string().data()));
-        inst->data.push_back(utils::string::quote(stack_->read_c_string().data()));
+        inst->data.push_back(utils::string::quote(stack_->read_c_string().data(), false));
+        inst->data.push_back(utils::string::quote(stack_->read_c_string().data(), false));
         break;
     case opcode::OP_GetAnimTree:
         script_->seek(1);
-        inst->data.push_back(utils::string::quote(stack_->read_c_string().data()));
+        inst->data.push_back(utils::string::quote(stack_->read_c_string().data(), false));
         break;
     case opcode::OP_waittillmatch:
         inst->data.push_back(utils::string::va("%i", script_->read<std::uint16_t>()));
@@ -298,7 +299,7 @@ void disassembler::dissasemble_instruction(const gsc::instruction_ptr& inst)
         this->disassemble_end_switch(inst);
         break;
     default:
-        GSC_DISASM_ERROR("Unhandled opcode 0x%hhX at index '%04X'!", inst->opcode, inst->index);
+        throw gsc::disasm_error(utils::string::va("Unhandled opcode 0x%X at index '%04X'!", inst->opcode, inst->index));
         break;
     }
 }
@@ -312,11 +313,11 @@ void disassembler::disassemble_builtin_call(const gsc::instruction_ptr& inst, bo
 
     if (method)
     {
-        inst->data.push_back(resolver::builtin_method_name(script_->read<std::uint16_t>()));
+        inst->data.push_back(resolver::method_name(script_->read<std::uint16_t>()));
     }
     else
     {
-        inst->data.push_back(resolver::builtin_func_name(script_->read<std::uint16_t>()));
+        inst->data.push_back(resolver::function_name(script_->read<std::uint16_t>()));
     }
 }
 
@@ -417,20 +418,20 @@ void disassembler::disassemble_end_switch(const gsc::instruction_ptr& inst)
         {
             std::uint32_t case_label = script_->read<std::uint32_t>();
 
-            if (case_label < 0x10000 && case_label > 0)
+            if (case_label < 0x40000 && case_label > 0)
             {
                 inst->data.push_back("case");
-                inst->data.push_back(utils::string::va("\"%s\"", stack_->read_c_string().data()));
+                inst->data.push_back(utils::string::quote(stack_->read_c_string(), false));
             }
-            else if (case_label < 0x40000)
+            else if (case_label == 0)
             {
                 inst->data.push_back("default");
-                stack_->read<std::uint16_t>(); // should always be 01 00
+                stack_->read<std::uint16_t>();
             }
             else
             {
                 inst->data.push_back("case");
-                inst->data.push_back(utils::string::va("%i", case_label & 0xFFFF));
+                inst->data.push_back(utils::string::va("%i", (case_label - 0x800000) & 0xFFFFFF));
             }
 
             inst->size += 4;
@@ -506,12 +507,12 @@ auto disassembler::resolve_function(const std::string& index) -> std::string
             }
         }
 
-        GSC_DISASM_ERROR("Couldn't resolve function name at index '0x%04X'!", idx);
+        throw gsc::disasm_error(utils::string::va("Couldn't resolve function name at index '0x%04X'!", idx));
         return index;
     }
     else
     {
-        GSC_DISASM_ERROR("\"%s\" is not valid function address!", index.data());
+        throw gsc::disasm_error(utils::string::va("\"%s\" is not valid function address!", index.data()));
         return index;
     }
 }
@@ -542,7 +543,7 @@ void disassembler::print_instruction(const gsc::instruction_ptr& inst)
     switch (opcode(inst->opcode))
     {
     case opcode::OP_endswitch:
-        output_->write_string(utils::string::va("%s", resolver::opcode_name(opcode(inst->opcode)).data()));
+        output_->write_string(utils::string::va("%s", resolver::opcode_name(inst->opcode).data()));
         output_->write_string(utils::string::va(" %s\n", inst->data[0].data()));
         {
             std::uint32_t totalcase = std::stoul(inst->data[0]);
@@ -567,7 +568,7 @@ void disassembler::print_instruction(const gsc::instruction_ptr& inst)
         }
         break;
     default:
-        output_->write_string(utils::string::va("%s", resolver::opcode_name(opcode(inst->opcode)).data()));
+        output_->write_string(utils::string::va("%s", resolver::opcode_name(inst->opcode).data()));
         for (auto& d : inst->data)
         {
             output_->write_string(utils::string::va(" %s", d.data()));

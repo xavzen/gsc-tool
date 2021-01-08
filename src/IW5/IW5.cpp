@@ -8,9 +8,9 @@
 namespace IW5
 {
 
-auto opcode_size(opcode id) -> std::uint32_t
+auto opcode_size(std::uint8_t id) -> std::uint32_t
 {
-    switch (id)
+    switch (opcode(id))
     {
     case opcode::OP_End:
     case opcode::OP_Return:
@@ -171,7 +171,7 @@ auto opcode_size(opcode id) -> std::uint32_t
     case opcode::OP_GetVector:
         return 13;
     default:
-        GSC_LOG_ERROR("Couldn't resolve instruction size for 0x%hhX!", id);
+        throw std::runtime_error("Couldn't resolve instruction size for " + std::to_string(id));
         return 0;
     }
 }

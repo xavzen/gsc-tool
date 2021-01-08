@@ -32,7 +32,7 @@ auto assembler::output_stack() -> std::vector<std::uint8_t>
     return stack;
 }
 
-void assembler::assemble(std::vector<std::uint8_t>& data)
+void assembler::assemble(const std::string& file, std::vector<std::uint8_t>& data)
 {
     std::vector<std::string> assembly = utils::string::clean_buffer_lines(data);
     std::vector<gsc::function_ptr> functions;
@@ -80,7 +80,7 @@ void assembler::assemble(std::vector<std::uint8_t>& data)
                     continue;
                 }
 
-                GSC_LOG_ERROR("invalid instruction inside endswitch \"%s\"!", line.data());
+                throw gsc::asm_error("invalid instruction inside endswitch \""s + line + "\"!");
                 return;
             }
             else
@@ -88,7 +88,7 @@ void assembler::assemble(std::vector<std::uint8_t>& data)
                 auto inst = std::make_unique<gsc::instruction>();
                 inst->index = index;
                 inst->opcode = static_cast<std::uint8_t>(resolver::opcode_id(data[0]));
-                inst->size = opcode_size(opcode(inst->opcode));
+                inst->size = opcode_size(inst->opcode);
                 data.erase(data.begin());
                 inst->data = std::move(data);
 
@@ -104,14 +104,14 @@ void assembler::assemble(std::vector<std::uint8_t>& data)
         }
     }
 
-    this->assemble(functions);
+    this->assemble(file, functions);
 }
 
-void assembler::assemble(std::vector<gsc::function_ptr>& functions)
+void assembler::assemble(const std::string& file, std::vector<gsc::function_ptr>& functions)
 {
     script_ = std::make_unique<utils::byte_buffer>(0x100000);
     stack_ = std::make_unique<utils::byte_buffer>(0x100000);
-
+    filename_ = file;
     functions_ = std::move(functions);
 
     script_->write<std::uint8_t>(0x34);
@@ -221,22 +221,22 @@ void assembler::assemble_instruction(const gsc::instruction_ptr& inst)
         break;
     case opcode::OP_GetByte:
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
-        script_->write<std::uint8_t>(static_cast<std::uint8_t>(std::stol(inst->data[0])));
+        script_->write<std::uint8_t>(static_cast<std::uint8_t>(std::stoi(inst->data[0])));
         break;
     case opcode::OP_GetNegByte:
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
-        script_->write<std::int8_t>(static_cast<std::int8_t>(std::stol(inst->data[0])));
+        script_->write<std::int8_t>(static_cast<std::int8_t>(std::stoi(inst->data[0])));
         break;
     case opcode::OP_GetUnsignedShort:
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
-        script_->write<std::uint16_t>(static_cast<std::uint16_t>(std::stol(inst->data[0])));
+        script_->write<std::uint16_t>(static_cast<std::uint16_t>(std::stoi(inst->data[0])));
         break;
     case opcode::OP_GetNegUnsignedShort:
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
-        script_->write<std::int16_t>(static_cast<std::int16_t>(std::stol(inst->data[0])));
+        script_->write<std::int16_t>(static_cast<std::int16_t>(std::stoi(inst->data[0])));
     case opcode::OP_GetInteger:
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
-        script_->write<std::int32_t>(std::stol(inst->data[0]));
+        script_->write<std::int32_t>(std::stoi(inst->data[0]));
         break;
     case opcode::OP_GetFloat:
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
@@ -377,7 +377,7 @@ void assembler::assemble_instruction(const gsc::instruction_ptr& inst)
         this->assemble_end_switch(inst);
         break;
     default:
-        GSC_ASM_ERROR("Unhandled opcode (0x%hhX) at index '%04X'!", inst->opcode, inst->index);
+        throw gsc::asm_error(utils::string::va("Unhandled opcode 0x%X at index '%04X'!", inst->opcode, inst->index));
         break;
     }
 }
@@ -393,16 +393,16 @@ void assembler::assemble_builtin_call(const gsc::instruction_ptr& inst, bool met
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(std::stol(inst->data[0])));
 
         if (method)
-            id = inst->data[1].substr(0, 3) == "_ID" ? std::stol(inst->data[1].substr(3)) : resolver::builtin_method_id(inst->data[1]);
+            id = inst->data[1].substr(0, 3) == "_ID" ? std::stol(inst->data[1].substr(3)) : resolver::method_id(inst->data[1]);
         else
-            id = inst->data[1].substr(0, 3) == "_ID" ? std::stol(inst->data[1].substr(3)) : resolver::builtin_func_id(inst->data[1]);
+            id = inst->data[1].substr(0, 3) == "_ID" ? std::stol(inst->data[1].substr(3)) : resolver::function_id(inst->data[1]);
     }
     else
     {
         if (method)
-            id = inst->data[0].substr(0, 3) == "_ID" ? std::stol(inst->data[0].substr(3)) : resolver::builtin_method_id(inst->data[0]);
+            id = inst->data[0].substr(0, 3) == "_ID" ? std::stol(inst->data[0].substr(3)) : resolver::method_id(inst->data[0]);
         else
-            id = inst->data[0].substr(0, 3) == "_ID" ? std::stol(inst->data[0].substr(3)) : resolver::builtin_func_id(inst->data[0]);
+            id = inst->data[0].substr(0, 3) == "_ID" ? std::stol(inst->data[0].substr(3)) : resolver::function_id(inst->data[0]);
     }
 
     script_->write<std::uint16_t>(id);
@@ -473,7 +473,7 @@ void assembler::assemble_end_switch(const gsc::instruction_ptr& inst)
     }
     else
     {
-        GSC_ASM_ERROR("invalid endswitch number!");
+        throw gsc::asm_error("invalid endswitch number!");
     }
 
     script_->write<std::uint16_t>(casenum);
@@ -484,8 +484,15 @@ void assembler::assemble_end_switch(const gsc::instruction_ptr& inst)
     {
         if (inst->data[1 + (3 * i)] == "case")
         {
-            script_->write<uint32_t>(i + 1);
-            stack_->write_c_string(utils::string::to_code(inst->data[1 + (3 * i) + 1]));
+            if (utils::string::is_number(inst->data[1 + (3 * i) + 1]))
+            {
+                script_->write<uint32_t>((std::stol(inst->data[0]) & 0xFFFFFF) + 0x800000);
+            }
+            else
+            {
+                script_->write<uint32_t>(i + 1);
+                stack_->write_c_string(utils::string::unquote(inst->data[1 + (3 * i) + 1]));
+            }
 
             internal_index += 4;
 
@@ -586,7 +593,7 @@ auto assembler::resolve_function(const std::string& name) -> std::uint32_t
         }
     }
 
-    GSC_ASM_ERROR("Couldn't resolve local function address of '%s'!", name.data());
+    throw gsc::asm_error("Couldn't resolve local function address of '" + temp + "'!");
     return 0;
 }
 
@@ -600,7 +607,7 @@ auto assembler::resolve_label(const gsc::instruction_ptr& inst, const std::strin
         }
     }
 
-    GSC_ASM_ERROR("Couldn't resolve label address of '%s'!", name.data());
+    throw gsc::asm_error("Couldn't resolve label address of '" + name + "'!");
     return 0;
 }
 
