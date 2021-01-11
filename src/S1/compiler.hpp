@@ -91,6 +91,7 @@ private:
     void emit_array_variable(const gsc::context_ptr& ctx, const gsc::expr_array_ptr& expr);
     void emit_field_variable(const gsc::context_ptr& ctx, const gsc::expr_field_ptr& expr);
     void emit_local_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& expr);
+    void emit_clear_local_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& expr);
     void emit_create_local_vars(const gsc::context_ptr& ctx);
     void emit_remove_local_vars(const gsc::context_ptr& ctx);
     void emit_object(const gsc::context_ptr& ctx, const gsc::expr_ptr& expr);
@@ -114,7 +115,7 @@ private:
     void calc_local_vars_variable(const gsc::context_ptr& ctx, const std::string& name);
     void calc_local_vars_waittill(const gsc::context_ptr& ctx, const gsc::stmt_waittill_ptr& stmt);
     void calc_local_vars_for(const gsc::context_ptr& ctx, const gsc::stmt_for_ptr& stmt);
-
+    void calc_local_vars_foreach(const gsc::context_ptr& ctx, const gsc::stmt_foreach_ptr& stmt);
     void create_local_var(const gsc::context_ptr& ctx, const std::string& name);
     auto find_local_var_create_index(const gsc::context_ptr& ctx, const std::string& name) -> std::int8_t;
     auto find_local_var_index(const gsc::context_ptr& ctx, const std::string& name) -> std::int8_t;

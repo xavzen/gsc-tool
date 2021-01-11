@@ -396,21 +396,16 @@ void compiler::emit_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_for_pt
 
 void compiler::emit_stmt_foreach(const gsc::context_ptr& ctx, const gsc::stmt_foreach_ptr& stmt)
 {
-    GSC_COMP_ERROR("FOREACH STATEMENT NOT SUPPORTED!");
-
-    // TODO:
-
     auto begin_loc = create_label();
     auto break_loc = create_label();
     auto continue_loc = create_label();
 
-    // TODO: insert first array key
-
-    // TODO: create local variables
-
-    insert_label(begin_loc);
-    
-    // TODO: insert isDefined, assign
+    emit_expr(ctx, stmt->container);
+    emit_local_variable_ref(ctx, stmt->array, true);
+    emit_local_variable(ctx, stmt->array);
+    emit_opcode(ctx, opcode::OP_CallBuiltin1, "getfirstarraykey");
+    create_local_var(ctx, stmt->element->value);
+    emit_local_variable_ref(ctx, stmt->key, true);
 
     auto foreach_ctx = ctx->transfer();
 
@@ -418,17 +413,31 @@ void compiler::emit_stmt_foreach(const gsc::context_ptr& ctx, const gsc::stmt_fo
     foreach_ctx->loc_break = break_loc;
     foreach_ctx->loc_continue = continue_loc;
 
+    calc_local_vars_block(foreach_ctx, stmt->block);
+    emit_create_local_vars(foreach_ctx); // this should be before key set...
+
+    insert_label(begin_loc);
+
+    emit_local_variable(ctx, stmt->key);
+    emit_opcode(ctx, opcode::OP_CallBuiltin1, "isdefined");
+	emit_opcode(ctx, opcode::OP_JumpOnFalse, break_loc);
+    emit_local_variable(ctx, stmt->key);
+	auto data = utils::string::va("%d", find_local_var_index(ctx, stmt->array->value));
+    emit_opcode(ctx, opcode::OP_EvalLocalArrayCached, data);
+    emit_local_variable_ref(ctx, stmt->element, true);
+
     emit_block(foreach_ctx, stmt->block, false);
 
     insert_label(continue_loc);
-    // TODO: insert next array key
+    emit_local_variable(ctx, stmt->key);
+	emit_local_variable(ctx, stmt->array);
+	emit_opcode(ctx, opcode::OP_CallBuiltin2, "getnextarraykey");
+	emit_local_variable_ref(ctx, stmt->key, true);
     emit_opcode(ctx, opcode::OP_jumpback, begin_loc);
-    
+
     insert_label(break_loc);
-    
-    // TODO: clear key and array vars
-        //OP_ClearLocalVariableFieldCached0 = 0x30,
-        //OP_ClearLocalVariableFieldCached = 0x31,
+    emit_clear_local_variable(ctx, stmt->array);
+    if(!stmt->use_key) emit_clear_local_variable(ctx, stmt->key);
 }
 
 void compiler::emit_stmt_switch(const gsc::context_ptr& ctx, const gsc::stmt_switch_ptr& stmt)
@@ -1260,6 +1269,20 @@ void compiler::emit_local_variable(const gsc::context_ptr& ctx, const gsc::ident
     }
 }
 
+void compiler::emit_clear_local_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& expr)
+{
+    auto index = find_local_var_index(ctx, expr->value);
+
+    if(index == 0)
+    {
+        emit_opcode(ctx, opcode::OP_ClearLocalVariableFieldCached0);
+    }
+    else
+    {
+        emit_opcode(ctx, opcode::OP_ClearLocalVariableFieldCached, utils::string::va("%d", index));
+    }
+}
+
 void compiler::emit_create_local_vars(const gsc::context_ptr& ctx)
 {
     auto count = ctx->local_vars.size() - ctx->local_vars_create_count;
@@ -1497,7 +1520,7 @@ void compiler::calc_local_vars_block(const gsc::context_ptr& ctx, const gsc::blo
             case gsc::node_type::stmt_assign:   calc_local_vars_expr(ctx, stmt.as_assign->expr->lvalue); break;
             case gsc::node_type::stmt_waittill: calc_local_vars_waittill(ctx, stmt.as_waittill); break;
             case gsc::node_type::stmt_for:      calc_local_vars_for(ctx, stmt.as_for); break;
-            case gsc::node_type::stmt_foreach: /* foreach pre assign */ break;
+            case gsc::node_type::stmt_foreach:  calc_local_vars_foreach(ctx, stmt.as_foreach); break;
             default: break;
         }
     }
@@ -1553,6 +1576,24 @@ void compiler::calc_local_vars_for(const gsc::context_ptr& ctx, const gsc::stmt_
     }
 }
 
+void compiler::calc_local_vars_foreach(const gsc::context_ptr& ctx, const gsc::stmt_foreach_ptr& stmt)
+{
+    label_idx_++;
+    auto name = utils::string::va("temp_%d", label_idx_);
+    stmt->array = std::make_unique<gsc::node_identifier>(name);
+    calc_local_vars_variable(ctx, stmt->array->value);
+    calc_local_vars_variable(ctx, stmt->element->value);
+
+    if(!stmt->use_key)
+    {
+        label_idx_++;
+        auto name2 = utils::string::va("temp_%d", label_idx_);
+        stmt->key = std::make_unique<gsc::node_identifier>(name2);
+    }
+
+    calc_local_vars_variable(ctx, stmt->key->value);
+}
+
 void compiler::create_local_var(const gsc::context_ptr& ctx, const std::string& name)
 {
     auto i = 0;
@@ -1569,6 +1610,7 @@ void compiler::create_local_var(const gsc::context_ptr& ctx, const std::string& 
             }
             return;
         }
+        i++;
     }
 
     GSC_COMP_ERROR("local variable '%s' not found.", name.data());

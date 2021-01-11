@@ -2326,7 +2326,7 @@ void decompiler::decompile_foreach(const gsc::block_ptr& block, std::uint32_t be
 
     auto location = block->stmts.at(begin - 2).as_node->location;
     auto array = std::move(block->stmts[begin-2].as_assign->expr->rvalue);
-    auto element = std::move(block->stmts[begin+1].as_assign->expr->lvalue);
+    auto element = std::move(block->stmts[begin+1].as_assign->expr->lvalue.as_identifier);
 
     begin = begin - 2;
     end = end - 4;

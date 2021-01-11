@@ -1858,24 +1858,43 @@ struct node_stmt_for : public node
 
 struct node_stmt_foreach : public node
 {
-    expr_ptr expr1;
-    expr_ptr expr2;
+    identifier_ptr key;
+    identifier_ptr element;
+    identifier_ptr array;
+    expr_ptr container;
     block_ptr block;
+    bool use_key;
 
-    node_stmt_foreach(expr_ptr expr1, expr_ptr expr2, block_ptr block)
-        : node(node_type::stmt_foreach), expr1(std::move(expr1)), expr2(std::move(expr2)),
-            block(std::move(block)) {}
+    node_stmt_foreach(identifier_ptr element, expr_ptr container, block_ptr block)
+        : node(node_type::stmt_foreach), element(std::move(element)), container(std::move(container)),
+            block(std::move(block)), use_key(false) {}
 
-    node_stmt_foreach(const std::string& location, expr_ptr expr1, expr_ptr expr2, block_ptr block)
-        : node(node_type::stmt_foreach, location), expr1(std::move(expr1)), expr2(std::move(expr2)),
-            block(std::move(block)) {}
+    node_stmt_foreach(identifier_ptr key, identifier_ptr element, expr_ptr container, block_ptr block)
+        : node(node_type::stmt_foreach), key(std::move(key)), element(std::move(element)), container(std::move(container)),
+            block(std::move(block)), use_key(true) {}
+
+    node_stmt_foreach(const std::string& location, identifier_ptr element, expr_ptr container, block_ptr block)
+        : node(node_type::stmt_foreach, location), element(std::move(element)), container(std::move(container)),
+            block(std::move(block)), use_key(false) {}
+
+    node_stmt_foreach(const std::string& location, identifier_ptr key, identifier_ptr element, expr_ptr container, block_ptr block)
+        : node(node_type::stmt_foreach, location), key(std::move(key)), element(std::move(element)), container(std::move(container)),
+            block(std::move(block)), use_key(true) {}
 
     auto print() -> std::string override
     {
         std::string data;
 
-        data += "foreach ( " + expr1.as_node->print() + " in " + expr2.as_node->print() + " )\n";
-
+        data += "foreach ( ";
+        
+        if(use_key)
+        {
+            data += key->print() + ", " + element->print() + " in " + container.as_node->print() + " )\n";
+        }
+        else
+        {
+            data += element->print() + " in " + container.as_node->print() + " )\n";
+        }
         std::string pad = indented(indent);
 
         if (block->stmts.size() == 1)

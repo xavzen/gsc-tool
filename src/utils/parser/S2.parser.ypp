@@ -308,13 +308,21 @@ stmt_for
 	;
 
 stmt_foreach
-	: FOREACH LPAREN expr IN expr RPAREN RBRACE block RBRACE
+	: FOREACH LPAREN identifier IN expr RPAREN LBRACE block RBRACE
 		{ $$ = std::make_unique<gsc::node_stmt_foreach>(std::to_string(*location), std::move($3), std::move($5), std::move($8)); }
-	| FOREACH LPAREN expr IN expr RPAREN stmt
+	| FOREACH LPAREN identifier COMMA identifier IN expr RPAREN LBRACE block RBRACE
+		{ $$ = std::make_unique<gsc::node_stmt_foreach>(std::to_string(*location), std::move($3), std::move($5), std::move($7), std::move($10)); }
+	| FOREACH LPAREN identifier IN expr RPAREN stmt
 		{
 			auto blk = std::make_unique<gsc::node_block>(std::to_string(*location));
 			blk->stmts.push_back(std::move($7));
 			$$ = std::make_unique<gsc::node_stmt_foreach>(std::to_string(*location), std::move($3), std::move($5), std::move(blk));
+		}
+	| FOREACH LPAREN identifier COMMA identifier IN expr RPAREN stmt
+		{
+			auto blk = std::make_unique<gsc::node_block>(std::to_string(*location));
+			blk->stmts.push_back(std::move($9));
+			$$ = std::make_unique<gsc::node_stmt_foreach>(std::to_string(*location), std::move($3), std::move($5), std::move($7), std::move(blk));
 		}
 	;
 
