@@ -2605,13 +2605,14 @@ const std::array<gsc::pair_16C, 587> file_list
     { 33386, "maps\\so_survival_mp_park_precache" },
 }};
 
-const std::array<gsc::pair_16C, 1800> token_list
+const std::array<gsc::pair_16C, 1823> token_list
 {{
     { 56, "onDisconnect" },
     { 371, "getNextGun" },
     { 372, "addAttachments" },
     { 421, "hideCarryIconOnGameEnd" },
     { 442, "cac_getCustomClassLoc" },
+    { 443, "reInitializeMatchRulesOnMigration" }, 
     { 444, "initializeMatchRules" },
     { 448, "reInitializeScoreLimitOnMigration" },
     { 950, "getHighestProgressedPlayers" },
@@ -3437,6 +3438,7 @@ const std::array<gsc::pair_16C, 1800> token_list
     { 4864, "canReadText" },
     { 4865, "isFlashbanged" },
     { 4866, "dispatchNotify" },
+    { 4867, "registerScoreInfo" },
     { 6695, "hud_damagefeedback" },
     { 6702, "updateDamageFeedback" },
     { 6797, "hidden" },
@@ -3590,7 +3592,9 @@ const std::array<gsc::pair_16C, 1800> token_list
     { 7449, "player_init" },
     { 7450, "touchTriggers" },
     { 7451, "ai_init" },
+    { 7475, "gameType" },
     { 7478, "value" },
+    { 7480, "mapCenter" },
     { 7567, "gameEnded" },
     { 7765, "setModelFromArray" },
     { 7766, "precacheModelArray" },
@@ -4113,6 +4117,9 @@ const std::array<gsc::pair_16C, 1800> token_list
     { 12789, "trackTeamChanges" },
     { 12790, "trackLastStandChanges" },
     { 12791, "reviveTriggerThink" },
+    { 12799, "gamemodeModifyPlayerDamage" },
+    { 12800, "matchRules_damageMultiplier" },
+    { 12801, "matchRules_vampirism" },
     { 12836, "initGametypeAwards" },
     { 12926, "clearKillstreaks" },
     { 13109, "getStreakCost" },
@@ -4153,6 +4160,12 @@ const std::array<gsc::pair_16C, 1800> token_list
     { 13326, "SetDefaultCallbacks" },
     { 13327, "AbortLevel" },
     { 13328, "callbackVoid" },
+
+    { 13429, "findBoxCenter" },
+    { 13435, "spawnMins" },
+    { 13436, "spawnMaxs" },
+    { 13437, "placeSpawnPoints" },
+
     { 13658, "spawnFxDelay" },
     { 13780, "update_ui_timers" },
     { 13996, "isSpecialist" },
@@ -4242,6 +4255,21 @@ const std::array<gsc::pair_16C, 1800> token_list
     { 14264, "endSelectionOnEMP" },
     { 14265, "endSelectionOnAction" },
     { 14266, "endSelectionOnEndGame" },
+
+    { 14299, "setObjectiveText" },
+    { 14300, "setObjectiveScoreText" },
+    { 14301, "setObjectiveHintText" },
+    { 14308, "registerRoundSwitchDvar" },
+    { 14312, "registerRoundLimitDvar" },
+    { 14313, "registerWinLimitDvar" },
+    { 14314, "registerScoreLimitDvar" },
+    { 14315, "registerTimeLimitDvar" },
+    { 14316, "registerHalfTimeDvar" },
+    { 14317, "registerNumLivesDvar" },
+
+    { 14338, "objectiveBased" },
+
+    { 14370, "setCommonRulesFromMatchRulesData" },
     { 14374, "audio" },
     { 14375, "init_reverb" },
     { 14376, "add_reverb" },

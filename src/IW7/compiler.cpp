@@ -104,7 +104,7 @@ void compiler::emit_definition(const gsc::definition_ptr& definition)
         case gsc::node_type::using_animtree: emit_using_animtree(definition.as_using_animtree); break;
         case gsc::node_type::constant:       emit_constant(definition.as_constant); break;
         case gsc::node_type::thread:         emit_thread(definition.as_thread); break;
-        default: GSC_COMP_ERROR("line %s: unknown definition type", definition.as_node->location.data()); break;
+        default: break;
     }
 }
 
@@ -125,7 +125,8 @@ void compiler::emit_thread(const gsc::thread_ptr& thread)
     function_->name = thread->name->value;
 
     auto ctx = std::make_unique<gsc::context>();
-    
+    stack_idx_ = 0;
+    local_stack_.clear();
     calc_local_vars(ctx, thread);
     
     emit_parameters(ctx, thread->params);
@@ -140,8 +141,8 @@ void compiler::emit_parameters(const gsc::context_ptr& ctx, const gsc::parameter
 {
     for(const auto& param : params->list)
     {
-        auto data = utils::string::va("%d", find_local_var_create_index(ctx, param->value));
-        emit_opcode(ctx, opcode::OP_SafeCreateVariableFieldCached, data);     
+        initialize_variable(ctx, param);
+        emit_opcode(ctx, opcode::OP_SafeCreateVariableFieldCached, variable_create_index(ctx, param));     
     }
 
     emit_opcode(ctx, opcode::OP_checkclearparams);
@@ -233,9 +234,8 @@ void compiler::emit_stmt_waittill(const gsc::context_ptr& ctx, const gsc::stmt_w
 
     for(const auto& arg : stmt->args->list)
     {
-        create_local_var(ctx, arg.as_identifier->value);
-        auto data = utils::string::va("%d", find_local_var_index(ctx, arg.as_identifier->value));
-        emit_opcode(ctx, opcode::OP_SafeSetWaittillVariableFieldCached, data);
+        create_variable(ctx, arg.as_identifier);
+        emit_opcode(ctx, opcode::OP_SafeSetWaittillVariableFieldCached, variable_access_index(ctx, arg.as_identifier));
     }
 
     emit_opcode(ctx, opcode::OP_clearparams);
@@ -258,11 +258,6 @@ void compiler::emit_stmt_waittillframeend(const gsc::context_ptr& ctx, const gsc
 void compiler::emit_stmt_if(const gsc::context_ptr& ctx, const gsc::stmt_if_ptr& stmt, bool last)
 {
     auto end_loc = create_label();
-    auto if_ctx = ctx->transfer();
-
-    if_ctx->is_last = last;
-
-    calc_local_vars_block(if_ctx, stmt->block);
 
     if(stmt->expr.as_node->type == gsc::node_type::expr_not)
     {
@@ -275,9 +270,12 @@ void compiler::emit_stmt_if(const gsc::context_ptr& ctx, const gsc::stmt_if_ptr&
         emit_opcode(ctx, opcode::OP_JumpOnFalse, end_loc);
     }
 
-    emit_block(if_ctx, stmt->block, last);
+    ctx->transfer(stmt->ctx);
+    stmt->ctx->is_last = last;
 
-    last ? emit_opcode(ctx, opcode::OP_End) : emit_remove_local_vars(if_ctx);
+    emit_block(stmt->ctx, stmt->block, last);
+
+    last ? emit_opcode(ctx, opcode::OP_End) : emit_remove_local_vars(stmt->ctx);
 
     insert_label(end_loc);
 }
@@ -286,15 +284,6 @@ void compiler::emit_stmt_ifelse(const gsc::context_ptr& ctx, const gsc::stmt_ife
 {
     auto else_loc = create_label();
     auto end_loc = create_label();
-
-    auto if_ctx = ctx->transfer();   // TODO: merge else block private variables ?
-    auto else_ctx = ctx->transfer(); // TODO: merge if block private variables ?
-
-    if_ctx->is_last = last;
-    else_ctx->is_last = last;
-
-    calc_local_vars_block(if_ctx, stmt->block_if);
-    calc_local_vars_block(else_ctx, stmt->block_else);
 
     if(stmt->expr.as_node->type == gsc::node_type::expr_not)
     {
@@ -307,41 +296,48 @@ void compiler::emit_stmt_ifelse(const gsc::context_ptr& ctx, const gsc::stmt_ife
         emit_opcode(ctx, opcode::OP_JumpOnFalse, else_loc);
     }
 
-    emit_block(if_ctx, stmt->block_if, last);
+    ctx->transfer(stmt->ctx_if);
+    stmt->ctx_if->is_last = last;
 
-    emit_remove_local_vars(if_ctx);
+    emit_block(stmt->ctx_if, stmt->block_if, last);
+
+    emit_remove_local_vars(stmt->ctx_if);
 
     last ? emit_opcode(ctx, opcode::OP_End) : emit_opcode(ctx, opcode::OP_jump, end_loc);
 
     insert_label(else_loc);
 
-    emit_block(else_ctx, stmt->block_else, last);
+    ctx->transfer(stmt->ctx_else);
+    stmt->ctx_else->is_last = last;
 
-    last ? emit_opcode(ctx, opcode::OP_End) : emit_remove_local_vars(else_ctx);
+    emit_block(stmt->ctx_else, stmt->block_else, last);
+
+    last ? emit_opcode(ctx, opcode::OP_End) : emit_remove_local_vars(stmt->ctx_else);
 
     insert_label(end_loc);
+
+    std::vector<gsc::context*> childs({ stmt->ctx_if.get(), stmt->ctx_else.get() });
+    ctx->init_from_child(childs);
 }
 
 void compiler::emit_stmt_while(const gsc::context_ptr& ctx, const gsc::stmt_while_ptr& stmt)
 {
-    auto begin_loc = create_label();
     auto break_loc = create_label();
     auto continue_loc = create_label();
-    auto while_ctx = ctx->transfer();
 
-    while_ctx->is_loop = true;
-    while_ctx->loc_break = break_loc;
-    while_ctx->loc_continue = continue_loc;
+    ctx->transfer(stmt->ctx);
+    stmt->ctx->is_loop = true;
+    stmt->ctx->loc_break = break_loc;
+    stmt->ctx->loc_continue = continue_loc;
 
-    calc_local_vars_block(while_ctx, stmt->block);
-    emit_create_local_vars(while_ctx);
+    emit_create_local_vars(stmt->ctx);
 
-    // TODO: check if constant condition
-    insert_label(begin_loc);
+    auto begin_loc = insert_label();
+
     emit_expr(ctx, stmt->expr);
     emit_opcode(ctx, opcode::OP_JumpOnFalse, break_loc);
 
-    emit_block(while_ctx, stmt->block, false);
+    emit_block(stmt->ctx, stmt->block, false);
 
     insert_label(continue_loc);
     emit_opcode(ctx, opcode::OP_jumpback, begin_loc);
@@ -351,24 +347,20 @@ void compiler::emit_stmt_while(const gsc::context_ptr& ctx, const gsc::stmt_whil
 
 void compiler::emit_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_for_ptr& stmt)
 {
-    auto begin_loc = create_label();
     auto break_loc = create_label();
     auto continue_loc = create_label();
 
     if(stmt->pre_expr.as_node->type != gsc::node_type::null)
         emit_expr_assign(ctx, stmt->pre_expr.as_assign);
 
-    auto for_ctx = ctx->transfer();
+    ctx->transfer(stmt->ctx);
+    stmt->ctx->is_loop = true;
+    stmt->ctx->loc_break = break_loc;
+    stmt->ctx->loc_continue = continue_loc;
 
-    for_ctx->is_loop = true;
-    for_ctx->loc_break = break_loc;
-    for_ctx->loc_continue = continue_loc;
+    emit_create_local_vars(stmt->ctx);
 
-    calc_local_vars_block(for_ctx, stmt->block);
-    emit_create_local_vars(for_ctx);
-
-    // TODO: check if constant condition
-    insert_label(begin_loc);
+    auto begin_loc = insert_label();
 
     if(stmt->expr.as_node->type != gsc::node_type::null)
     { 
@@ -376,7 +368,7 @@ void compiler::emit_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_for_pt
         emit_opcode(ctx, opcode::OP_JumpOnFalse, break_loc);
     }
 
-    emit_block(for_ctx, stmt->block, false);
+    emit_block(stmt->ctx, stmt->block, false);
 
     insert_label(continue_loc);
 
@@ -390,7 +382,6 @@ void compiler::emit_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_for_pt
 
 void compiler::emit_stmt_foreach(const gsc::context_ptr& ctx, const gsc::stmt_foreach_ptr& stmt)
 {
-    auto begin_loc = create_label();
     auto break_loc = create_label();
     auto continue_loc = create_label();
 
@@ -398,29 +389,26 @@ void compiler::emit_stmt_foreach(const gsc::context_ptr& ctx, const gsc::stmt_fo
     emit_local_variable_ref(ctx, stmt->array, true);
     emit_local_variable(ctx, stmt->array);
     emit_opcode(ctx, opcode::OP_CallBuiltin1, "getfirstarraykey");
-    create_local_var(ctx, stmt->element->value);
+    create_variable(ctx, stmt->element);
     emit_local_variable_ref(ctx, stmt->key, true);
 
-    auto foreach_ctx = ctx->transfer();
+    ctx->transfer(stmt->ctx);
+    stmt->ctx->is_loop = true;
+    stmt->ctx->loc_break = break_loc;
+    stmt->ctx->loc_continue = continue_loc;
 
-    foreach_ctx->is_loop = true;
-    foreach_ctx->loc_break = break_loc;
-    foreach_ctx->loc_continue = continue_loc;
+    emit_create_local_vars(stmt->ctx); // this should be before key set...
 
-    calc_local_vars_block(foreach_ctx, stmt->block);
-    emit_create_local_vars(foreach_ctx); // this should be before key set...
-
-    insert_label(begin_loc);
+    auto begin_loc = insert_label();
 
     emit_local_variable(ctx, stmt->key);
     emit_opcode(ctx, opcode::OP_CallBuiltin1, "isdefined");
 	emit_opcode(ctx, opcode::OP_JumpOnFalse, break_loc);
     emit_local_variable(ctx, stmt->key);
-	auto data = utils::string::va("%d", find_local_var_index(ctx, stmt->array->value));
-    emit_opcode(ctx, opcode::OP_EvalLocalArrayCached, data);
+    emit_opcode(ctx, opcode::OP_EvalLocalArrayCached, variable_access_index(ctx, stmt->array));
     emit_local_variable_ref(ctx, stmt->element, true);
 
-    emit_block(foreach_ctx, stmt->block, false);
+    emit_block(stmt->ctx, stmt->block, false);
 
     insert_label(continue_loc);
     emit_local_variable(ctx, stmt->key);
@@ -439,44 +427,41 @@ void compiler::emit_stmt_switch(const gsc::context_ptr& ctx, const gsc::stmt_swi
     auto jmptable_loc = create_label();
     auto break_loc = create_label();
 
-    auto switch_ctx = ctx->transfer();
-
-    switch_ctx->is_switch = true;
-    switch_ctx->loc_break = break_loc;
-
-    // calc local vars & emit ?
+    ctx->transfer(stmt->ctx);
+    stmt->ctx->is_switch = true;
+    stmt->ctx->loc_break = break_loc;
 
     emit_expr(ctx, stmt->expr);
     emit_opcode(ctx, opcode::OP_switch, jmptable_loc);
     
-    emit_block(switch_ctx, stmt->block, false);
+    emit_block(stmt->ctx, stmt->block, false);
 
     insert_label(jmptable_loc);
 
     std::vector<std::string> data;
-    data.push_back(utils::string::va("%d", switch_ctx->case_id.size()));
+    data.push_back(utils::string::va("%d", stmt->ctx->case_id.size()));
     
     auto i = 0;
-    for(auto& id : switch_ctx->case_id)
+    for(auto& id : stmt->ctx->case_id)
     {
         if(id != "default")
         {
             data.push_back("case");
             data.push_back(id);
-            data.push_back(switch_ctx->case_loc.at(i));
+            data.push_back(stmt->ctx->case_loc.at(i));
             i++;
         }
         else
         {
             data.push_back(id);
-            data.push_back(switch_ctx->case_loc.at(i));
+            data.push_back(stmt->ctx->case_loc.at(i));
             i++;
         }   
     }
 
     emit_opcode(ctx, opcode::OP_endswitch, data);
 
-    auto offset =  7 * switch_ctx->case_id.size();
+    auto offset =  7 * stmt->ctx->case_id.size();
     function_->instructions.back()->size += offset;
     index_ += offset;
 
@@ -784,7 +769,7 @@ void compiler::emit_expr_call(const gsc::context_ptr& ctx, const gsc::expr_call_
             }
         }
 
-        if(args > 0 && !thread && !builtin)
+        if(!thread && !builtin)
             emit_opcode(ctx, opcode::OP_PreScriptCall);
 
         emit_expr_arguments(ctx, expr->func.as_func->args);
@@ -1060,37 +1045,29 @@ void compiler::emit_array_variable_ref(const gsc::context_ptr& ctx, const gsc::e
         emit_opcode(ctx, opcode::OP_EvalArrayRef);      
         if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
         break;
-    case gsc::node_type::identifier: // local array
+    case gsc::node_type::identifier:
+    {
+        if(!variable_initialized(ctx, expr->obj.as_identifier))
         {
-            auto name = expr->obj.as_identifier->value;
+            initialize_variable(ctx, expr->obj.as_identifier);
+            emit_opcode(ctx, opcode::OP_EvalNewLocalArrayRefCached0, variable_create_index(ctx, expr->obj.as_identifier));
 
-            if(!is_local_var_initialized(ctx, name))
+            if(!set)
             {
-                // create a local array and set one of its elements without having to initialize it first
-                auto index = find_local_var_create_index(ctx, name);
-                ctx->local_vars_init.at(index) = true;
-                ctx->local_vars_create_count++;
-                emit_opcode(ctx, opcode::OP_EvalNewLocalArrayRefCached0, utils::string::va("%d", index));
-
-                if(!set)
-                {
-                    GSC_COMP_ERROR("INTERNAL: VAR CREATED BUT NOT SET! line %s", expr->location.data());
-                }
+                GSC_COMP_ERROR("INTERNAL: VAR CREATED BUT NOT SET! line %s", expr->location.data());
             }
-            else if(find_local_var_index(ctx, name) == 0)
-            {
-                // evaluates the last created local array.
-                emit_opcode(ctx, opcode::OP_EvalLocalArrayRefCached0);
-            }
-            else
-            {
-                // evaluate an array by local_variable_index
-                auto index = find_local_var_index(ctx,name);
-                emit_opcode(ctx, opcode::OP_EvalLocalArrayRefCached, utils::string::va("%d", index));
-            }
-
-            if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
         }
+        else if(variable_stack_index(ctx, expr->obj.as_identifier) == 0)
+        {
+            emit_opcode(ctx, opcode::OP_EvalLocalArrayRefCached0);
+        }
+        else
+        {
+            emit_opcode(ctx, opcode::OP_EvalLocalArrayRefCached, variable_access_index(ctx, expr->obj.as_identifier));
+        }
+
+        if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
+    }
         break;
     case gsc::node_type::expr_call:
         GSC_COMP_ERROR("line %s: call result can't be referenced.", expr->location.data());
@@ -1129,7 +1106,7 @@ void compiler::emit_field_variable_ref(const gsc::context_ptr& ctx, const gsc::e
         if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
         break;
     case gsc::node_type::identifier:
-        emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, utils::string::va("%d", find_local_var_index(ctx, expr->obj.as_identifier->value)));
+        emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, variable_access_index(ctx, expr->obj.as_identifier));
         emit_opcode(ctx, opcode::OP_EvalFieldVariableRef, field);
         if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
         break;
@@ -1146,28 +1123,28 @@ void compiler::emit_local_variable_ref(const gsc::context_ptr& ctx, const gsc::i
 {
     if(set)
     {
-        if(!is_local_var_initialized(ctx, expr->value))
+        if(!variable_initialized(ctx, expr))
         {
-            auto index = find_local_var_create_index(ctx, expr->value);
-            ctx->local_vars_init.at(index) = true;
-            ctx->local_vars_create_count++;
-            emit_opcode(ctx, opcode::OP_SetNewLocalVariableFieldCached0, utils::string::va("%d", index));
+            initialize_variable(ctx, expr);
+            emit_opcode(ctx, opcode::OP_SetNewLocalVariableFieldCached0, variable_create_index(ctx, expr));
         }
-        else if(find_local_var_index(ctx, expr->value) == 0)
+        else if(variable_stack_index(ctx, expr) == 0)
         {
             emit_opcode(ctx, opcode::OP_SetLocalVariableFieldCached0);
         }
         else
         {
-            auto index = find_local_var_index(ctx, expr->value);
-            emit_opcode(ctx, opcode::OP_SetLocalVariableFieldCached, utils::string::va("%d", index));
+            emit_opcode(ctx, opcode::OP_SetLocalVariableFieldCached, variable_access_index(ctx, expr));
         }
     }
     else
     {
-        auto index = find_local_var_index(ctx, expr->value);
+        auto index = variable_stack_index(ctx, expr);
 
-        index == 0 ? emit_opcode(ctx, opcode::OP_EvalLocalVariableRefCached0) : emit_opcode(ctx, opcode::OP_EvalLocalVariableRefCached, utils::string::va("%d", index));
+        if(index == 0)
+            emit_opcode(ctx, opcode::OP_EvalLocalVariableRefCached0);
+        else
+            emit_opcode(ctx, opcode::OP_EvalLocalVariableRefCached, variable_access_index(ctx, expr));
     }
 }
 
@@ -1190,8 +1167,7 @@ void compiler::emit_array_variable(const gsc::context_ptr& ctx, const gsc::expr_
 
     if(expr->obj.as_node->type == gsc::node_type::identifier)
     {
-        auto data = utils::string::va("%d", find_local_var_index(ctx, expr->obj.as_identifier->value));
-        emit_opcode(ctx, opcode::OP_EvalLocalArrayCached, data);
+        emit_opcode(ctx, opcode::OP_EvalLocalArrayCached, variable_access_index(ctx, expr->obj.as_identifier));
     }
     else
     {
@@ -1230,6 +1206,10 @@ void compiler::emit_field_variable(const gsc::context_ptr& ctx, const gsc::expr_
         emit_opcode(ctx, opcode::OP_CastFieldObject);
         emit_opcode(ctx, opcode::OP_EvalFieldVariable, field);
         break;
+    case gsc::node_type::identifier:
+        emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, variable_access_index(ctx, expr->obj.as_identifier));
+        emit_opcode(ctx, opcode::OP_EvalFieldVariable, field);
+        break;
     default:
         GSC_COMP_ERROR("line %s: unknown field variable object type", expr->location.data());
         break;
@@ -1249,7 +1229,7 @@ void compiler::emit_local_variable(const gsc::context_ptr& ctx, const gsc::ident
     }
 
     // is local var
-    auto index = find_local_var_index(ctx, expr->value);
+    auto index = variable_stack_index(ctx, expr);
 
     switch(index)
     {
@@ -1259,13 +1239,13 @@ void compiler::emit_local_variable(const gsc::context_ptr& ctx, const gsc::ident
         case 3: emit_opcode(ctx, opcode::OP_EvalLocalVariableCached3); break;
         case 4: emit_opcode(ctx, opcode::OP_EvalLocalVariableCached4); break;
         case 5: emit_opcode(ctx, opcode::OP_EvalLocalVariableCached5); break;
-        default: emit_opcode(ctx, opcode::OP_EvalLocalVariableCached, utils::string::va("%d", index)); break;
+        default: emit_opcode(ctx, opcode::OP_EvalLocalVariableCached, variable_access_index(ctx, expr)); break;
     }
 }
 
 void compiler::emit_clear_local_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& expr)
 {
-    auto index = find_local_var_index(ctx, expr->value);
+    auto index = variable_stack_index(ctx, expr);
 
     if(index == 0)
     {
@@ -1273,7 +1253,7 @@ void compiler::emit_clear_local_variable(const gsc::context_ptr& ctx, const gsc:
     }
     else
     {
-        emit_opcode(ctx, opcode::OP_ClearLocalVariableFieldCached, utils::string::va("%d", index));
+        emit_opcode(ctx, opcode::OP_ClearLocalVariableFieldCached, variable_access_index(ctx, expr));
     }
 }
 
@@ -1285,7 +1265,7 @@ void compiler::emit_create_local_vars(const gsc::context_ptr& ctx)
     {
         auto data = utils::string::va("%d", ctx->local_vars_create_count);
         emit_opcode(ctx, opcode::OP_CreateLocalVariable, data);
-        ctx->local_vars_init.at(i) = true;
+        ctx->local_vars.at(i).init = true;
         ctx->local_vars_create_count++;
     }
 }
@@ -1303,6 +1283,7 @@ void compiler::emit_remove_local_vars(const gsc::context_ptr& ctx)
 
 void compiler::emit_object(const gsc::context_ptr& ctx, const gsc::expr_ptr& expr)
 {
+    // need revision used for clear variable
     switch(expr.as_node->type)
     {
         case gsc::node_type::level:
@@ -1315,7 +1296,7 @@ void compiler::emit_object(const gsc::context_ptr& ctx, const gsc::expr_ptr& exp
             emit_opcode(ctx, opcode::OP_GetSelfObject);
             break;
         case gsc::node_type::identifier:
-            emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, utils::string::va("%d", find_local_var_index(ctx, expr.as_identifier->value)));
+            emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, variable_access_index(ctx, expr.as_identifier));
             break;
         case gsc::node_type::expr_call:
             emit_expr_call(ctx, expr.as_call);
@@ -1494,14 +1475,7 @@ void compiler::calc_local_vars_parameters(const gsc::context_ptr& ctx, const gsc
 {
     for(const auto& param : params->list)
     {
-        auto it = std::find(ctx->local_vars.begin(), ctx->local_vars.end(), param->value);
-
-        if(it == ctx->local_vars.end())
-        {
-            ctx->local_vars.push_back(param->value);
-            ctx->local_vars_init.push_back(true);
-            ctx->local_vars_create_count++;
-        }
+        register_variable(ctx, param->value);
     }
 }
 
@@ -1513,8 +1487,12 @@ void compiler::calc_local_vars_block(const gsc::context_ptr& ctx, const gsc::blo
         {
             case gsc::node_type::stmt_assign:   calc_local_vars_expr(ctx, stmt.as_assign->expr->lvalue); break;
             case gsc::node_type::stmt_waittill: calc_local_vars_waittill(ctx, stmt.as_waittill); break;
+            case gsc::node_type::stmt_if:       calc_local_vars_if(ctx, stmt.as_if); break;
+            case gsc::node_type::stmt_ifelse:   calc_local_vars_ifelse(ctx, stmt.as_ifelse); break;
+            case gsc::node_type::stmt_while:    calc_local_vars_while(ctx, stmt.as_while); break;
             case gsc::node_type::stmt_for:      calc_local_vars_for(ctx, stmt.as_for); break;
             case gsc::node_type::stmt_foreach:  calc_local_vars_foreach(ctx, stmt.as_foreach); break;
+            case gsc::node_type::stmt_switch:   calc_local_vars_switch(ctx, stmt.as_switch); break;
             default: break;
         }
     }
@@ -1524,22 +1502,11 @@ void compiler::calc_local_vars_expr(const gsc::context_ptr& ctx, const gsc::expr
 {
     if(expr.as_node->type == gsc::node_type::identifier)
     {
-        calc_local_vars_variable(ctx, expr.as_identifier->value);
+        register_variable(ctx, expr.as_identifier->value);
     }
     else if(expr.as_node->type == gsc::node_type::expr_array)
     {
         calc_local_vars_expr(ctx, expr.as_array->obj);
-    }
-}
-
-void compiler::calc_local_vars_variable(const gsc::context_ptr& ctx, const std::string& name)
-{
-    auto it = std::find(ctx->local_vars.begin(), ctx->local_vars.end(), name);
-
-    if(it == ctx->local_vars.end())
-    {
-        ctx->local_vars.push_back(name);
-        ctx->local_vars_init.push_back(false);
     }
 }
 
@@ -1549,34 +1516,89 @@ void compiler::calc_local_vars_waittill(const gsc::context_ptr& ctx, const gsc::
 
     for(const auto& arg : stmt->args->list)
     {
-        auto it = std::find(ctx->local_vars.begin(), ctx->local_vars.end(), arg.as_identifier->value);
-
-        if(it == ctx->local_vars.end())
-        {
-            ctx->local_vars.push_back(arg.as_identifier->value);
-            ctx->local_vars_init.push_back(false);
-        }
+        register_variable(ctx, arg.as_identifier->value);
     }
 
     std::reverse(stmt->args->list.begin(), stmt->args->list.end());
 }
 
+void compiler::calc_local_vars_if(const gsc::context_ptr& ctx, const gsc::stmt_if_ptr& stmt)
+{
+    auto if_ctx = std::make_unique<gsc::context>();
+
+    ctx->copy(if_ctx);
+    calc_local_vars_block(if_ctx, stmt->block);
+
+    std::vector<gsc::context*> childs({ if_ctx.get() });
+    
+    ctx->merge(childs);
+
+    stmt->ctx = std::move(if_ctx);
+}
+
+void compiler::calc_local_vars_ifelse(const gsc::context_ptr& ctx, const gsc::stmt_ifelse_ptr& stmt)
+{
+    auto if_ctx = std::make_unique<gsc::context>();
+    auto else_ctx = std::make_unique<gsc::context>();
+
+    ctx->copy(if_ctx);
+    calc_local_vars_block(if_ctx, stmt->block_if);
+    
+    ctx->copy(else_ctx);
+    calc_local_vars_block(else_ctx, stmt->block_else);
+    
+    std::vector<gsc::context*> childs({ if_ctx.get(), else_ctx.get() });
+
+    ctx->append(childs);
+    ctx->merge(childs);
+
+    stmt->ctx_if = std::move(if_ctx);
+    stmt->ctx_else = std::move(else_ctx);
+}
+
+void compiler::calc_local_vars_while(const gsc::context_ptr& ctx, const gsc::stmt_while_ptr& stmt)
+{
+    auto while_ctx = std::make_unique<gsc::context>();
+
+    ctx->copy(while_ctx);
+    calc_local_vars_block(while_ctx, stmt->block);
+
+    std::vector<gsc::context*> childs({ while_ctx.get() });
+    
+    ctx->merge(childs);
+
+    stmt->ctx = std::move(while_ctx);
+}
+
 void compiler::calc_local_vars_for(const gsc::context_ptr& ctx, const gsc::stmt_for_ptr& stmt)
 {
+    auto for_ctx = std::make_unique<gsc::context>();
+
     // TODO: modify this
     if(stmt->pre_expr.as_node->type == gsc::node_type::expr_assign_equal)
     {
         calc_local_vars_expr(ctx, stmt->pre_expr.as_assign->lvalue);
     }
+
+    ctx->copy(for_ctx);
+    calc_local_vars_block(for_ctx, stmt->block);
+
+    std::vector<gsc::context*> childs({ for_ctx.get() });
+    
+    ctx->merge(childs);
+
+    stmt->ctx = std::move(for_ctx);
 }
 
 void compiler::calc_local_vars_foreach(const gsc::context_ptr& ctx, const gsc::stmt_foreach_ptr& stmt)
 {
+    auto foreach_ctx = std::make_unique<gsc::context>();
+
     label_idx_++;
     auto name = utils::string::va("temp_%d", label_idx_);
     stmt->array = std::make_unique<gsc::node_identifier>(name);
-    calc_local_vars_variable(ctx, stmt->array->value);
-    calc_local_vars_variable(ctx, stmt->element->value);
+    register_variable(ctx, stmt->array->value);
+    register_variable(ctx, stmt->element->value);
 
     if(!stmt->use_key)
     {
@@ -1585,85 +1607,160 @@ void compiler::calc_local_vars_foreach(const gsc::context_ptr& ctx, const gsc::s
         stmt->key = std::make_unique<gsc::node_identifier>(name2);
     }
 
-    calc_local_vars_variable(ctx, stmt->key->value);
+    register_variable(ctx, stmt->key->value);
+
+    ctx->copy(foreach_ctx);
+    calc_local_vars_block(foreach_ctx, stmt->block);
+
+    std::vector<gsc::context*> childs({ foreach_ctx.get() });
+    
+    ctx->merge(childs);
+
+    stmt->ctx = std::move(foreach_ctx);
 }
 
-void compiler::create_local_var(const gsc::context_ptr& ctx, const std::string& name)
+void compiler::calc_local_vars_switch(const gsc::context_ptr& ctx, const gsc::stmt_switch_ptr& stmt)
+{
+    auto switch_ctx = std::make_unique<gsc::context>();
+
+    ctx->copy(switch_ctx);
+    calc_local_vars_block(switch_ctx, stmt->block);
+
+    std::vector<gsc::context*> childs({ switch_ctx.get() });
+    
+    ctx->merge(childs);
+
+    stmt->ctx = std::move(switch_ctx);
+}
+
+void compiler::register_variable(const gsc::context_ptr& ctx, const std::string& name)
+{
+    auto it = std::find_if(ctx->local_vars.begin(), ctx->local_vars.end(),
+            [&](const gsc::local_var& v) { return v.name == name; });
+
+    if(it == ctx->local_vars.end())
+    {
+        auto found = false;
+        for(auto i = 0; i < local_stack_.size(); i++)
+        {
+            if(local_stack_[i] == name)
+            {
+                ctx->local_vars.push_back({ name, static_cast<uint8_t>(i), false });
+                found = true;
+                break;
+            }
+        }
+
+        if(!found)
+        {
+            ctx->local_vars.push_back({ name, stack_idx_, false });
+            local_stack_.push_back(name);
+            stack_idx_++;
+        }
+    }
+}
+
+void compiler::initialize_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name)
+{
+    auto it = std::find_if(ctx->local_vars.begin(), ctx->local_vars.end(), 
+            [&](const gsc::local_var& v) { return v.name == name->value; });
+
+    if(it != ctx->local_vars.end())
+    {
+        if(!it->init)
+        {
+            it->init = true;
+            ctx->local_vars_create_count++;
+        }
+        return;
+    }
+
+    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
+}
+
+void compiler::create_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name)
 {
     auto i = 0;
 
-    for(const auto& var : ctx->local_vars)
+    for(auto i = 0; i < ctx->local_vars.size(); i++)
     {
-        if(var == name)
+        auto& var = ctx->local_vars.at(i);
+        if(var.name == name->value)
         {
-            if(!ctx->local_vars_init.at(i))
+            if(!var.init)
             {
-                emit_opcode(ctx, opcode::OP_CreateLocalVariable, utils::string::va("%d", i));
-                ctx->local_vars_init.at(i) = true;
+                emit_opcode(ctx, opcode::OP_CreateLocalVariable, utils::string::va("%d", var.create));
+                var.init = true;
                 ctx->local_vars_create_count++;
             }
             return;
         }
-        i++;
     }
 
-    GSC_COMP_ERROR("local variable '%s' not found.", name.data());
+    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
 }
 
-auto compiler::find_local_var_create_index(const gsc::context_ptr& ctx, const std::string& name) -> std::int8_t
+auto compiler::variable_stack_index(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> std::uint8_t
 {
-    auto i = 0;
-
-    for(auto& var : ctx->local_vars)
+    for(auto i = 0; i < ctx->local_vars.size(); i++)
     {
-        if(var == name) return i;
-        i++;
-    }
-
-    GSC_COMP_ERROR("local variable '%s' not found.", name.data());
-    return -1;
-}
-
-auto compiler::find_local_var_index(const gsc::context_ptr& ctx, const std::string& name) -> std::int8_t
-{
-    auto i = 0;
-
-    for(auto& var : ctx->local_vars)
-    {
-        if(var == name)
+        if(ctx->local_vars[i].name == name->value)
         {
-            if(!ctx->local_vars_init.at(i))
+            if(ctx->local_vars.at(i).init)
             {
-                GSC_COMP_ERROR("local variable '%s' not initialized", name.data());
+                return ctx->local_vars_create_count - 1 - i;
             }
 
-            return ctx->local_vars_create_count - 1 - i;
-        }
-        
-        i++;
+            GSC_COMP_ERROR("line %s: local variable '%s' not initialized", name->location.data(), name->value.data());
+        }   
     }
 
-    GSC_COMP_ERROR("local variable '%s' not found.", name.data());
-    return -1;
+    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
+    return 0xFF;
 }
 
-auto compiler::is_local_var_initialized(const gsc::context_ptr& ctx, const std::string& name) -> bool
+auto compiler::variable_create_index(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> std::string
 {
-    auto i = 0;
-
-    for(auto& var : ctx->local_vars)
+    for(auto i = 0; i < ctx->local_vars.size(); i++)
     {
-        if(var == name)
-        {
-            if(!ctx->local_vars_init.at(i)) return false;
-
-            return true;
-        }
-        
-        i++;
+        if(ctx->local_vars[i].name == name->value)
+            return utils::string::va("%d", ctx->local_vars[i].create);
     }
 
-    GSC_COMP_ERROR("local variable '%s' not found.", name.data());
+    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
+    return "";
+}
+
+auto compiler::variable_access_index(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> std::string
+{
+    for(auto i = 0; i < ctx->local_vars.size(); i++)
+    {
+        if(ctx->local_vars[i].name == name->value)
+        {
+            if(ctx->local_vars.at(i).init)
+            {
+                return utils::string::va("%d", ctx->local_vars_create_count - 1 - i);
+            }
+
+            GSC_COMP_ERROR("line %s: local variable '%s' not initialized", name->location.data(), name->value.data());
+        }   
+    }
+
+    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
+    return "";
+}
+
+auto compiler::variable_initialized(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> bool
+{
+    for(auto i = 0; i < ctx->local_vars.size(); i++)
+    {
+        if(ctx->local_vars[i].name == name->value)
+        {
+            return ctx->local_vars.at(i).init;
+        }
+    }
+
+    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
     return false;
 }
 
@@ -1704,15 +1801,52 @@ auto compiler::create_label() -> std::string
 
 auto compiler::insert_label() -> std::string
 {
-    label_idx_++;
-    auto name = utils::string::va("loc_%d", label_idx_);
-    function_->labels.insert({index_, name});
-    return name;
+    const auto itr = function_->labels.find(index_);
+
+    if (itr != function_->labels.end())
+    {
+       return itr->second;
+    }
+    else
+    {
+        label_idx_++;
+        auto name = utils::string::va("loc_%d", label_idx_);
+        function_->labels.insert({index_, name});
+        return name;
+    }
 }
 
 void compiler::insert_label(const std::string& name)
 {
-    function_->labels.insert({index_, name});
+    const auto itr = function_->labels.find(index_);
+
+    if (itr != function_->labels.end())
+    {
+       // remap
+       for(auto& inst : function_->instructions)
+       {
+           switch (opcode(inst->opcode))
+           {
+            case opcode::OP_JumpOnFalse:
+            case opcode::OP_JumpOnTrue:
+            case opcode::OP_JumpOnFalseExpr:
+            case opcode::OP_JumpOnTrueExpr:
+            case opcode::OP_jump:
+            case opcode::OP_jumpback:
+            case opcode::OP_switch:
+                if(inst->data[0] == name)
+                    inst->data[0] = itr->second;
+                break;
+            // end switch...
+            default:
+                break;
+           }
+       }
+    }
+    else
+    {
+        function_->labels.insert({index_, name});
+    }
 }
 
 void compiler::print_debug_info()

@@ -23,6 +23,8 @@ class compiler : public gsc::compiler
     gsc::function_ptr function_;
     std::uint32_t index_;
     std::uint32_t label_idx_;
+    std::uint8_t stack_idx_;
+    std::vector<std::string> local_stack_;
     std::vector<std::string> local_functions_;
     std::vector<std::string> includes_;
     std::vector<animtree> animtrees_;
@@ -49,10 +51,10 @@ private:
     void emit_stmt_endon(const gsc::context_ptr& ctx, const gsc::stmt_endon_ptr& stmt);
     void emit_stmt_notify(const gsc::context_ptr& ctx, const gsc::stmt_notify_ptr& stmt);
     void emit_stmt_wait(const gsc::context_ptr& ctx, const gsc::stmt_wait_ptr& stmt);
-	void emit_stmt_waitframe(const gsc::context_ptr& ctx, const gsc::stmt_waitframe_ptr& stmt);
     void emit_stmt_waittill(const gsc::context_ptr& ctx, const gsc::stmt_waittill_ptr& stmt);
     void emit_stmt_waittillmatch(const gsc::context_ptr& ctx, const gsc::stmt_waittillmatch_ptr& stmt);
     void emit_stmt_waittillframeend(const gsc::context_ptr& ctx, const gsc::stmt_waittillframeend_ptr& stmt);
+    void emit_stmt_waitframe(const gsc::context_ptr& ctx, const gsc::stmt_waitframe_ptr& stmt);
     void emit_stmt_if(const gsc::context_ptr& ctx, const gsc::stmt_if_ptr& stmt, bool last);
     void emit_stmt_ifelse(const gsc::context_ptr& ctx, const gsc::stmt_ifelse_ptr& stmt, bool last);
     void emit_stmt_while(const gsc::context_ptr& ctx, const gsc::stmt_while_ptr& stmt);
@@ -107,35 +109,31 @@ private:
     void emit_opcode(const gsc::context_ptr& ctx, opcode op);
     void emit_opcode(const gsc::context_ptr& ctx, opcode op, const std::string& data);
     void emit_opcode(const gsc::context_ptr& ctx, opcode op, const std::vector<std::string>& data);
-
     void calc_local_vars(const gsc::context_ptr& ctx, const gsc::thread_ptr& thread);
     void calc_local_vars_parameters(const gsc::context_ptr& ctx, const gsc::parameters_ptr& params);
     void calc_local_vars_block(const gsc::context_ptr& ctx, const gsc::block_ptr& block);
     void calc_local_vars_expr(const gsc::context_ptr& ctx, const gsc::expr_ptr& expr);
-    void calc_local_vars_variable(const gsc::context_ptr& ctx, const std::string& name);
     void calc_local_vars_waittill(const gsc::context_ptr& ctx, const gsc::stmt_waittill_ptr& stmt);
+    void calc_local_vars_if(const gsc::context_ptr& ctx, const gsc::stmt_if_ptr& stmt);
+    void calc_local_vars_ifelse(const gsc::context_ptr& ctx, const gsc::stmt_ifelse_ptr& stmt);
+    void calc_local_vars_while(const gsc::context_ptr& ctx, const gsc::stmt_while_ptr& stmt);
     void calc_local_vars_for(const gsc::context_ptr& ctx, const gsc::stmt_for_ptr& stmt);
     void calc_local_vars_foreach(const gsc::context_ptr& ctx, const gsc::stmt_foreach_ptr& stmt);
-    void create_local_var(const gsc::context_ptr& ctx, const std::string& name);
-    auto find_local_var_create_index(const gsc::context_ptr& ctx, const std::string& name) -> std::int8_t;
-    auto find_local_var_index(const gsc::context_ptr& ctx, const std::string& name) -> std::int8_t;
-    auto is_local_var_initialized(const gsc::context_ptr& ctx, const std::string& name) -> bool;
-
+    void calc_local_vars_switch(const gsc::context_ptr& ctx, const gsc::stmt_switch_ptr& stmt);
+    void register_variable(const gsc::context_ptr& ctx, const std::string& name);
+    void initialize_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name);
+    void create_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name);
+    auto variable_stack_index(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> std::uint8_t;
+    auto variable_create_index(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> std::string;
+    auto variable_access_index(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> std::string;
+    auto variable_initialized(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> bool;
     auto is_local_call(const std::string& name) -> bool;
     auto is_builtin_call(const std::string& name) -> bool;
     auto is_builtin_func(const std::string& name) -> bool;
     auto is_builtin_method(const std::string& name) -> bool;
-    
     auto create_label() -> std::string;
     auto insert_label() -> std::string;
     void insert_label(const std::string& label);
-
-    // debug
-    void print_debug_info();
-    void print_opcodes(std::uint32_t index, std::uint32_t size);
-    void print_function(const gsc::function_ptr& func);
-    void print_instruction(const gsc::instruction_ptr& inst);
-    void print_label(const std::string& label);
 };
 
 } // namespace H2

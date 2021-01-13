@@ -1662,6 +1662,7 @@ struct node_stmt_if : public node
 {
     expr_ptr expr;
     block_ptr block;
+    context_ptr ctx;
 
     node_stmt_if(expr_ptr expr, block_ptr block)
         : node(node_type::stmt_if), expr(std::move(expr)), block(std::move(block)) {}
@@ -1701,6 +1702,8 @@ struct node_stmt_ifelse : public node
     expr_ptr expr;
     block_ptr block_if;
     block_ptr block_else;
+    context_ptr ctx_if;
+    context_ptr ctx_else;
 
     node_stmt_ifelse(expr_ptr expr, block_ptr block_if, block_ptr block_else)
         : node(node_type::stmt_ifelse), expr(std::move(expr)), block_if(std::move(block_if)), block_else(std::move(block_else)) {}
@@ -1762,6 +1765,7 @@ struct node_stmt_while : public node
 {
     expr_ptr expr;
     block_ptr block;
+    context_ptr ctx;
 
     node_stmt_while(expr_ptr expr, block_ptr block)
         : node(node_type::stmt_while), expr(std::move(expr)), block(std::move(block)) {}
@@ -1811,6 +1815,7 @@ struct node_stmt_for : public node
     expr_ptr expr;
     expr_ptr post_expr;
     block_ptr block;
+    context_ptr ctx;
 
     node_stmt_for(expr_ptr pre_expr, expr_ptr expr, expr_ptr post_expr, block_ptr block)
         : node(node_type::stmt_for), pre_expr(std::move(pre_expr)), expr(std::move(expr)),
@@ -1863,6 +1868,7 @@ struct node_stmt_foreach : public node
     identifier_ptr array;
     expr_ptr container;
     block_ptr block;
+    context_ptr ctx;
     bool use_key;
 
     node_stmt_foreach(identifier_ptr element, expr_ptr container, block_ptr block)
@@ -1922,6 +1928,7 @@ struct node_stmt_switch : public node
 {
     expr_ptr expr;
     block_ptr block;
+    context_ptr ctx;
 
     node_stmt_switch(expr_ptr expr, block_ptr block)
         : node(node_type::stmt_switch), expr(std::move(expr)), block(std::move(block)) {}

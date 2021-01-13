@@ -46,8 +46,8 @@ using namespace std::literals;
 #include "types/pair.hpp"
 #include "types/asset.hpp"
 #include "types/assembly.hpp"
-#include "types/nodetree.hpp"
 #include "types/context.hpp"
+#include "types/nodetree.hpp"
 
 // GSC Interfaces
 #include "interfaces/assembler.hpp"
