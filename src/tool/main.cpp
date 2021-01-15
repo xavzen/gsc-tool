@@ -64,71 +64,131 @@ auto choose_resolver_file_name(uint16_t id, game& game) -> std::string
 
 void assemble_file(gsc::assembler& assembler, std::string file, bool zonetool)
 {
-    const auto ext = std::string(".gscasm");
-    const auto extpos = file.find(ext);
-    
-    if (extpos != std::string::npos)
+    try
     {
-        file.replace(extpos, ext.length(), "");
+        const auto ext = std::string(".gscasm");
+        const auto extpos = file.find(ext);
+        
+        if (extpos != std::string::npos)
+        {
+            file.replace(extpos, ext.length(), "");
+        }
+
+        auto data = utils::file::read(file + ext);
+
+        assembler.assemble(data);
+
+        if (overwrite_prompt(file + (zonetool ? ".cgsc" : ".gscbin")))
+        {
+            if(zonetool)
+            {
+                utils::file::save(file + ".cgsc", assembler.output_script());
+                utils::file::save(file + ".cgsc.stack", assembler.output_stack());
+            }
+            else
+            {
+                gsc::asset script;
+
+                auto uncompressed = assembler.output_stack();
+                auto compressed = utils::zlib::compress(uncompressed);
+
+                script.name = file;
+                script.bytecode = assembler.output_script();
+                script.buffer = std::move(compressed);
+                script.len = uncompressed.size();
+                script.compressedLen = script.buffer.size();
+                script.bytecodeLen = script.bytecode.size();
+
+                auto output = script.serialize();
+                utils::file::save(file + ".gscbin", output);
+            }
+        }
     }
-
-    auto data = utils::file::read(file + ext);
-
-    assembler.assemble(data);
-
-    if (overwrite_prompt(file + (zonetool ? ".cgsc" : ".gscbin")))
+    catch(const std::exception& e)
     {
-        if(zonetool)
-        {
-            utils::file::save(file + ".cgsc", assembler.output_script());
-            utils::file::save(file + ".cgsc.stack", assembler.output_stack());
-        }
-        else
-        {
-            gsc::asset script;
-
-            auto uncompressed = assembler.output_stack();
-            auto compressed = utils::zlib::compress(uncompressed);
-
-            script.name = file;
-            script.bytecode = assembler.output_script();
-            script.buffer = std::move(compressed);
-            script.len = uncompressed.size();
-            script.compressedLen = script.buffer.size();
-            script.bytecodeLen = script.bytecode.size();
-
-            auto output = script.serialize();
-            utils::file::save(file + ".gscbin", output);
-        }
+        std::cerr << e.what() << '\n';
     }
 }
 
 void disassemble_file(gsc::disassembler& disassembler, std::string file, game& game, bool zonetool)
 {
-    if(zonetool)
+    try
     {
-        if (file.find(".stack") != std::string::npos)
+        if(zonetool)
         {
-            printf("Cannot disassemble stack files\n");
-            return;
+            if (file.find(".stack") != std::string::npos)
+            {
+                printf("Cannot disassemble stack files\n");
+                return;
+            }
+
+            const auto ext = std::string(".cgsc");
+            const auto extpos = file.find(ext);
+
+            if (extpos != std::string::npos)
+            {
+                file.replace(extpos, ext.length(), "");
+            }
+
+            auto script = utils::file::read(file + ".cgsc");
+            auto stack = utils::file::read(file + ".cgsc.stack");
+
+            disassembler.disassemble(script, stack);
+        }
+        else
+        {
+            const auto ext = std::string(".gscbin");
+            const auto extpos = file.find(ext);
+            
+            if (extpos != std::string::npos)
+            {
+                file.replace(extpos, ext.length(), "");
+            }
+
+            auto data = utils::file::read(file + ext);
+
+            gsc::asset script;
+
+            script.deserialize(data);
+
+            auto stack = utils::zlib::decompress(script.buffer, script.len);
+
+            disassembler.disassemble(script.bytecode, stack);
         }
 
-        const auto ext = std::string(".cgsc");
-        const auto extpos = file.find(ext);
+        auto scriptid = std::filesystem::path(file).filename().string();
 
-        if (extpos != std::string::npos)
+        if (!isdigit(scriptid.data()[0]))
         {
-            file.replace(extpos, ext.length(), "");
+            utils::file::save(file + ".gscasm", disassembler.output_data());
         }
+        else
+        {
+            auto filename = choose_resolver_file_name(std::atoi(scriptid.data()), game);
+            auto count = file.find(scriptid);
 
-        auto script = utils::file::read(file + ".cgsc");
-        auto stack = utils::file::read(file + ".cgsc.stack");
+            if (count != std::string::npos)
+            {
+                if (!filename.empty())
+                {
+                    file.erase(count, scriptid.length());
+                }
+            }
 
-        disassembler.disassemble(script, stack);
+            utils::file::save(file + filename + ".gscasm", disassembler.output_data());
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        const auto ext = std::string(".gscbin");
+        std::cerr << e.what() << '\n';
+    } 
+}
+
+void compile_file(gsc::assembler& assembler, gsc::compiler& compiler, std::string file, bool zonetool)
+{
+    try
+    {
+        const auto ext = std::string(".gsc");
         const auto extpos = file.find(ext);
         
         if (extpos != std::string::npos)
@@ -138,153 +198,120 @@ void disassemble_file(gsc::disassembler& disassembler, std::string file, game& g
 
         auto data = utils::file::read(file + ext);
 
-        gsc::asset script;
+        compiler.compile(data);
 
-        script.deserialize(data);
+        auto assembly = compiler.output();
 
-        auto stack = utils::zlib::decompress(script.buffer, script.len);
+        assembler.assemble(assembly);
 
-        disassembler.disassemble(script.bytecode, stack);
-    }
-
-    auto scriptid = std::filesystem::path(file).filename().string();
-
-    if (!isdigit(scriptid.data()[0]))
-    {
-        utils::file::save(file + ".gscasm", disassembler.output_data());
-    }
-    else
-    {
-        auto filename = choose_resolver_file_name(std::atoi(scriptid.data()), game);
-        auto count = file.find(scriptid);
-
-        if (count != std::string::npos)
+        if (overwrite_prompt(file + (zonetool ? ".cgsc" : ".gscbin")))
         {
-            if (!filename.empty())
+            if(zonetool)
             {
-                file.erase(count, scriptid.length());
+                utils::file::save(file + ".cgsc", assembler.output_script());
+                utils::file::save(file + ".cgsc.stack", assembler.output_stack());
+            }
+            else
+            {
+                gsc::asset script;
+
+                auto uncompressed = assembler.output_stack();
+                auto compressed = utils::zlib::compress(uncompressed);
+
+                script.name = file;
+                script.bytecode = assembler.output_script();
+                script.buffer = std::move(compressed);
+                script.len = uncompressed.size();
+                script.compressedLen = script.buffer.size();
+                script.bytecodeLen = script.bytecode.size();
+
+                auto output = script.serialize();
+                utils::file::save(file + ".gscbin", output);
             }
         }
-
-        utils::file::save(file + filename + ".gscasm", disassembler.output_data());
     }
-}
-
-void compile_file(gsc::assembler& assembler, gsc::compiler& compiler, std::string file, bool zonetool)
-{
-    const auto ext = std::string(".gsc");
-    const auto extpos = file.find(ext);
-    
-    if (extpos != std::string::npos)
+    catch(const std::exception& e)
     {
-        file.replace(extpos, ext.length(), "");
-    }
-
-    auto data = utils::file::read(file + ext);
-
-    compiler.compile(data);
-
-    auto assembly = compiler.output();
-
-    assembler.assemble(assembly);
-
-    if (overwrite_prompt(file + (zonetool ? ".cgsc" : ".gscbin")))
-    {
-        if(zonetool)
-        {
-            utils::file::save(file + ".cgsc", assembler.output_script());
-            utils::file::save(file + ".cgsc.stack", assembler.output_stack());
-        }
-        else
-        {
-            gsc::asset script;
-
-            auto uncompressed = assembler.output_stack();
-            auto compressed = utils::zlib::compress(uncompressed);
-
-            script.name = file;
-            script.bytecode = assembler.output_script();
-            script.buffer = std::move(compressed);
-            script.len = uncompressed.size();
-            script.compressedLen = script.buffer.size();
-            script.bytecodeLen = script.bytecode.size();
-
-            auto output = script.serialize();
-            utils::file::save(file + ".gscbin", output);
-        }
+        std::cerr << e.what() << '\n';
     }
 }
 
 void decompile_file(gsc::disassembler& disassembler, gsc::decompiler& decompiler, std::string file, game& game, bool zonetool)
 {
-    if(zonetool)
+    try
     {
-        if (file.find(".stack") != std::string::npos)
+        if(zonetool)
         {
-            printf("Cannot disassemble stack files\n");
-            return;
-        }
-
-        const auto ext = std::string(".cgsc");
-        const auto extpos = file.find(ext);
-
-        if (extpos != std::string::npos)
-        {
-            file.replace(extpos, ext.length(), "");
-        }
-
-        auto script = utils::file::read(file + ".cgsc");
-        auto stack = utils::file::read(file + ".cgsc.stack");
-
-        disassembler.disassemble(script, stack);
-    }
-    else
-    {
-        const auto ext = std::string(".gscbin");
-        const auto extpos = file.find(ext);
-        
-        if (extpos != std::string::npos)
-        {
-            file.replace(extpos, ext.length(), "");
-        }
-
-        auto data = utils::file::read(file + ext);
-
-        gsc::asset script;
-
-        script.deserialize(data);
-
-        auto stack = utils::zlib::decompress(script.buffer, script.len);
-
-        disassembler.disassemble(script.bytecode, stack);
-    }
-
-    auto output = disassembler.output();
-
-    decompiler.decompile(output);
-
-    auto scriptid = std::filesystem::path(file).filename().string();
-
-    if (!isdigit(scriptid.data()[0]))
-    {
-        utils::file::save(file + ".gsc", decompiler.output());
-    }
-    else
-    {
-        auto filename = choose_resolver_file_name(std::atoi(scriptid.data()), game);
-        auto count = file.find(scriptid);
-
-        if (count != std::string::npos)
-        {
-            if (!filename.empty())
+            if (file.find(".stack") != std::string::npos)
             {
-                file.erase(count, scriptid.length());
+                printf("Cannot disassemble stack files\n");
+                return;
             }
+
+            const auto ext = std::string(".cgsc");
+            const auto extpos = file.find(ext);
+
+            if (extpos != std::string::npos)
+            {
+                file.replace(extpos, ext.length(), "");
+            }
+
+            auto script = utils::file::read(file + ".cgsc");
+            auto stack = utils::file::read(file + ".cgsc.stack");
+
+            disassembler.disassemble(script, stack);
+        }
+        else
+        {
+            const auto ext = std::string(".gscbin");
+            const auto extpos = file.find(ext);
+            
+            if (extpos != std::string::npos)
+            {
+                file.replace(extpos, ext.length(), "");
+            }
+
+            auto data = utils::file::read(file + ext);
+
+            gsc::asset script;
+
+            script.deserialize(data);
+
+            auto stack = utils::zlib::decompress(script.buffer, script.len);
+
+            disassembler.disassemble(script.bytecode, stack);
         }
 
-        utils::file::save(file + filename + ".gsc", decompiler.output());
-    }
+        auto output = disassembler.output();
 
+        decompiler.decompile(output);
+
+        auto scriptid = std::filesystem::path(file).filename().string();
+
+        if (!isdigit(scriptid.data()[0]))
+        {
+            utils::file::save(file + ".gsc", decompiler.output());
+        }
+        else
+        {
+            auto filename = choose_resolver_file_name(std::atoi(scriptid.data()), game);
+            auto count = file.find(scriptid);
+
+            if (count != std::string::npos)
+            {
+                if (!filename.empty())
+                {
+                    file.erase(count, scriptid.length());
+                }
+            }
+
+            utils::file::save(file + filename + ".gsc", decompiler.output());
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
 }
 
 int parse_flags(int argc, char** argv, game& game, mode& mode, bool& zonetool)

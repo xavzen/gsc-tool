@@ -12,12 +12,13 @@ namespace S2
 class decompiler : public gsc::decompiler
 {
     std::unique_ptr<utils::byte_buffer> output_;
-    gsc::script_ptr script_;
+    gsc::program_ptr program_;
     gsc::thread_ptr func_;
     std::uint32_t params_;
     std::unordered_map<std::uint32_t, std::string> labels_;
     std::vector<std::string> expr_labels_;
-    std::vector<std::string> local_vars_;
+    std::vector<std::string> create_local_vars_;
+    std::vector<std::string> stack_local_vars_;
     std::stack<gsc::node_ptr> stack_;
     std::vector<gsc::context> blocks_;
 

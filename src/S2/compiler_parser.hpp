@@ -47,9 +47,9 @@
 // "%code requires" blocks.
 #line 30 "S2.parser.ypp"
 
-	#include <utils.hpp>
-	typedef void *yyscan_t;
-	#define YY_DECL S2::parser::symbol_type S2lex(yyscan_t yyscanner, std::uint32_t *location)
+    #include <utils.hpp>
+    typedef void *yyscan_t;
+    #define YY_DECL S2::parser::symbol_type S2lex(yyscan_t yyscanner, std::uint32_t *pos)
 
 #line 55 "./S2/compiler_parser.hpp"
 
@@ -408,172 +408,190 @@ namespace S2 {
     /// An auxiliary type to compute the largest semantic type.
     union union_type
     {
-      // animref
-      char dummy1[sizeof (gsc::animref_ptr)];
+      // anim
+      char dummy1[sizeof (gsc::anim_ptr)];
+
+      // animation
+      char dummy2[sizeof (gsc::animation_ptr)];
 
       // animtree
-      char dummy2[sizeof (gsc::animtree_ptr)];
+      char dummy3[sizeof (gsc::animtree_ptr)];
 
       // block
-      char dummy3[sizeof (gsc::block_ptr)];
+      char dummy4[sizeof (gsc::block_ptr)];
 
       // constant
-      char dummy4[sizeof (gsc::constant_ptr)];
+      char dummy5[sizeof (gsc::constant_ptr)];
 
-      // definition
-      char dummy5[sizeof (gsc::definition_ptr)];
+      // define
+      char dummy6[sizeof (gsc::define_ptr)];
+
+      // empty_array
+      char dummy7[sizeof (gsc::empty_array_ptr)];
 
       // expr_arguments
-      char dummy6[sizeof (gsc::expr_arguments_ptr)];
+      char dummy8[sizeof (gsc::expr_arguments_ptr)];
 
       // expr_assign
-      char dummy7[sizeof (gsc::expr_assign_ptr)];
+      char dummy9[sizeof (gsc::expr_assign_ptr)];
 
       // expr_call
       // expr_call_thread
-      char dummy8[sizeof (gsc::expr_call_ptr)];
+      // expr_call_childthread
+      char dummy10[sizeof (gsc::expr_call_ptr)];
 
       // expr_call_function
       // expr_call_pointer
-      char dummy9[sizeof (gsc::expr_call_type_ptr)];
+      char dummy11[sizeof (gsc::expr_call_type_ptr)];
 
-      // for_assign
-      // for_cond
+      // for_stmt
+      // for_expr
       // expr
-      // expr_cmp
-      // expr_ternary
+      // expr_compare
       // expr_binary
       // expr_primitive
-      char dummy10[sizeof (gsc::expr_ptr)];
+      char dummy12[sizeof (gsc::expr_ptr)];
 
-      // data_false
-      char dummy11[sizeof (gsc::false_ptr)];
+      // false
+      char dummy13[sizeof (gsc::false_ptr)];
 
-      // filepath
-      char dummy12[sizeof (gsc::filepath_ptr)];
+      // file
+      char dummy14[sizeof (gsc::file_ptr)];
 
-      // data_float
-      char dummy13[sizeof (gsc::float_ptr)];
+      // neg_float
+      // float
+      char dummy15[sizeof (gsc::float_ptr)];
 
-      // identifier
-      char dummy14[sizeof (gsc::identifier_ptr)];
+      // game
+      char dummy16[sizeof (gsc::game_ptr)];
 
       // include
-      char dummy15[sizeof (gsc::include_ptr)];
+      char dummy17[sizeof (gsc::include_ptr)];
 
-      // data_integer
-      char dummy16[sizeof (gsc::integer_ptr)];
+      // neg_integer
+      // integer
+      char dummy18[sizeof (gsc::integer_ptr)];
 
-      // data_localized_string
-      char dummy17[sizeof (gsc::localized_string_ptr)];
+      // istring
+      char dummy19[sizeof (gsc::istring_ptr)];
 
-      // expr_function_ref
+      // level
+      char dummy20[sizeof (gsc::level_ptr)];
+
+      // name
+      char dummy21[sizeof (gsc::name_ptr)];
+
+      // expr_function
+      // expr_add_array
+      // expr_vector
       // expr_array
       // expr_field
+      // expr_self
       // expr_size
-      // expr_vector
-      // expr_add_array
       // object
       // vector
+      char dummy22[sizeof (gsc::node_ptr)];
+
       // number
-      // empty_array
-      // undefined
-      // size
-      // game
-      // self
-      // anim
-      // level
-      char dummy18[sizeof (gsc::node_ptr)];
+      char dummy23[sizeof (gsc::number_ptr)];
 
       // parameters
-      char dummy19[sizeof (gsc::parameters_ptr)];
+      char dummy24[sizeof (gsc::parameters_ptr)];
 
-      // script
-      char dummy20[sizeof (gsc::script_ptr)];
+      // program
+      char dummy25[sizeof (gsc::program_ptr)];
+
+      // self
+      char dummy26[sizeof (gsc::self_ptr)];
 
       // stmt_assign
-      char dummy21[sizeof (gsc::stmt_assign_ptr)];
+      char dummy27[sizeof (gsc::stmt_assign_ptr)];
 
       // stmt_break
-      char dummy22[sizeof (gsc::stmt_break_ptr)];
+      char dummy28[sizeof (gsc::stmt_break_ptr)];
 
       // stmt_call
-      char dummy23[sizeof (gsc::stmt_call_ptr)];
+      char dummy29[sizeof (gsc::stmt_call_ptr)];
 
       // stmt_case
-      char dummy24[sizeof (gsc::stmt_case_ptr)];
+      char dummy30[sizeof (gsc::stmt_case_ptr)];
 
       // stmt_continue
-      char dummy25[sizeof (gsc::stmt_continue_ptr)];
+      char dummy31[sizeof (gsc::stmt_continue_ptr)];
 
       // stmt_default
-      char dummy26[sizeof (gsc::stmt_default_ptr)];
+      char dummy32[sizeof (gsc::stmt_default_ptr)];
 
       // stmt_endon
-      char dummy27[sizeof (gsc::stmt_endon_ptr)];
+      char dummy33[sizeof (gsc::stmt_endon_ptr)];
 
       // stmt_for
-      char dummy28[sizeof (gsc::stmt_for_ptr)];
+      char dummy34[sizeof (gsc::stmt_for_ptr)];
 
       // stmt_foreach
-      char dummy29[sizeof (gsc::stmt_foreach_ptr)];
+      char dummy35[sizeof (gsc::stmt_foreach_ptr)];
 
       // stmt_if
-      char dummy30[sizeof (gsc::stmt_if_ptr)];
+      char dummy36[sizeof (gsc::stmt_if_ptr)];
 
       // stmt_ifelse
-      char dummy31[sizeof (gsc::stmt_ifelse_ptr)];
+      char dummy37[sizeof (gsc::stmt_ifelse_ptr)];
 
       // stmt_notify
-      char dummy32[sizeof (gsc::stmt_notify_ptr)];
+      char dummy38[sizeof (gsc::stmt_notify_ptr)];
 
       // stmt
-      char dummy33[sizeof (gsc::stmt_ptr)];
+      char dummy39[sizeof (gsc::stmt_ptr)];
 
       // stmt_return
-      char dummy34[sizeof (gsc::stmt_return_ptr)];
+      char dummy40[sizeof (gsc::stmt_return_ptr)];
 
       // stmt_switch
-      char dummy35[sizeof (gsc::stmt_switch_ptr)];
+      char dummy41[sizeof (gsc::stmt_switch_ptr)];
 
       // stmt_wait
-      char dummy36[sizeof (gsc::stmt_wait_ptr)];
+      char dummy42[sizeof (gsc::stmt_wait_ptr)];
 
       // stmt_waitframe
-      char dummy37[sizeof (gsc::stmt_waitframe_ptr)];
+      char dummy43[sizeof (gsc::stmt_waitframe_ptr)];
 
       // stmt_waittill
-      char dummy38[sizeof (gsc::stmt_waittill_ptr)];
+      char dummy44[sizeof (gsc::stmt_waittill_ptr)];
 
       // stmt_waittillframeend
-      char dummy39[sizeof (gsc::stmt_waittillframeend_ptr)];
+      char dummy45[sizeof (gsc::stmt_waittillframeend_ptr)];
 
       // stmt_waittillmatch
-      char dummy40[sizeof (gsc::stmt_waittillmatch_ptr)];
+      char dummy46[sizeof (gsc::stmt_waittillmatch_ptr)];
 
       // stmt_while
-      char dummy41[sizeof (gsc::stmt_while_ptr)];
+      char dummy47[sizeof (gsc::stmt_while_ptr)];
 
-      // data_string
-      char dummy42[sizeof (gsc::string_ptr)];
+      // string
+      char dummy48[sizeof (gsc::string_ptr)];
+
+      // thisthread
+      char dummy49[sizeof (gsc::thisthread_ptr)];
 
       // thread
-      char dummy43[sizeof (gsc::thread_ptr)];
+      char dummy50[sizeof (gsc::thread_ptr)];
 
-      // data_true
-      char dummy44[sizeof (gsc::true_ptr)];
+      // true
+      char dummy51[sizeof (gsc::true_ptr)];
 
-      // using_animtree
-      char dummy45[sizeof (gsc::using_animtree_ptr)];
+      // undefined
+      char dummy52[sizeof (gsc::undefined_ptr)];
 
-      // FILEPATH
-      // IDENTIFIER
-      // ANIMREF
+      // usingtree
+      char dummy53[sizeof (gsc::usingtree_ptr)];
+
+      // FILE
+      // NAME
       // STRING
-      // STRING_LOC
+      // ISTRING
       // FLOAT
       // INTEGER
-      char dummy46[sizeof (std::string)];
+      char dummy54[sizeof (std::string)];
     };
 
     /// The size of the largest semantic type.
@@ -620,91 +638,90 @@ namespace S2 {
     S2error = 1,                   // error
     S2UNDEF = 2,                   // "invalid token"
     INCLUDE = 3,                   // INCLUDE
-    USING_ANIMTREE = 4,            // USING_ANIMTREE
+    USINGTREE = 4,                 // USINGTREE
     ANIMTREE = 5,                  // ANIMTREE
-    IF = 6,                        // IF
-    ELSE = 7,                      // ELSE
-    SWITCH = 8,                    // SWITCH
-    CASE = 9,                      // CASE
-    DEFAULT = 10,                  // DEFAULT
-    BREAK = 11,                    // BREAK
-    FOR = 12,                      // FOR
-    FOREACH = 13,                  // FOREACH
-    WHILE = 14,                    // WHILE
-    CONTINUE = 15,                 // CONTINUE
-    RETURN = 16,                   // RETURN
-    THREAD = 17,                   // THREAD
-    CALL = 18,                     // CALL
-    WAIT = 19,                     // WAIT
-    WAITTILL = 20,                 // WAITTILL
-    WAITTILLMATCH = 21,            // WAITTILLMATCH
-    WAITTILLFRAMEEND = 22,         // WAITTILLFRAMEEND
-    WAITFRAME = 23,                // WAITFRAME
-    ENDON = 24,                    // ENDON
-    NOTIFY = 25,                   // NOTIFY
-    IN = 26,                       // IN
-    UNDEFINED = 27,                // UNDEFINED
-    TRUE = 28,                     // TRUE
-    FALSE = 29,                    // FALSE
-    SIZE = 30,                     // SIZE
-    GAME = 31,                     // GAME
-    LEVEL = 32,                    // LEVEL
-    ANIM = 33,                     // ANIM
+    ENDON = 6,                     // ENDON
+    NOTIFY = 7,                    // NOTIFY
+    WAIT = 8,                      // WAIT
+    WAITTILL = 9,                  // WAITTILL
+    WAITFRAME = 10,                // WAITFRAME
+    WAITTILLMATCH = 11,            // WAITTILLMATCH
+    WAITTILLFRAMEEND = 12,         // WAITTILLFRAMEEND
+    IF = 13,                       // IF
+    ELSE = 14,                     // ELSE
+    WHILE = 15,                    // WHILE
+    FOR = 16,                      // FOR
+    FOREACH = 17,                  // FOREACH
+    IN = 18,                       // IN
+    SWITCH = 19,                   // SWITCH
+    CASE = 20,                     // CASE
+    DEFAULT = 21,                  // DEFAULT
+    BREAK = 22,                    // BREAK
+    CONTINUE = 23,                 // CONTINUE
+    RETURN = 24,                   // RETURN
+    THREAD = 25,                   // THREAD
+    CHILDTHREAD = 26,              // CHILDTHREAD
+    THISTHREAD = 27,               // THISTHREAD
+    CALL = 28,                     // CALL
+    TRUE = 29,                     // TRUE
+    FALSE = 30,                    // FALSE
+    UNDEFINED = 31,                // UNDEFINED
+    SIZE = 32,                     // SIZE
+    GAME = 33,                     // GAME
     SELF = 34,                     // SELF
-    EMPTY_ARRAY = 35,              // EMPTY_ARRAY
-    LPAREN = 36,                   // LPAREN
-    RPAREN = 37,                   // RPAREN
-    LBRACE = 38,                   // LBRACE
-    RBRACE = 39,                   // RBRACE
-    LBRACKET = 40,                 // LBRACKET
-    RBRACKET = 41,                 // RBRACKET
-    COMMA = 42,                    // COMMA
-    DOT = 43,                      // DOT
-    DOUBLECOLON = 44,              // DOUBLECOLON
-    COLON = 45,                    // COLON
-    SEMICOLON = 46,                // SEMICOLON
-    QMARK = 47,                    // QMARK
-    MOD = 48,                      // MOD
+    ANIM = 35,                     // ANIM
+    LEVEL = 36,                    // LEVEL
+    EMPTY_ARRAY = 37,              // EMPTY_ARRAY
+    LPAREN = 38,                   // LPAREN
+    RPAREN = 39,                   // RPAREN
+    LBRACE = 40,                   // LBRACE
+    RBRACE = 41,                   // RBRACE
+    LBRACKET = 42,                 // LBRACKET
+    RBRACKET = 43,                 // RBRACKET
+    COMMA = 44,                    // COMMA
+    DOT = 45,                      // DOT
+    DOUBLECOLON = 46,              // DOUBLECOLON
+    COLON = 47,                    // COLON
+    SEMICOLON = 48,                // SEMICOLON
     INCREMENT = 49,                // INCREMENT
     DECREMENT = 50,                // DECREMENT
-    LSHIFT = 51,                   // LSHIFT
-    RSHIFT = 52,                   // RSHIFT
-    OR = 53,                       // OR
-    AND = 54,                      // AND
-    EQUALITY = 55,                 // EQUALITY
-    INEQUALITY = 56,               // INEQUALITY
-    LESS_EQUAL = 57,               // LESS_EQUAL
-    GREATER_EQUAL = 58,            // GREATER_EQUAL
-    LESS = 59,                     // LESS
-    GREATER = 60,                  // GREATER
-    ASSIGN = 61,                   // ASSIGN
-    ASSIGN_ADD = 62,               // ASSIGN_ADD
-    ASSIGN_SUB = 63,               // ASSIGN_SUB
-    ASSIGN_MULT = 64,              // ASSIGN_MULT
-    ASSIGN_DIV = 65,               // ASSIGN_DIV
-    ASSIGN_MOD = 66,               // ASSIGN_MOD
-    ASSIGN_BITWISE_OR = 67,        // ASSIGN_BITWISE_OR
-    ASSIGN_BITWISE_AND = 68,       // ASSIGN_BITWISE_AND
-    ASSIGN_BITWISE_EXOR = 69,      // ASSIGN_BITWISE_EXOR
-    ASSIGN_LSHIFT = 70,            // ASSIGN_LSHIFT
-    ASSIGN_RSHIFT = 71,            // ASSIGN_RSHIFT
-    BITWISE_OR = 72,               // BITWISE_OR
-    BITWISE_AND = 73,              // BITWISE_AND
-    BITWISE_EXOR = 74,             // BITWISE_EXOR
-    ADD = 75,                      // ADD
-    SUB = 76,                      // SUB
-    MULT = 77,                     // MULT
-    DIV = 78,                      // DIV
-    NOT = 79,                      // NOT
-    COMPLEMENT = 80,               // COMPLEMENT
-    FILEPATH = 81,                 // FILEPATH
-    IDENTIFIER = 82,               // IDENTIFIER
-    ANIMREF = 83,                  // ANIMREF
+    MOD = 51,                      // MOD
+    LSHIFT = 52,                   // LSHIFT
+    RSHIFT = 53,                   // RSHIFT
+    OR = 54,                       // OR
+    AND = 55,                      // AND
+    EQUALITY = 56,                 // EQUALITY
+    INEQUALITY = 57,               // INEQUALITY
+    LESS_EQUAL = 58,               // LESS_EQUAL
+    GREATER_EQUAL = 59,            // GREATER_EQUAL
+    LESS = 60,                     // LESS
+    GREATER = 61,                  // GREATER
+    NOT = 62,                      // NOT
+    COMPLEMENT = 63,               // COMPLEMENT
+    ASSIGN_RSHIFT = 64,            // ASSIGN_RSHIFT
+    ASSIGN = 65,                   // ASSIGN
+    ASSIGN_ADD = 66,               // ASSIGN_ADD
+    ASSIGN_SUB = 67,               // ASSIGN_SUB
+    ASSIGN_MULT = 68,              // ASSIGN_MULT
+    ASSIGN_DIV = 69,               // ASSIGN_DIV
+    ASSIGN_MOD = 70,               // ASSIGN_MOD
+    ASSIGN_BITWISE_OR = 71,        // ASSIGN_BITWISE_OR
+    ASSIGN_BITWISE_AND = 72,       // ASSIGN_BITWISE_AND
+    ASSIGN_BITWISE_EXOR = 73,      // ASSIGN_BITWISE_EXOR
+    ASSIGN_LSHIFT = 74,            // ASSIGN_LSHIFT
+    BITWISE_OR = 75,               // BITWISE_OR
+    BITWISE_AND = 76,              // BITWISE_AND
+    BITWISE_EXOR = 77,             // BITWISE_EXOR
+    ADD = 78,                      // ADD
+    SUB = 79,                      // SUB
+    MULT = 80,                     // MULT
+    DIV = 81,                      // DIV
+    FILE = 82,                     // FILE
+    NAME = 83,                     // NAME
     STRING = 84,                   // STRING
-    STRING_LOC = 85,               // STRING_LOC
+    ISTRING = 85,                  // ISTRING
     FLOAT = 86,                    // FLOAT
-    INTEGER = 87,                  // INTEGER
-    IFX = 88                       // IFX
+    INTEGER = 87                   // INTEGER
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -721,167 +738,169 @@ namespace S2 {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 89, ///< Number of tokens.
+        YYNTOKENS = 88, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // "end of file"
         S_YYerror = 1,                           // error
         S_YYUNDEF = 2,                           // "invalid token"
         S_INCLUDE = 3,                           // INCLUDE
-        S_USING_ANIMTREE = 4,                    // USING_ANIMTREE
+        S_USINGTREE = 4,                         // USINGTREE
         S_ANIMTREE = 5,                          // ANIMTREE
-        S_IF = 6,                                // IF
-        S_ELSE = 7,                              // ELSE
-        S_SWITCH = 8,                            // SWITCH
-        S_CASE = 9,                              // CASE
-        S_DEFAULT = 10,                          // DEFAULT
-        S_BREAK = 11,                            // BREAK
-        S_FOR = 12,                              // FOR
-        S_FOREACH = 13,                          // FOREACH
-        S_WHILE = 14,                            // WHILE
-        S_CONTINUE = 15,                         // CONTINUE
-        S_RETURN = 16,                           // RETURN
-        S_THREAD = 17,                           // THREAD
-        S_CALL = 18,                             // CALL
-        S_WAIT = 19,                             // WAIT
-        S_WAITTILL = 20,                         // WAITTILL
-        S_WAITTILLMATCH = 21,                    // WAITTILLMATCH
-        S_WAITTILLFRAMEEND = 22,                 // WAITTILLFRAMEEND
-        S_WAITFRAME = 23,                        // WAITFRAME
-        S_ENDON = 24,                            // ENDON
-        S_NOTIFY = 25,                           // NOTIFY
-        S_IN = 26,                               // IN
-        S_UNDEFINED = 27,                        // UNDEFINED
-        S_TRUE = 28,                             // TRUE
-        S_FALSE = 29,                            // FALSE
-        S_SIZE = 30,                             // SIZE
-        S_GAME = 31,                             // GAME
-        S_LEVEL = 32,                            // LEVEL
-        S_ANIM = 33,                             // ANIM
+        S_ENDON = 6,                             // ENDON
+        S_NOTIFY = 7,                            // NOTIFY
+        S_WAIT = 8,                              // WAIT
+        S_WAITTILL = 9,                          // WAITTILL
+        S_WAITFRAME = 10,                        // WAITFRAME
+        S_WAITTILLMATCH = 11,                    // WAITTILLMATCH
+        S_WAITTILLFRAMEEND = 12,                 // WAITTILLFRAMEEND
+        S_IF = 13,                               // IF
+        S_ELSE = 14,                             // ELSE
+        S_WHILE = 15,                            // WHILE
+        S_FOR = 16,                              // FOR
+        S_FOREACH = 17,                          // FOREACH
+        S_IN = 18,                               // IN
+        S_SWITCH = 19,                           // SWITCH
+        S_CASE = 20,                             // CASE
+        S_DEFAULT = 21,                          // DEFAULT
+        S_BREAK = 22,                            // BREAK
+        S_CONTINUE = 23,                         // CONTINUE
+        S_RETURN = 24,                           // RETURN
+        S_THREAD = 25,                           // THREAD
+        S_CHILDTHREAD = 26,                      // CHILDTHREAD
+        S_THISTHREAD = 27,                       // THISTHREAD
+        S_CALL = 28,                             // CALL
+        S_TRUE = 29,                             // TRUE
+        S_FALSE = 30,                            // FALSE
+        S_UNDEFINED = 31,                        // UNDEFINED
+        S_SIZE = 32,                             // SIZE
+        S_GAME = 33,                             // GAME
         S_SELF = 34,                             // SELF
-        S_EMPTY_ARRAY = 35,                      // EMPTY_ARRAY
-        S_LPAREN = 36,                           // LPAREN
-        S_RPAREN = 37,                           // RPAREN
-        S_LBRACE = 38,                           // LBRACE
-        S_RBRACE = 39,                           // RBRACE
-        S_LBRACKET = 40,                         // LBRACKET
-        S_RBRACKET = 41,                         // RBRACKET
-        S_COMMA = 42,                            // COMMA
-        S_DOT = 43,                              // DOT
-        S_DOUBLECOLON = 44,                      // DOUBLECOLON
-        S_COLON = 45,                            // COLON
-        S_SEMICOLON = 46,                        // SEMICOLON
-        S_QMARK = 47,                            // QMARK
-        S_MOD = 48,                              // MOD
+        S_ANIM = 35,                             // ANIM
+        S_LEVEL = 36,                            // LEVEL
+        S_EMPTY_ARRAY = 37,                      // EMPTY_ARRAY
+        S_LPAREN = 38,                           // LPAREN
+        S_RPAREN = 39,                           // RPAREN
+        S_LBRACE = 40,                           // LBRACE
+        S_RBRACE = 41,                           // RBRACE
+        S_LBRACKET = 42,                         // LBRACKET
+        S_RBRACKET = 43,                         // RBRACKET
+        S_COMMA = 44,                            // COMMA
+        S_DOT = 45,                              // DOT
+        S_DOUBLECOLON = 46,                      // DOUBLECOLON
+        S_COLON = 47,                            // COLON
+        S_SEMICOLON = 48,                        // SEMICOLON
         S_INCREMENT = 49,                        // INCREMENT
         S_DECREMENT = 50,                        // DECREMENT
-        S_LSHIFT = 51,                           // LSHIFT
-        S_RSHIFT = 52,                           // RSHIFT
-        S_OR = 53,                               // OR
-        S_AND = 54,                              // AND
-        S_EQUALITY = 55,                         // EQUALITY
-        S_INEQUALITY = 56,                       // INEQUALITY
-        S_LESS_EQUAL = 57,                       // LESS_EQUAL
-        S_GREATER_EQUAL = 58,                    // GREATER_EQUAL
-        S_LESS = 59,                             // LESS
-        S_GREATER = 60,                          // GREATER
-        S_ASSIGN = 61,                           // ASSIGN
-        S_ASSIGN_ADD = 62,                       // ASSIGN_ADD
-        S_ASSIGN_SUB = 63,                       // ASSIGN_SUB
-        S_ASSIGN_MULT = 64,                      // ASSIGN_MULT
-        S_ASSIGN_DIV = 65,                       // ASSIGN_DIV
-        S_ASSIGN_MOD = 66,                       // ASSIGN_MOD
-        S_ASSIGN_BITWISE_OR = 67,                // ASSIGN_BITWISE_OR
-        S_ASSIGN_BITWISE_AND = 68,               // ASSIGN_BITWISE_AND
-        S_ASSIGN_BITWISE_EXOR = 69,              // ASSIGN_BITWISE_EXOR
-        S_ASSIGN_LSHIFT = 70,                    // ASSIGN_LSHIFT
-        S_ASSIGN_RSHIFT = 71,                    // ASSIGN_RSHIFT
-        S_BITWISE_OR = 72,                       // BITWISE_OR
-        S_BITWISE_AND = 73,                      // BITWISE_AND
-        S_BITWISE_EXOR = 74,                     // BITWISE_EXOR
-        S_ADD = 75,                              // ADD
-        S_SUB = 76,                              // SUB
-        S_MULT = 77,                             // MULT
-        S_DIV = 78,                              // DIV
-        S_NOT = 79,                              // NOT
-        S_COMPLEMENT = 80,                       // COMPLEMENT
-        S_FILEPATH = 81,                         // FILEPATH
-        S_IDENTIFIER = 82,                       // IDENTIFIER
-        S_ANIMREF = 83,                          // ANIMREF
+        S_MOD = 51,                              // MOD
+        S_LSHIFT = 52,                           // LSHIFT
+        S_RSHIFT = 53,                           // RSHIFT
+        S_OR = 54,                               // OR
+        S_AND = 55,                              // AND
+        S_EQUALITY = 56,                         // EQUALITY
+        S_INEQUALITY = 57,                       // INEQUALITY
+        S_LESS_EQUAL = 58,                       // LESS_EQUAL
+        S_GREATER_EQUAL = 59,                    // GREATER_EQUAL
+        S_LESS = 60,                             // LESS
+        S_GREATER = 61,                          // GREATER
+        S_NOT = 62,                              // NOT
+        S_COMPLEMENT = 63,                       // COMPLEMENT
+        S_ASSIGN_RSHIFT = 64,                    // ASSIGN_RSHIFT
+        S_ASSIGN = 65,                           // ASSIGN
+        S_ASSIGN_ADD = 66,                       // ASSIGN_ADD
+        S_ASSIGN_SUB = 67,                       // ASSIGN_SUB
+        S_ASSIGN_MULT = 68,                      // ASSIGN_MULT
+        S_ASSIGN_DIV = 69,                       // ASSIGN_DIV
+        S_ASSIGN_MOD = 70,                       // ASSIGN_MOD
+        S_ASSIGN_BITWISE_OR = 71,                // ASSIGN_BITWISE_OR
+        S_ASSIGN_BITWISE_AND = 72,               // ASSIGN_BITWISE_AND
+        S_ASSIGN_BITWISE_EXOR = 73,              // ASSIGN_BITWISE_EXOR
+        S_ASSIGN_LSHIFT = 74,                    // ASSIGN_LSHIFT
+        S_BITWISE_OR = 75,                       // BITWISE_OR
+        S_BITWISE_AND = 76,                      // BITWISE_AND
+        S_BITWISE_EXOR = 77,                     // BITWISE_EXOR
+        S_ADD = 78,                              // ADD
+        S_SUB = 79,                              // SUB
+        S_MULT = 80,                             // MULT
+        S_DIV = 81,                              // DIV
+        S_FILE = 82,                             // FILE
+        S_NAME = 83,                             // NAME
         S_STRING = 84,                           // STRING
-        S_STRING_LOC = 85,                       // STRING_LOC
+        S_ISTRING = 85,                          // ISTRING
         S_FLOAT = 86,                            // FLOAT
         S_INTEGER = 87,                          // INTEGER
-        S_IFX = 88,                              // IFX
-        S_YYACCEPT = 89,                         // $accept
-        S_root = 90,                             // root
-        S_script = 91,                           // script
-        S_include = 92,                          // include
-        S_definition = 93,                       // definition
-        S_using_animtree = 94,                   // using_animtree
-        S_constant = 95,                         // constant
-        S_thread = 96,                           // thread
-        S_parameters = 97,                       // parameters
-        S_block = 98,                            // block
-        S_stmt = 99,                             // stmt
-        S_stmt_call = 100,                       // stmt_call
-        S_stmt_assign = 101,                     // stmt_assign
-        S_stmt_endon = 102,                      // stmt_endon
-        S_stmt_notify = 103,                     // stmt_notify
-        S_stmt_wait = 104,                       // stmt_wait
-        S_stmt_waittill = 105,                   // stmt_waittill
-        S_stmt_waittillmatch = 106,              // stmt_waittillmatch
-        S_stmt_waittillframeend = 107,           // stmt_waittillframeend
-        S_stmt_waitframe = 108,                  // stmt_waitframe
-        S_stmt_if = 109,                         // stmt_if
-        S_stmt_ifelse = 110,                     // stmt_ifelse
-        S_stmt_while = 111,                      // stmt_while
-        S_stmt_for = 112,                        // stmt_for
-        S_stmt_foreach = 113,                    // stmt_foreach
-        S_stmt_switch = 114,                     // stmt_switch
-        S_stmt_case = 115,                       // stmt_case
-        S_stmt_default = 116,                    // stmt_default
-        S_stmt_break = 117,                      // stmt_break
-        S_stmt_continue = 118,                   // stmt_continue
-        S_stmt_return = 119,                     // stmt_return
-        S_for_assign = 120,                      // for_assign
-        S_for_cond = 121,                        // for_cond
-        S_expr = 122,                            // expr
-        S_expr_assign = 123,                     // expr_assign
-        S_expr_cmp = 124,                        // expr_cmp
-        S_expr_ternary = 125,                    // expr_ternary
-        S_expr_binary = 126,                     // expr_binary
-        S_expr_primitive = 127,                  // expr_primitive
-        S_expr_call = 128,                       // expr_call
-        S_expr_call_thread = 129,                // expr_call_thread
-        S_expr_call_function = 130,              // expr_call_function
-        S_expr_call_pointer = 131,               // expr_call_pointer
-        S_expr_arguments = 132,                  // expr_arguments
-        S_expr_function_ref = 133,               // expr_function_ref
-        S_expr_array = 134,                      // expr_array
-        S_expr_field = 135,                      // expr_field
-        S_expr_size = 136,                       // expr_size
-        S_expr_vector = 137,                     // expr_vector
-        S_expr_add_array = 138,                  // expr_add_array
+        S_YYACCEPT = 88,                         // $accept
+        S_root = 89,                             // root
+        S_program = 90,                          // program
+        S_include = 91,                          // include
+        S_define = 92,                           // define
+        S_usingtree = 93,                        // usingtree
+        S_constant = 94,                         // constant
+        S_thread = 95,                           // thread
+        S_parameters = 96,                       // parameters
+        S_block = 97,                            // block
+        S_stmt = 98,                             // stmt
+        S_stmt_call = 99,                        // stmt_call
+        S_stmt_assign = 100,                     // stmt_assign
+        S_stmt_endon = 101,                      // stmt_endon
+        S_stmt_notify = 102,                     // stmt_notify
+        S_stmt_wait = 103,                       // stmt_wait
+        S_stmt_waittill = 104,                   // stmt_waittill
+        S_stmt_waittillmatch = 105,              // stmt_waittillmatch
+        S_stmt_waittillframeend = 106,           // stmt_waittillframeend
+        S_stmt_waitframe = 107,                  // stmt_waitframe
+        S_stmt_if = 108,                         // stmt_if
+        S_stmt_ifelse = 109,                     // stmt_ifelse
+        S_stmt_while = 110,                      // stmt_while
+        S_stmt_for = 111,                        // stmt_for
+        S_stmt_foreach = 112,                    // stmt_foreach
+        S_stmt_switch = 113,                     // stmt_switch
+        S_stmt_case = 114,                       // stmt_case
+        S_stmt_default = 115,                    // stmt_default
+        S_stmt_break = 116,                      // stmt_break
+        S_stmt_continue = 117,                   // stmt_continue
+        S_stmt_return = 118,                     // stmt_return
+        S_for_stmt = 119,                        // for_stmt
+        S_for_expr = 120,                        // for_expr
+        S_expr = 121,                            // expr
+        S_expr_assign = 122,                     // expr_assign
+        S_expr_compare = 123,                    // expr_compare
+        S_expr_binary = 124,                     // expr_binary
+        S_expr_primitive = 125,                  // expr_primitive
+        S_expr_call = 126,                       // expr_call
+        S_expr_call_thread = 127,                // expr_call_thread
+        S_expr_call_childthread = 128,           // expr_call_childthread
+        S_expr_call_function = 129,              // expr_call_function
+        S_expr_call_pointer = 130,               // expr_call_pointer
+        S_expr_arguments = 131,                  // expr_arguments
+        S_expr_function = 132,                   // expr_function
+        S_expr_add_array = 133,                  // expr_add_array
+        S_expr_vector = 134,                     // expr_vector
+        S_expr_array = 135,                      // expr_array
+        S_expr_field = 136,                      // expr_field
+        S_expr_self = 137,                       // expr_self
+        S_expr_size = 138,                       // expr_size
         S_object = 139,                          // object
-        S_vector = 140,                          // vector
-        S_number = 141,                          // number
-        S_data_false = 142,                      // data_false
-        S_data_true = 143,                       // data_true
-        S_data_float = 144,                      // data_float
-        S_data_integer = 145,                    // data_integer
-        S_data_localized_string = 146,           // data_localized_string
-        S_data_string = 147,                     // data_string
-        S_animref = 148,                         // animref
-        S_animtree = 149,                        // animtree
-        S_identifier = 150,                      // identifier
-        S_filepath = 151,                        // filepath
-        S_empty_array = 152,                     // empty_array
-        S_undefined = 153,                       // undefined
-        S_size = 154,                            // size
-        S_game = 155,                            // game
-        S_self = 156,                            // self
-        S_anim = 157,                            // anim
-        S_level = 158                            // level
+        S_thisthread = 140,                      // thisthread
+        S_empty_array = 141,                     // empty_array
+        S_undefined = 142,                       // undefined
+        S_game = 143,                            // game
+        S_self = 144,                            // self
+        S_anim = 145,                            // anim
+        S_level = 146,                           // level
+        S_animation = 147,                       // animation
+        S_animtree = 148,                        // animtree
+        S_name = 149,                            // name
+        S_file = 150,                            // file
+        S_istring = 151,                         // istring
+        S_string = 152,                          // string
+        S_vector = 153,                          // vector
+        S_number = 154,                          // number
+        S_neg_float = 155,                       // neg_float
+        S_neg_integer = 156,                     // neg_integer
+        S_float = 157,                           // float
+        S_integer = 158,                         // integer
+        S_false = 159,                           // false
+        S_true = 160                             // true
       };
     };
 
@@ -916,8 +935,12 @@ namespace S2 {
       {
         switch (this->kind ())
     {
-      case symbol_kind::S_animref: // animref
-        value.move< gsc::animref_ptr > (std::move (that.value));
+      case symbol_kind::S_anim: // anim
+        value.move< gsc::anim_ptr > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_animation: // animation
+        value.move< gsc::animation_ptr > (std::move (that.value));
         break;
 
       case symbol_kind::S_animtree: // animtree
@@ -932,8 +955,12 @@ namespace S2 {
         value.move< gsc::constant_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_definition: // definition
-        value.move< gsc::definition_ptr > (std::move (that.value));
+      case symbol_kind::S_define: // define
+        value.move< gsc::define_ptr > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_empty_array: // empty_array
+        value.move< gsc::empty_array_ptr > (std::move (that.value));
         break;
 
       case symbol_kind::S_expr_arguments: // expr_arguments
@@ -946,6 +973,7 @@ namespace S2 {
 
       case symbol_kind::S_expr_call: // expr_call
       case symbol_kind::S_expr_call_thread: // expr_call_thread
+      case symbol_kind::S_expr_call_childthread: // expr_call_childthread
         value.move< gsc::expr_call_ptr > (std::move (that.value));
         break;
 
@@ -954,69 +982,79 @@ namespace S2 {
         value.move< gsc::expr_call_type_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_for_assign: // for_assign
-      case symbol_kind::S_for_cond: // for_cond
+      case symbol_kind::S_for_stmt: // for_stmt
+      case symbol_kind::S_for_expr: // for_expr
       case symbol_kind::S_expr: // expr
-      case symbol_kind::S_expr_cmp: // expr_cmp
-      case symbol_kind::S_expr_ternary: // expr_ternary
+      case symbol_kind::S_expr_compare: // expr_compare
       case symbol_kind::S_expr_binary: // expr_binary
       case symbol_kind::S_expr_primitive: // expr_primitive
         value.move< gsc::expr_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_data_false: // data_false
+      case symbol_kind::S_false: // false
         value.move< gsc::false_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_filepath: // filepath
-        value.move< gsc::filepath_ptr > (std::move (that.value));
+      case symbol_kind::S_file: // file
+        value.move< gsc::file_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_data_float: // data_float
+      case symbol_kind::S_neg_float: // neg_float
+      case symbol_kind::S_float: // float
         value.move< gsc::float_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_identifier: // identifier
-        value.move< gsc::identifier_ptr > (std::move (that.value));
+      case symbol_kind::S_game: // game
+        value.move< gsc::game_ptr > (std::move (that.value));
         break;
 
       case symbol_kind::S_include: // include
         value.move< gsc::include_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_data_integer: // data_integer
+      case symbol_kind::S_neg_integer: // neg_integer
+      case symbol_kind::S_integer: // integer
         value.move< gsc::integer_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_data_localized_string: // data_localized_string
-        value.move< gsc::localized_string_ptr > (std::move (that.value));
+      case symbol_kind::S_istring: // istring
+        value.move< gsc::istring_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_expr_function_ref: // expr_function_ref
+      case symbol_kind::S_level: // level
+        value.move< gsc::level_ptr > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_name: // name
+        value.move< gsc::name_ptr > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_expr_function: // expr_function
+      case symbol_kind::S_expr_add_array: // expr_add_array
+      case symbol_kind::S_expr_vector: // expr_vector
       case symbol_kind::S_expr_array: // expr_array
       case symbol_kind::S_expr_field: // expr_field
+      case symbol_kind::S_expr_self: // expr_self
       case symbol_kind::S_expr_size: // expr_size
-      case symbol_kind::S_expr_vector: // expr_vector
-      case symbol_kind::S_expr_add_array: // expr_add_array
       case symbol_kind::S_object: // object
       case symbol_kind::S_vector: // vector
-      case symbol_kind::S_number: // number
-      case symbol_kind::S_empty_array: // empty_array
-      case symbol_kind::S_undefined: // undefined
-      case symbol_kind::S_size: // size
-      case symbol_kind::S_game: // game
-      case symbol_kind::S_self: // self
-      case symbol_kind::S_anim: // anim
-      case symbol_kind::S_level: // level
         value.move< gsc::node_ptr > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_number: // number
+        value.move< gsc::number_ptr > (std::move (that.value));
         break;
 
       case symbol_kind::S_parameters: // parameters
         value.move< gsc::parameters_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_script: // script
-        value.move< gsc::script_ptr > (std::move (that.value));
+      case symbol_kind::S_program: // program
+        value.move< gsc::program_ptr > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_self: // self
+        value.move< gsc::self_ptr > (std::move (that.value));
         break;
 
       case symbol_kind::S_stmt_assign: // stmt_assign
@@ -1103,27 +1141,34 @@ namespace S2 {
         value.move< gsc::stmt_while_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_data_string: // data_string
+      case symbol_kind::S_string: // string
         value.move< gsc::string_ptr > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_thisthread: // thisthread
+        value.move< gsc::thisthread_ptr > (std::move (that.value));
         break;
 
       case symbol_kind::S_thread: // thread
         value.move< gsc::thread_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_data_true: // data_true
+      case symbol_kind::S_true: // true
         value.move< gsc::true_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_using_animtree: // using_animtree
-        value.move< gsc::using_animtree_ptr > (std::move (that.value));
+      case symbol_kind::S_undefined: // undefined
+        value.move< gsc::undefined_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_FILEPATH: // FILEPATH
-      case symbol_kind::S_IDENTIFIER: // IDENTIFIER
-      case symbol_kind::S_ANIMREF: // ANIMREF
+      case symbol_kind::S_usingtree: // usingtree
+        value.move< gsc::usingtree_ptr > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_FILE: // FILE
+      case symbol_kind::S_NAME: // NAME
       case symbol_kind::S_STRING: // STRING
-      case symbol_kind::S_STRING_LOC: // STRING_LOC
+      case symbol_kind::S_ISTRING: // ISTRING
       case symbol_kind::S_FLOAT: // FLOAT
       case symbol_kind::S_INTEGER: // INTEGER
         value.move< std::string > (std::move (that.value));
@@ -1150,12 +1195,23 @@ namespace S2 {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, gsc::animref_ptr&& v)
+      basic_symbol (typename Base::kind_type t, gsc::anim_ptr&& v)
         : Base (t)
         , value (std::move (v))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const gsc::animref_ptr& v)
+      basic_symbol (typename Base::kind_type t, const gsc::anim_ptr& v)
+        : Base (t)
+        , value (v)
+      {}
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, gsc::animation_ptr&& v)
+        : Base (t)
+        , value (std::move (v))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const gsc::animation_ptr& v)
         : Base (t)
         , value (v)
       {}
@@ -1194,12 +1250,23 @@ namespace S2 {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, gsc::definition_ptr&& v)
+      basic_symbol (typename Base::kind_type t, gsc::define_ptr&& v)
         : Base (t)
         , value (std::move (v))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const gsc::definition_ptr& v)
+      basic_symbol (typename Base::kind_type t, const gsc::define_ptr& v)
+        : Base (t)
+        , value (v)
+      {}
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, gsc::empty_array_ptr&& v)
+        : Base (t)
+        , value (std::move (v))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const gsc::empty_array_ptr& v)
         : Base (t)
         , value (v)
       {}
@@ -1271,12 +1338,12 @@ namespace S2 {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, gsc::filepath_ptr&& v)
+      basic_symbol (typename Base::kind_type t, gsc::file_ptr&& v)
         : Base (t)
         , value (std::move (v))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const gsc::filepath_ptr& v)
+      basic_symbol (typename Base::kind_type t, const gsc::file_ptr& v)
         : Base (t)
         , value (v)
       {}
@@ -1293,12 +1360,12 @@ namespace S2 {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, gsc::identifier_ptr&& v)
+      basic_symbol (typename Base::kind_type t, gsc::game_ptr&& v)
         : Base (t)
         , value (std::move (v))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const gsc::identifier_ptr& v)
+      basic_symbol (typename Base::kind_type t, const gsc::game_ptr& v)
         : Base (t)
         , value (v)
       {}
@@ -1326,12 +1393,34 @@ namespace S2 {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, gsc::localized_string_ptr&& v)
+      basic_symbol (typename Base::kind_type t, gsc::istring_ptr&& v)
         : Base (t)
         , value (std::move (v))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const gsc::localized_string_ptr& v)
+      basic_symbol (typename Base::kind_type t, const gsc::istring_ptr& v)
+        : Base (t)
+        , value (v)
+      {}
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, gsc::level_ptr&& v)
+        : Base (t)
+        , value (std::move (v))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const gsc::level_ptr& v)
+        : Base (t)
+        , value (v)
+      {}
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, gsc::name_ptr&& v)
+        : Base (t)
+        , value (std::move (v))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const gsc::name_ptr& v)
         : Base (t)
         , value (v)
       {}
@@ -1348,6 +1437,17 @@ namespace S2 {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, gsc::number_ptr&& v)
+        : Base (t)
+        , value (std::move (v))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const gsc::number_ptr& v)
+        : Base (t)
+        , value (v)
+      {}
+#endif
+#if 201103L <= YY_CPLUSPLUS
       basic_symbol (typename Base::kind_type t, gsc::parameters_ptr&& v)
         : Base (t)
         , value (std::move (v))
@@ -1359,12 +1459,23 @@ namespace S2 {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, gsc::script_ptr&& v)
+      basic_symbol (typename Base::kind_type t, gsc::program_ptr&& v)
         : Base (t)
         , value (std::move (v))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const gsc::script_ptr& v)
+      basic_symbol (typename Base::kind_type t, const gsc::program_ptr& v)
+        : Base (t)
+        , value (v)
+      {}
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, gsc::self_ptr&& v)
+        : Base (t)
+        , value (std::move (v))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const gsc::self_ptr& v)
         : Base (t)
         , value (v)
       {}
@@ -1612,6 +1723,17 @@ namespace S2 {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, gsc::thisthread_ptr&& v)
+        : Base (t)
+        , value (std::move (v))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const gsc::thisthread_ptr& v)
+        : Base (t)
+        , value (v)
+      {}
+#endif
+#if 201103L <= YY_CPLUSPLUS
       basic_symbol (typename Base::kind_type t, gsc::thread_ptr&& v)
         : Base (t)
         , value (std::move (v))
@@ -1634,12 +1756,23 @@ namespace S2 {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, gsc::using_animtree_ptr&& v)
+      basic_symbol (typename Base::kind_type t, gsc::undefined_ptr&& v)
         : Base (t)
         , value (std::move (v))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const gsc::using_animtree_ptr& v)
+      basic_symbol (typename Base::kind_type t, const gsc::undefined_ptr& v)
+        : Base (t)
+        , value (v)
+      {}
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, gsc::usingtree_ptr&& v)
+        : Base (t)
+        , value (std::move (v))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const gsc::usingtree_ptr& v)
         : Base (t)
         , value (v)
       {}
@@ -1678,8 +1811,12 @@ namespace S2 {
         // Value type destructor.
 switch (yykind)
     {
-      case symbol_kind::S_animref: // animref
-        value.template destroy< gsc::animref_ptr > ();
+      case symbol_kind::S_anim: // anim
+        value.template destroy< gsc::anim_ptr > ();
+        break;
+
+      case symbol_kind::S_animation: // animation
+        value.template destroy< gsc::animation_ptr > ();
         break;
 
       case symbol_kind::S_animtree: // animtree
@@ -1694,8 +1831,12 @@ switch (yykind)
         value.template destroy< gsc::constant_ptr > ();
         break;
 
-      case symbol_kind::S_definition: // definition
-        value.template destroy< gsc::definition_ptr > ();
+      case symbol_kind::S_define: // define
+        value.template destroy< gsc::define_ptr > ();
+        break;
+
+      case symbol_kind::S_empty_array: // empty_array
+        value.template destroy< gsc::empty_array_ptr > ();
         break;
 
       case symbol_kind::S_expr_arguments: // expr_arguments
@@ -1708,6 +1849,7 @@ switch (yykind)
 
       case symbol_kind::S_expr_call: // expr_call
       case symbol_kind::S_expr_call_thread: // expr_call_thread
+      case symbol_kind::S_expr_call_childthread: // expr_call_childthread
         value.template destroy< gsc::expr_call_ptr > ();
         break;
 
@@ -1716,69 +1858,79 @@ switch (yykind)
         value.template destroy< gsc::expr_call_type_ptr > ();
         break;
 
-      case symbol_kind::S_for_assign: // for_assign
-      case symbol_kind::S_for_cond: // for_cond
+      case symbol_kind::S_for_stmt: // for_stmt
+      case symbol_kind::S_for_expr: // for_expr
       case symbol_kind::S_expr: // expr
-      case symbol_kind::S_expr_cmp: // expr_cmp
-      case symbol_kind::S_expr_ternary: // expr_ternary
+      case symbol_kind::S_expr_compare: // expr_compare
       case symbol_kind::S_expr_binary: // expr_binary
       case symbol_kind::S_expr_primitive: // expr_primitive
         value.template destroy< gsc::expr_ptr > ();
         break;
 
-      case symbol_kind::S_data_false: // data_false
+      case symbol_kind::S_false: // false
         value.template destroy< gsc::false_ptr > ();
         break;
 
-      case symbol_kind::S_filepath: // filepath
-        value.template destroy< gsc::filepath_ptr > ();
+      case symbol_kind::S_file: // file
+        value.template destroy< gsc::file_ptr > ();
         break;
 
-      case symbol_kind::S_data_float: // data_float
+      case symbol_kind::S_neg_float: // neg_float
+      case symbol_kind::S_float: // float
         value.template destroy< gsc::float_ptr > ();
         break;
 
-      case symbol_kind::S_identifier: // identifier
-        value.template destroy< gsc::identifier_ptr > ();
+      case symbol_kind::S_game: // game
+        value.template destroy< gsc::game_ptr > ();
         break;
 
       case symbol_kind::S_include: // include
         value.template destroy< gsc::include_ptr > ();
         break;
 
-      case symbol_kind::S_data_integer: // data_integer
+      case symbol_kind::S_neg_integer: // neg_integer
+      case symbol_kind::S_integer: // integer
         value.template destroy< gsc::integer_ptr > ();
         break;
 
-      case symbol_kind::S_data_localized_string: // data_localized_string
-        value.template destroy< gsc::localized_string_ptr > ();
+      case symbol_kind::S_istring: // istring
+        value.template destroy< gsc::istring_ptr > ();
         break;
 
-      case symbol_kind::S_expr_function_ref: // expr_function_ref
+      case symbol_kind::S_level: // level
+        value.template destroy< gsc::level_ptr > ();
+        break;
+
+      case symbol_kind::S_name: // name
+        value.template destroy< gsc::name_ptr > ();
+        break;
+
+      case symbol_kind::S_expr_function: // expr_function
+      case symbol_kind::S_expr_add_array: // expr_add_array
+      case symbol_kind::S_expr_vector: // expr_vector
       case symbol_kind::S_expr_array: // expr_array
       case symbol_kind::S_expr_field: // expr_field
+      case symbol_kind::S_expr_self: // expr_self
       case symbol_kind::S_expr_size: // expr_size
-      case symbol_kind::S_expr_vector: // expr_vector
-      case symbol_kind::S_expr_add_array: // expr_add_array
       case symbol_kind::S_object: // object
       case symbol_kind::S_vector: // vector
-      case symbol_kind::S_number: // number
-      case symbol_kind::S_empty_array: // empty_array
-      case symbol_kind::S_undefined: // undefined
-      case symbol_kind::S_size: // size
-      case symbol_kind::S_game: // game
-      case symbol_kind::S_self: // self
-      case symbol_kind::S_anim: // anim
-      case symbol_kind::S_level: // level
         value.template destroy< gsc::node_ptr > ();
+        break;
+
+      case symbol_kind::S_number: // number
+        value.template destroy< gsc::number_ptr > ();
         break;
 
       case symbol_kind::S_parameters: // parameters
         value.template destroy< gsc::parameters_ptr > ();
         break;
 
-      case symbol_kind::S_script: // script
-        value.template destroy< gsc::script_ptr > ();
+      case symbol_kind::S_program: // program
+        value.template destroy< gsc::program_ptr > ();
+        break;
+
+      case symbol_kind::S_self: // self
+        value.template destroy< gsc::self_ptr > ();
         break;
 
       case symbol_kind::S_stmt_assign: // stmt_assign
@@ -1865,27 +2017,34 @@ switch (yykind)
         value.template destroy< gsc::stmt_while_ptr > ();
         break;
 
-      case symbol_kind::S_data_string: // data_string
+      case symbol_kind::S_string: // string
         value.template destroy< gsc::string_ptr > ();
+        break;
+
+      case symbol_kind::S_thisthread: // thisthread
+        value.template destroy< gsc::thisthread_ptr > ();
         break;
 
       case symbol_kind::S_thread: // thread
         value.template destroy< gsc::thread_ptr > ();
         break;
 
-      case symbol_kind::S_data_true: // data_true
+      case symbol_kind::S_true: // true
         value.template destroy< gsc::true_ptr > ();
         break;
 
-      case symbol_kind::S_using_animtree: // using_animtree
-        value.template destroy< gsc::using_animtree_ptr > ();
+      case symbol_kind::S_undefined: // undefined
+        value.template destroy< gsc::undefined_ptr > ();
         break;
 
-      case symbol_kind::S_FILEPATH: // FILEPATH
-      case symbol_kind::S_IDENTIFIER: // IDENTIFIER
-      case symbol_kind::S_ANIMREF: // ANIMREF
+      case symbol_kind::S_usingtree: // usingtree
+        value.template destroy< gsc::usingtree_ptr > ();
+        break;
+
+      case symbol_kind::S_FILE: // FILE
+      case symbol_kind::S_NAME: // NAME
       case symbol_kind::S_STRING: // STRING
-      case symbol_kind::S_STRING_LOC: // STRING_LOC
+      case symbol_kind::S_ISTRING: // ISTRING
       case symbol_kind::S_FLOAT: // FLOAT
       case symbol_kind::S_INTEGER: // INTEGER
         value.template destroy< std::string > ();
@@ -1978,32 +2137,32 @@ switch (yykind)
       symbol_type (int tok)
         : super_type(token_type (tok))
       {
-        YY_ASSERT (tok == token::S2EOF || tok == token::S2error || tok == token::S2UNDEF || tok == token::INCLUDE || tok == token::USING_ANIMTREE || tok == token::ANIMTREE || tok == token::IF || tok == token::ELSE || tok == token::SWITCH || tok == token::CASE || tok == token::DEFAULT || tok == token::BREAK || tok == token::FOR || tok == token::FOREACH || tok == token::WHILE || tok == token::CONTINUE || tok == token::RETURN || tok == token::THREAD || tok == token::CALL || tok == token::WAIT || tok == token::WAITTILL || tok == token::WAITTILLMATCH || tok == token::WAITTILLFRAMEEND || tok == token::WAITFRAME || tok == token::ENDON || tok == token::NOTIFY || tok == token::IN || tok == token::UNDEFINED || tok == token::TRUE || tok == token::FALSE || tok == token::SIZE || tok == token::GAME || tok == token::LEVEL || tok == token::ANIM || tok == token::SELF || tok == token::EMPTY_ARRAY || tok == token::LPAREN || tok == token::RPAREN || tok == token::LBRACE || tok == token::RBRACE || tok == token::LBRACKET || tok == token::RBRACKET || tok == token::COMMA || tok == token::DOT || tok == token::DOUBLECOLON || tok == token::COLON || tok == token::SEMICOLON || tok == token::QMARK || tok == token::MOD || tok == token::INCREMENT || tok == token::DECREMENT || tok == token::LSHIFT || tok == token::RSHIFT || tok == token::OR || tok == token::AND || tok == token::EQUALITY || tok == token::INEQUALITY || tok == token::LESS_EQUAL || tok == token::GREATER_EQUAL || tok == token::LESS || tok == token::GREATER || tok == token::ASSIGN || tok == token::ASSIGN_ADD || tok == token::ASSIGN_SUB || tok == token::ASSIGN_MULT || tok == token::ASSIGN_DIV || tok == token::ASSIGN_MOD || tok == token::ASSIGN_BITWISE_OR || tok == token::ASSIGN_BITWISE_AND || tok == token::ASSIGN_BITWISE_EXOR || tok == token::ASSIGN_LSHIFT || tok == token::ASSIGN_RSHIFT || tok == token::BITWISE_OR || tok == token::BITWISE_AND || tok == token::BITWISE_EXOR || tok == token::ADD || tok == token::SUB || tok == token::MULT || tok == token::DIV || tok == token::NOT || tok == token::COMPLEMENT || tok == token::IFX);
+        YY_ASSERT (tok == token::S2EOF || tok == token::S2error || tok == token::S2UNDEF || tok == token::INCLUDE || tok == token::USINGTREE || tok == token::ANIMTREE || tok == token::ENDON || tok == token::NOTIFY || tok == token::WAIT || tok == token::WAITTILL || tok == token::WAITFRAME || tok == token::WAITTILLMATCH || tok == token::WAITTILLFRAMEEND || tok == token::IF || tok == token::ELSE || tok == token::WHILE || tok == token::FOR || tok == token::FOREACH || tok == token::IN || tok == token::SWITCH || tok == token::CASE || tok == token::DEFAULT || tok == token::BREAK || tok == token::CONTINUE || tok == token::RETURN || tok == token::THREAD || tok == token::CHILDTHREAD || tok == token::THISTHREAD || tok == token::CALL || tok == token::TRUE || tok == token::FALSE || tok == token::UNDEFINED || tok == token::SIZE || tok == token::GAME || tok == token::SELF || tok == token::ANIM || tok == token::LEVEL || tok == token::EMPTY_ARRAY || tok == token::LPAREN || tok == token::RPAREN || tok == token::LBRACE || tok == token::RBRACE || tok == token::LBRACKET || tok == token::RBRACKET || tok == token::COMMA || tok == token::DOT || tok == token::DOUBLECOLON || tok == token::COLON || tok == token::SEMICOLON || tok == token::INCREMENT || tok == token::DECREMENT || tok == token::MOD || tok == token::LSHIFT || tok == token::RSHIFT || tok == token::OR || tok == token::AND || tok == token::EQUALITY || tok == token::INEQUALITY || tok == token::LESS_EQUAL || tok == token::GREATER_EQUAL || tok == token::LESS || tok == token::GREATER || tok == token::NOT || tok == token::COMPLEMENT || tok == token::ASSIGN_RSHIFT || tok == token::ASSIGN || tok == token::ASSIGN_ADD || tok == token::ASSIGN_SUB || tok == token::ASSIGN_MULT || tok == token::ASSIGN_DIV || tok == token::ASSIGN_MOD || tok == token::ASSIGN_BITWISE_OR || tok == token::ASSIGN_BITWISE_AND || tok == token::ASSIGN_BITWISE_EXOR || tok == token::ASSIGN_LSHIFT || tok == token::BITWISE_OR || tok == token::BITWISE_AND || tok == token::BITWISE_EXOR || tok == token::ADD || tok == token::SUB || tok == token::MULT || tok == token::DIV);
       }
 #else
       symbol_type (int tok)
         : super_type(token_type (tok))
       {
-        YY_ASSERT (tok == token::S2EOF || tok == token::S2error || tok == token::S2UNDEF || tok == token::INCLUDE || tok == token::USING_ANIMTREE || tok == token::ANIMTREE || tok == token::IF || tok == token::ELSE || tok == token::SWITCH || tok == token::CASE || tok == token::DEFAULT || tok == token::BREAK || tok == token::FOR || tok == token::FOREACH || tok == token::WHILE || tok == token::CONTINUE || tok == token::RETURN || tok == token::THREAD || tok == token::CALL || tok == token::WAIT || tok == token::WAITTILL || tok == token::WAITTILLMATCH || tok == token::WAITTILLFRAMEEND || tok == token::WAITFRAME || tok == token::ENDON || tok == token::NOTIFY || tok == token::IN || tok == token::UNDEFINED || tok == token::TRUE || tok == token::FALSE || tok == token::SIZE || tok == token::GAME || tok == token::LEVEL || tok == token::ANIM || tok == token::SELF || tok == token::EMPTY_ARRAY || tok == token::LPAREN || tok == token::RPAREN || tok == token::LBRACE || tok == token::RBRACE || tok == token::LBRACKET || tok == token::RBRACKET || tok == token::COMMA || tok == token::DOT || tok == token::DOUBLECOLON || tok == token::COLON || tok == token::SEMICOLON || tok == token::QMARK || tok == token::MOD || tok == token::INCREMENT || tok == token::DECREMENT || tok == token::LSHIFT || tok == token::RSHIFT || tok == token::OR || tok == token::AND || tok == token::EQUALITY || tok == token::INEQUALITY || tok == token::LESS_EQUAL || tok == token::GREATER_EQUAL || tok == token::LESS || tok == token::GREATER || tok == token::ASSIGN || tok == token::ASSIGN_ADD || tok == token::ASSIGN_SUB || tok == token::ASSIGN_MULT || tok == token::ASSIGN_DIV || tok == token::ASSIGN_MOD || tok == token::ASSIGN_BITWISE_OR || tok == token::ASSIGN_BITWISE_AND || tok == token::ASSIGN_BITWISE_EXOR || tok == token::ASSIGN_LSHIFT || tok == token::ASSIGN_RSHIFT || tok == token::BITWISE_OR || tok == token::BITWISE_AND || tok == token::BITWISE_EXOR || tok == token::ADD || tok == token::SUB || tok == token::MULT || tok == token::DIV || tok == token::NOT || tok == token::COMPLEMENT || tok == token::IFX);
+        YY_ASSERT (tok == token::S2EOF || tok == token::S2error || tok == token::S2UNDEF || tok == token::INCLUDE || tok == token::USINGTREE || tok == token::ANIMTREE || tok == token::ENDON || tok == token::NOTIFY || tok == token::WAIT || tok == token::WAITTILL || tok == token::WAITFRAME || tok == token::WAITTILLMATCH || tok == token::WAITTILLFRAMEEND || tok == token::IF || tok == token::ELSE || tok == token::WHILE || tok == token::FOR || tok == token::FOREACH || tok == token::IN || tok == token::SWITCH || tok == token::CASE || tok == token::DEFAULT || tok == token::BREAK || tok == token::CONTINUE || tok == token::RETURN || tok == token::THREAD || tok == token::CHILDTHREAD || tok == token::THISTHREAD || tok == token::CALL || tok == token::TRUE || tok == token::FALSE || tok == token::UNDEFINED || tok == token::SIZE || tok == token::GAME || tok == token::SELF || tok == token::ANIM || tok == token::LEVEL || tok == token::EMPTY_ARRAY || tok == token::LPAREN || tok == token::RPAREN || tok == token::LBRACE || tok == token::RBRACE || tok == token::LBRACKET || tok == token::RBRACKET || tok == token::COMMA || tok == token::DOT || tok == token::DOUBLECOLON || tok == token::COLON || tok == token::SEMICOLON || tok == token::INCREMENT || tok == token::DECREMENT || tok == token::MOD || tok == token::LSHIFT || tok == token::RSHIFT || tok == token::OR || tok == token::AND || tok == token::EQUALITY || tok == token::INEQUALITY || tok == token::LESS_EQUAL || tok == token::GREATER_EQUAL || tok == token::LESS || tok == token::GREATER || tok == token::NOT || tok == token::COMPLEMENT || tok == token::ASSIGN_RSHIFT || tok == token::ASSIGN || tok == token::ASSIGN_ADD || tok == token::ASSIGN_SUB || tok == token::ASSIGN_MULT || tok == token::ASSIGN_DIV || tok == token::ASSIGN_MOD || tok == token::ASSIGN_BITWISE_OR || tok == token::ASSIGN_BITWISE_AND || tok == token::ASSIGN_BITWISE_EXOR || tok == token::ASSIGN_LSHIFT || tok == token::BITWISE_OR || tok == token::BITWISE_AND || tok == token::BITWISE_EXOR || tok == token::ADD || tok == token::SUB || tok == token::MULT || tok == token::DIV);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
       symbol_type (int tok, std::string v)
         : super_type(token_type (tok), std::move (v))
       {
-        YY_ASSERT (tok == token::FILEPATH || tok == token::IDENTIFIER || tok == token::ANIMREF || tok == token::STRING || tok == token::STRING_LOC || tok == token::FLOAT || tok == token::INTEGER);
+        YY_ASSERT (tok == token::FILE || tok == token::NAME || tok == token::STRING || tok == token::ISTRING || tok == token::FLOAT || tok == token::INTEGER);
       }
 #else
       symbol_type (int tok, const std::string& v)
         : super_type(token_type (tok), v)
       {
-        YY_ASSERT (tok == token::FILEPATH || tok == token::IDENTIFIER || tok == token::ANIMREF || tok == token::STRING || tok == token::STRING_LOC || tok == token::FLOAT || tok == token::INTEGER);
+        YY_ASSERT (tok == token::FILE || tok == token::NAME || tok == token::STRING || tok == token::ISTRING || tok == token::FLOAT || tok == token::INTEGER);
       }
 #endif
     };
 
     /// Build a parser object.
-    parser (yyscan_t yyscanner_yyarg, std::uint32_t *location_yyarg, gsc::script_ptr& astout_yyarg);
+    parser (yyscan_t yyscanner_yyarg, std::uint32_t *pos_yyarg, gsc::program_ptr& astout_yyarg);
     virtual ~parser ();
 
 #if 201103L <= YY_CPLUSPLUS
@@ -2110,16 +2269,16 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_USING_ANIMTREE ()
+      make_USINGTREE ()
       {
-        return symbol_type (token::USING_ANIMTREE);
+        return symbol_type (token::USINGTREE);
       }
 #else
       static
       symbol_type
-      make_USING_ANIMTREE ()
+      make_USINGTREE ()
       {
-        return symbol_type (token::USING_ANIMTREE);
+        return symbol_type (token::USINGTREE);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -2135,6 +2294,111 @@ switch (yykind)
       make_ANIMTREE ()
       {
         return symbol_type (token::ANIMTREE);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_ENDON ()
+      {
+        return symbol_type (token::ENDON);
+      }
+#else
+      static
+      symbol_type
+      make_ENDON ()
+      {
+        return symbol_type (token::ENDON);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_NOTIFY ()
+      {
+        return symbol_type (token::NOTIFY);
+      }
+#else
+      static
+      symbol_type
+      make_NOTIFY ()
+      {
+        return symbol_type (token::NOTIFY);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_WAIT ()
+      {
+        return symbol_type (token::WAIT);
+      }
+#else
+      static
+      symbol_type
+      make_WAIT ()
+      {
+        return symbol_type (token::WAIT);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_WAITTILL ()
+      {
+        return symbol_type (token::WAITTILL);
+      }
+#else
+      static
+      symbol_type
+      make_WAITTILL ()
+      {
+        return symbol_type (token::WAITTILL);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_WAITFRAME ()
+      {
+        return symbol_type (token::WAITFRAME);
+      }
+#else
+      static
+      symbol_type
+      make_WAITFRAME ()
+      {
+        return symbol_type (token::WAITFRAME);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_WAITTILLMATCH ()
+      {
+        return symbol_type (token::WAITTILLMATCH);
+      }
+#else
+      static
+      symbol_type
+      make_WAITTILLMATCH ()
+      {
+        return symbol_type (token::WAITTILLMATCH);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_WAITTILLFRAMEEND ()
+      {
+        return symbol_type (token::WAITTILLFRAMEEND);
+      }
+#else
+      static
+      symbol_type
+      make_WAITTILLFRAMEEND ()
+      {
+        return symbol_type (token::WAITTILLFRAMEEND);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -2165,6 +2429,66 @@ switch (yykind)
       make_ELSE ()
       {
         return symbol_type (token::ELSE);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_WHILE ()
+      {
+        return symbol_type (token::WHILE);
+      }
+#else
+      static
+      symbol_type
+      make_WHILE ()
+      {
+        return symbol_type (token::WHILE);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_FOR ()
+      {
+        return symbol_type (token::FOR);
+      }
+#else
+      static
+      symbol_type
+      make_FOR ()
+      {
+        return symbol_type (token::FOR);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_FOREACH ()
+      {
+        return symbol_type (token::FOREACH);
+      }
+#else
+      static
+      symbol_type
+      make_FOREACH ()
+      {
+        return symbol_type (token::FOREACH);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_IN ()
+      {
+        return symbol_type (token::IN);
+      }
+#else
+      static
+      symbol_type
+      make_IN ()
+      {
+        return symbol_type (token::IN);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -2230,51 +2554,6 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_FOR ()
-      {
-        return symbol_type (token::FOR);
-      }
-#else
-      static
-      symbol_type
-      make_FOR ()
-      {
-        return symbol_type (token::FOR);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_FOREACH ()
-      {
-        return symbol_type (token::FOREACH);
-      }
-#else
-      static
-      symbol_type
-      make_FOREACH ()
-      {
-        return symbol_type (token::FOREACH);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_WHILE ()
-      {
-        return symbol_type (token::WHILE);
-      }
-#else
-      static
-      symbol_type
-      make_WHILE ()
-      {
-        return symbol_type (token::WHILE);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
       make_CONTINUE ()
       {
         return symbol_type (token::CONTINUE);
@@ -2320,6 +2599,36 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_CHILDTHREAD ()
+      {
+        return symbol_type (token::CHILDTHREAD);
+      }
+#else
+      static
+      symbol_type
+      make_CHILDTHREAD ()
+      {
+        return symbol_type (token::CHILDTHREAD);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_THISTHREAD ()
+      {
+        return symbol_type (token::THISTHREAD);
+      }
+#else
+      static
+      symbol_type
+      make_THISTHREAD ()
+      {
+        return symbol_type (token::THISTHREAD);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_CALL ()
       {
         return symbol_type (token::CALL);
@@ -2330,141 +2639,6 @@ switch (yykind)
       make_CALL ()
       {
         return symbol_type (token::CALL);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_WAIT ()
-      {
-        return symbol_type (token::WAIT);
-      }
-#else
-      static
-      symbol_type
-      make_WAIT ()
-      {
-        return symbol_type (token::WAIT);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_WAITTILL ()
-      {
-        return symbol_type (token::WAITTILL);
-      }
-#else
-      static
-      symbol_type
-      make_WAITTILL ()
-      {
-        return symbol_type (token::WAITTILL);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_WAITTILLMATCH ()
-      {
-        return symbol_type (token::WAITTILLMATCH);
-      }
-#else
-      static
-      symbol_type
-      make_WAITTILLMATCH ()
-      {
-        return symbol_type (token::WAITTILLMATCH);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_WAITTILLFRAMEEND ()
-      {
-        return symbol_type (token::WAITTILLFRAMEEND);
-      }
-#else
-      static
-      symbol_type
-      make_WAITTILLFRAMEEND ()
-      {
-        return symbol_type (token::WAITTILLFRAMEEND);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_WAITFRAME ()
-      {
-        return symbol_type (token::WAITFRAME);
-      }
-#else
-      static
-      symbol_type
-      make_WAITFRAME ()
-      {
-        return symbol_type (token::WAITFRAME);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_ENDON ()
-      {
-        return symbol_type (token::ENDON);
-      }
-#else
-      static
-      symbol_type
-      make_ENDON ()
-      {
-        return symbol_type (token::ENDON);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_NOTIFY ()
-      {
-        return symbol_type (token::NOTIFY);
-      }
-#else
-      static
-      symbol_type
-      make_NOTIFY ()
-      {
-        return symbol_type (token::NOTIFY);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_IN ()
-      {
-        return symbol_type (token::IN);
-      }
-#else
-      static
-      symbol_type
-      make_IN ()
-      {
-        return symbol_type (token::IN);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_UNDEFINED ()
-      {
-        return symbol_type (token::UNDEFINED);
-      }
-#else
-      static
-      symbol_type
-      make_UNDEFINED ()
-      {
-        return symbol_type (token::UNDEFINED);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -2500,6 +2674,21 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_UNDEFINED ()
+      {
+        return symbol_type (token::UNDEFINED);
+      }
+#else
+      static
+      symbol_type
+      make_UNDEFINED ()
+      {
+        return symbol_type (token::UNDEFINED);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_SIZE ()
       {
         return symbol_type (token::SIZE);
@@ -2530,16 +2719,16 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_LEVEL ()
+      make_SELF ()
       {
-        return symbol_type (token::LEVEL);
+        return symbol_type (token::SELF);
       }
 #else
       static
       symbol_type
-      make_LEVEL ()
+      make_SELF ()
       {
-        return symbol_type (token::LEVEL);
+        return symbol_type (token::SELF);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -2560,16 +2749,16 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_SELF ()
+      make_LEVEL ()
       {
-        return symbol_type (token::SELF);
+        return symbol_type (token::LEVEL);
       }
 #else
       static
       symbol_type
-      make_SELF ()
+      make_LEVEL ()
       {
-        return symbol_type (token::SELF);
+        return symbol_type (token::LEVEL);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -2755,36 +2944,6 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_QMARK ()
-      {
-        return symbol_type (token::QMARK);
-      }
-#else
-      static
-      symbol_type
-      make_QMARK ()
-      {
-        return symbol_type (token::QMARK);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_MOD ()
-      {
-        return symbol_type (token::MOD);
-      }
-#else
-      static
-      symbol_type
-      make_MOD ()
-      {
-        return symbol_type (token::MOD);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
       make_INCREMENT ()
       {
         return symbol_type (token::INCREMENT);
@@ -2810,6 +2969,21 @@ switch (yykind)
       make_DECREMENT ()
       {
         return symbol_type (token::DECREMENT);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_MOD ()
+      {
+        return symbol_type (token::MOD);
+      }
+#else
+      static
+      symbol_type
+      make_MOD ()
+      {
+        return symbol_type (token::MOD);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -2965,6 +3139,51 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_NOT ()
+      {
+        return symbol_type (token::NOT);
+      }
+#else
+      static
+      symbol_type
+      make_NOT ()
+      {
+        return symbol_type (token::NOT);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_COMPLEMENT ()
+      {
+        return symbol_type (token::COMPLEMENT);
+      }
+#else
+      static
+      symbol_type
+      make_COMPLEMENT ()
+      {
+        return symbol_type (token::COMPLEMENT);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_ASSIGN_RSHIFT ()
+      {
+        return symbol_type (token::ASSIGN_RSHIFT);
+      }
+#else
+      static
+      symbol_type
+      make_ASSIGN_RSHIFT ()
+      {
+        return symbol_type (token::ASSIGN_RSHIFT);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_ASSIGN ()
       {
         return symbol_type (token::ASSIGN);
@@ -3115,21 +3334,6 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_ASSIGN_RSHIFT ()
-      {
-        return symbol_type (token::ASSIGN_RSHIFT);
-      }
-#else
-      static
-      symbol_type
-      make_ASSIGN_RSHIFT ()
-      {
-        return symbol_type (token::ASSIGN_RSHIFT);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
       make_BITWISE_OR ()
       {
         return symbol_type (token::BITWISE_OR);
@@ -3235,76 +3439,31 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_NOT ()
+      make_FILE (std::string v)
       {
-        return symbol_type (token::NOT);
+        return symbol_type (token::FILE, std::move (v));
       }
 #else
       static
       symbol_type
-      make_NOT ()
+      make_FILE (const std::string& v)
       {
-        return symbol_type (token::NOT);
+        return symbol_type (token::FILE, v);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_COMPLEMENT ()
+      make_NAME (std::string v)
       {
-        return symbol_type (token::COMPLEMENT);
+        return symbol_type (token::NAME, std::move (v));
       }
 #else
       static
       symbol_type
-      make_COMPLEMENT ()
+      make_NAME (const std::string& v)
       {
-        return symbol_type (token::COMPLEMENT);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_FILEPATH (std::string v)
-      {
-        return symbol_type (token::FILEPATH, std::move (v));
-      }
-#else
-      static
-      symbol_type
-      make_FILEPATH (const std::string& v)
-      {
-        return symbol_type (token::FILEPATH, v);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_IDENTIFIER (std::string v)
-      {
-        return symbol_type (token::IDENTIFIER, std::move (v));
-      }
-#else
-      static
-      symbol_type
-      make_IDENTIFIER (const std::string& v)
-      {
-        return symbol_type (token::IDENTIFIER, v);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_ANIMREF (std::string v)
-      {
-        return symbol_type (token::ANIMREF, std::move (v));
-      }
-#else
-      static
-      symbol_type
-      make_ANIMREF (const std::string& v)
-      {
-        return symbol_type (token::ANIMREF, v);
+        return symbol_type (token::NAME, v);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -3325,16 +3484,16 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_STRING_LOC (std::string v)
+      make_ISTRING (std::string v)
       {
-        return symbol_type (token::STRING_LOC, std::move (v));
+        return symbol_type (token::ISTRING, std::move (v));
       }
 #else
       static
       symbol_type
-      make_STRING_LOC (const std::string& v)
+      make_ISTRING (const std::string& v)
       {
-        return symbol_type (token::STRING_LOC, v);
+        return symbol_type (token::ISTRING, v);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -3365,21 +3524,6 @@ switch (yykind)
       make_INTEGER (const std::string& v)
       {
         return symbol_type (token::INTEGER, v);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_IFX ()
-      {
-        return symbol_type (token::IFX);
-      }
-#else
-      static
-      symbol_type
-      make_IFX ()
-      {
-        return symbol_type (token::IFX);
       }
 #endif
 
@@ -3724,16 +3868,16 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 2656,     ///< Last index in yytable_.
-      yynnts_ = 70,  ///< Number of nonterminal symbols.
+      yylast_ = 2563,     ///< Last index in yytable_.
+      yynnts_ = 73,  ///< Number of nonterminal symbols.
       yyfinal_ = 15 ///< Termination state number.
     };
 
 
     // User arguments.
     yyscan_t yyscanner;
-    std::uint32_t *location;
-    gsc::script_ptr& astout;
+    std::uint32_t *pos;
+    gsc::program_ptr& astout;
 
   };
 
@@ -3752,8 +3896,12 @@ switch (yykind)
   {
     switch (this->kind ())
     {
-      case symbol_kind::S_animref: // animref
-        value.copy< gsc::animref_ptr > (YY_MOVE (that.value));
+      case symbol_kind::S_anim: // anim
+        value.copy< gsc::anim_ptr > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_animation: // animation
+        value.copy< gsc::animation_ptr > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_animtree: // animtree
@@ -3768,8 +3916,12 @@ switch (yykind)
         value.copy< gsc::constant_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_definition: // definition
-        value.copy< gsc::definition_ptr > (YY_MOVE (that.value));
+      case symbol_kind::S_define: // define
+        value.copy< gsc::define_ptr > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_empty_array: // empty_array
+        value.copy< gsc::empty_array_ptr > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_expr_arguments: // expr_arguments
@@ -3782,6 +3934,7 @@ switch (yykind)
 
       case symbol_kind::S_expr_call: // expr_call
       case symbol_kind::S_expr_call_thread: // expr_call_thread
+      case symbol_kind::S_expr_call_childthread: // expr_call_childthread
         value.copy< gsc::expr_call_ptr > (YY_MOVE (that.value));
         break;
 
@@ -3790,69 +3943,79 @@ switch (yykind)
         value.copy< gsc::expr_call_type_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_for_assign: // for_assign
-      case symbol_kind::S_for_cond: // for_cond
+      case symbol_kind::S_for_stmt: // for_stmt
+      case symbol_kind::S_for_expr: // for_expr
       case symbol_kind::S_expr: // expr
-      case symbol_kind::S_expr_cmp: // expr_cmp
-      case symbol_kind::S_expr_ternary: // expr_ternary
+      case symbol_kind::S_expr_compare: // expr_compare
       case symbol_kind::S_expr_binary: // expr_binary
       case symbol_kind::S_expr_primitive: // expr_primitive
         value.copy< gsc::expr_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_data_false: // data_false
+      case symbol_kind::S_false: // false
         value.copy< gsc::false_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_filepath: // filepath
-        value.copy< gsc::filepath_ptr > (YY_MOVE (that.value));
+      case symbol_kind::S_file: // file
+        value.copy< gsc::file_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_data_float: // data_float
+      case symbol_kind::S_neg_float: // neg_float
+      case symbol_kind::S_float: // float
         value.copy< gsc::float_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_identifier: // identifier
-        value.copy< gsc::identifier_ptr > (YY_MOVE (that.value));
+      case symbol_kind::S_game: // game
+        value.copy< gsc::game_ptr > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_include: // include
         value.copy< gsc::include_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_data_integer: // data_integer
+      case symbol_kind::S_neg_integer: // neg_integer
+      case symbol_kind::S_integer: // integer
         value.copy< gsc::integer_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_data_localized_string: // data_localized_string
-        value.copy< gsc::localized_string_ptr > (YY_MOVE (that.value));
+      case symbol_kind::S_istring: // istring
+        value.copy< gsc::istring_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_expr_function_ref: // expr_function_ref
+      case symbol_kind::S_level: // level
+        value.copy< gsc::level_ptr > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_name: // name
+        value.copy< gsc::name_ptr > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_expr_function: // expr_function
+      case symbol_kind::S_expr_add_array: // expr_add_array
+      case symbol_kind::S_expr_vector: // expr_vector
       case symbol_kind::S_expr_array: // expr_array
       case symbol_kind::S_expr_field: // expr_field
+      case symbol_kind::S_expr_self: // expr_self
       case symbol_kind::S_expr_size: // expr_size
-      case symbol_kind::S_expr_vector: // expr_vector
-      case symbol_kind::S_expr_add_array: // expr_add_array
       case symbol_kind::S_object: // object
       case symbol_kind::S_vector: // vector
-      case symbol_kind::S_number: // number
-      case symbol_kind::S_empty_array: // empty_array
-      case symbol_kind::S_undefined: // undefined
-      case symbol_kind::S_size: // size
-      case symbol_kind::S_game: // game
-      case symbol_kind::S_self: // self
-      case symbol_kind::S_anim: // anim
-      case symbol_kind::S_level: // level
         value.copy< gsc::node_ptr > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_number: // number
+        value.copy< gsc::number_ptr > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_parameters: // parameters
         value.copy< gsc::parameters_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_script: // script
-        value.copy< gsc::script_ptr > (YY_MOVE (that.value));
+      case symbol_kind::S_program: // program
+        value.copy< gsc::program_ptr > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_self: // self
+        value.copy< gsc::self_ptr > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_stmt_assign: // stmt_assign
@@ -3939,27 +4102,34 @@ switch (yykind)
         value.copy< gsc::stmt_while_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_data_string: // data_string
+      case symbol_kind::S_string: // string
         value.copy< gsc::string_ptr > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_thisthread: // thisthread
+        value.copy< gsc::thisthread_ptr > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_thread: // thread
         value.copy< gsc::thread_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_data_true: // data_true
+      case symbol_kind::S_true: // true
         value.copy< gsc::true_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_using_animtree: // using_animtree
-        value.copy< gsc::using_animtree_ptr > (YY_MOVE (that.value));
+      case symbol_kind::S_undefined: // undefined
+        value.copy< gsc::undefined_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_FILEPATH: // FILEPATH
-      case symbol_kind::S_IDENTIFIER: // IDENTIFIER
-      case symbol_kind::S_ANIMREF: // ANIMREF
+      case symbol_kind::S_usingtree: // usingtree
+        value.copy< gsc::usingtree_ptr > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_FILE: // FILE
+      case symbol_kind::S_NAME: // NAME
       case symbol_kind::S_STRING: // STRING
-      case symbol_kind::S_STRING_LOC: // STRING_LOC
+      case symbol_kind::S_ISTRING: // ISTRING
       case symbol_kind::S_FLOAT: // FLOAT
       case symbol_kind::S_INTEGER: // INTEGER
         value.copy< std::string > (YY_MOVE (that.value));
@@ -3994,8 +4164,12 @@ switch (yykind)
     super_type::move (s);
     switch (this->kind ())
     {
-      case symbol_kind::S_animref: // animref
-        value.move< gsc::animref_ptr > (YY_MOVE (s.value));
+      case symbol_kind::S_anim: // anim
+        value.move< gsc::anim_ptr > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_animation: // animation
+        value.move< gsc::animation_ptr > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_animtree: // animtree
@@ -4010,8 +4184,12 @@ switch (yykind)
         value.move< gsc::constant_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_definition: // definition
-        value.move< gsc::definition_ptr > (YY_MOVE (s.value));
+      case symbol_kind::S_define: // define
+        value.move< gsc::define_ptr > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_empty_array: // empty_array
+        value.move< gsc::empty_array_ptr > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_expr_arguments: // expr_arguments
@@ -4024,6 +4202,7 @@ switch (yykind)
 
       case symbol_kind::S_expr_call: // expr_call
       case symbol_kind::S_expr_call_thread: // expr_call_thread
+      case symbol_kind::S_expr_call_childthread: // expr_call_childthread
         value.move< gsc::expr_call_ptr > (YY_MOVE (s.value));
         break;
 
@@ -4032,69 +4211,79 @@ switch (yykind)
         value.move< gsc::expr_call_type_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_for_assign: // for_assign
-      case symbol_kind::S_for_cond: // for_cond
+      case symbol_kind::S_for_stmt: // for_stmt
+      case symbol_kind::S_for_expr: // for_expr
       case symbol_kind::S_expr: // expr
-      case symbol_kind::S_expr_cmp: // expr_cmp
-      case symbol_kind::S_expr_ternary: // expr_ternary
+      case symbol_kind::S_expr_compare: // expr_compare
       case symbol_kind::S_expr_binary: // expr_binary
       case symbol_kind::S_expr_primitive: // expr_primitive
         value.move< gsc::expr_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_data_false: // data_false
+      case symbol_kind::S_false: // false
         value.move< gsc::false_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_filepath: // filepath
-        value.move< gsc::filepath_ptr > (YY_MOVE (s.value));
+      case symbol_kind::S_file: // file
+        value.move< gsc::file_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_data_float: // data_float
+      case symbol_kind::S_neg_float: // neg_float
+      case symbol_kind::S_float: // float
         value.move< gsc::float_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_identifier: // identifier
-        value.move< gsc::identifier_ptr > (YY_MOVE (s.value));
+      case symbol_kind::S_game: // game
+        value.move< gsc::game_ptr > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_include: // include
         value.move< gsc::include_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_data_integer: // data_integer
+      case symbol_kind::S_neg_integer: // neg_integer
+      case symbol_kind::S_integer: // integer
         value.move< gsc::integer_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_data_localized_string: // data_localized_string
-        value.move< gsc::localized_string_ptr > (YY_MOVE (s.value));
+      case symbol_kind::S_istring: // istring
+        value.move< gsc::istring_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_expr_function_ref: // expr_function_ref
+      case symbol_kind::S_level: // level
+        value.move< gsc::level_ptr > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_name: // name
+        value.move< gsc::name_ptr > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_expr_function: // expr_function
+      case symbol_kind::S_expr_add_array: // expr_add_array
+      case symbol_kind::S_expr_vector: // expr_vector
       case symbol_kind::S_expr_array: // expr_array
       case symbol_kind::S_expr_field: // expr_field
+      case symbol_kind::S_expr_self: // expr_self
       case symbol_kind::S_expr_size: // expr_size
-      case symbol_kind::S_expr_vector: // expr_vector
-      case symbol_kind::S_expr_add_array: // expr_add_array
       case symbol_kind::S_object: // object
       case symbol_kind::S_vector: // vector
-      case symbol_kind::S_number: // number
-      case symbol_kind::S_empty_array: // empty_array
-      case symbol_kind::S_undefined: // undefined
-      case symbol_kind::S_size: // size
-      case symbol_kind::S_game: // game
-      case symbol_kind::S_self: // self
-      case symbol_kind::S_anim: // anim
-      case symbol_kind::S_level: // level
         value.move< gsc::node_ptr > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_number: // number
+        value.move< gsc::number_ptr > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_parameters: // parameters
         value.move< gsc::parameters_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_script: // script
-        value.move< gsc::script_ptr > (YY_MOVE (s.value));
+      case symbol_kind::S_program: // program
+        value.move< gsc::program_ptr > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_self: // self
+        value.move< gsc::self_ptr > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_stmt_assign: // stmt_assign
@@ -4181,27 +4370,34 @@ switch (yykind)
         value.move< gsc::stmt_while_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_data_string: // data_string
+      case symbol_kind::S_string: // string
         value.move< gsc::string_ptr > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_thisthread: // thisthread
+        value.move< gsc::thisthread_ptr > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_thread: // thread
         value.move< gsc::thread_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_data_true: // data_true
+      case symbol_kind::S_true: // true
         value.move< gsc::true_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_using_animtree: // using_animtree
-        value.move< gsc::using_animtree_ptr > (YY_MOVE (s.value));
+      case symbol_kind::S_undefined: // undefined
+        value.move< gsc::undefined_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_FILEPATH: // FILEPATH
-      case symbol_kind::S_IDENTIFIER: // IDENTIFIER
-      case symbol_kind::S_ANIMREF: // ANIMREF
+      case symbol_kind::S_usingtree: // usingtree
+        value.move< gsc::usingtree_ptr > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_FILE: // FILE
+      case symbol_kind::S_NAME: // NAME
       case symbol_kind::S_STRING: // STRING
-      case symbol_kind::S_STRING_LOC: // STRING_LOC
+      case symbol_kind::S_ISTRING: // ISTRING
       case symbol_kind::S_FLOAT: // FLOAT
       case symbol_kind::S_INTEGER: // INTEGER
         value.move< std::string > (YY_MOVE (s.value));
@@ -4269,7 +4465,7 @@ switch (yykind)
 
 #line 14 "S2.parser.ypp"
 } // S2
-#line 4273 "./S2/compiler_parser.hpp"
+#line 4469 "./S2/compiler_parser.hpp"
 
 
 

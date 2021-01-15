@@ -43,7 +43,7 @@ struct context
         child->loc_break = this->loc_break;
         child->loc_continue = this->loc_continue;
 
-        for (auto i = 0; i < child->local_vars_public_count || i < this->local_vars_create_count; i++ )
+        for (std::uint32_t i = 0; i < child->local_vars_public_count || i < this->local_vars_create_count; i++ )
         {
             auto pos = child->find_variable(i, this->local_vars.at(i).name);
 
@@ -70,14 +70,14 @@ struct context
     void append(const std::vector<context*>& childs)
     {
         bool glob = true;
-        for (auto i = 0; i < childs.at(0)->local_vars.size(); ++i )
+        for (std::size_t i = 0; i < childs.at(0)->local_vars.size(); ++i )
         {
             glob = true;
             auto& var =  childs.at(0)->local_vars.at(i);
 
             if (this->find_variable(0, var.name) < 0)
             {
-                for (auto childIndex = 1; childIndex < childs.size(); childIndex++ )
+                for (std::size_t childIndex = 1; childIndex < childs.size(); childIndex++ )
                 {
                    if (childs.at(childIndex)->find_variable(0, var.name) < 0)
                    {
@@ -94,12 +94,12 @@ struct context
 
     void merge(const std::vector<context*>& childs)
     {
-        for (auto childIndex = 0; childIndex < childs.size(); childIndex++ )       
+        for (std::size_t childIndex = 0; childIndex < childs.size(); childIndex++ )       
         {
             auto child = childs[childIndex];
 
             child->local_vars_public_count = this->local_vars.size();
-            for (auto i = 0; i < this->local_vars.size(); i++ )
+            for (std::size_t i = 0; i < this->local_vars.size(); i++ )
             {
                 auto& name = this->local_vars.at(i).name;
 
@@ -116,7 +116,7 @@ struct context
     {
         auto localVarsCreateCount = childs[0]->local_vars_public_count;
 
-        for (auto childIndex = 1; childIndex < childs.size(); ++childIndex )
+        for (std::size_t childIndex = 1; childIndex < childs.size(); ++childIndex )
         {
             auto childBlock = childs[childIndex];
             if ( childBlock->local_vars_public_count < localVarsCreateCount )
@@ -126,12 +126,12 @@ struct context
         this->local_vars_create_count = localVarsCreateCount;
 
         bool init = true;
-        for (auto i = 0; i < localVarsCreateCount; i++ )
+        for (std::uint32_t i = 0; i < localVarsCreateCount; i++ )
         {
             init = true;
             if(!this->local_vars.at(i).init)
             {
-                for (auto childIndex = 0; childIndex < childs.size(); childIndex++ )
+                for (std::size_t childIndex = 0; childIndex < childs.size(); childIndex++ )
                 {
                     auto childBlock = childs[childIndex];
 
@@ -145,9 +145,9 @@ struct context
         }
     }
 
-    auto find_variable(int start, const std::string& name) -> int
+    auto find_variable(std::size_t start, const std::string& name) -> std::int32_t
     {
-        for (auto i = start; i < local_vars.size(); ++i )
+        for (std::size_t i = start; i < local_vars.size(); ++i )
         {
             if ( local_vars.at(i).name == name )
                 return i;

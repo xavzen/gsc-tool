@@ -183,12 +183,12 @@ void disassembler::dissasemble_instruction(const gsc::instruction_ptr& inst)
         break;
     case opcode::OP_GetAnimation:
         script_->seek(8);
-        inst->data.push_back(utils::string::quote(stack_->read_c_string().data()));
-        inst->data.push_back(utils::string::quote(stack_->read_c_string().data()));
+        inst->data.push_back(utils::string::quote(stack_->read_c_string().data(), false));
+        inst->data.push_back(utils::string::quote(stack_->read_c_string().data(), false));
         break;
     case opcode::OP_GetAnimTree:
         script_->seek(1);
-        inst->data.push_back(utils::string::quote(stack_->read_c_string().data()));
+        inst->data.push_back(utils::string::quote(stack_->read_c_string().data(), false));
         break;
     case opcode::OP_waittillmatch:
         inst->data.push_back(utils::string::va("%i", script_->read<std::uint16_t>()));
@@ -298,7 +298,7 @@ void disassembler::dissasemble_instruction(const gsc::instruction_ptr& inst)
         this->disassemble_end_switch(inst);
         break;
     default:
-        GSC_DISASM_ERROR("Unhandled opcode 0x%hhX at index '%04X'!", inst->opcode, inst->index);
+        throw gsc::disasm_error(utils::string::va("Unhandled opcode 0x%X at index '%04X'!", inst->opcode, inst->index));
         break;
     }
 }
@@ -506,12 +506,12 @@ auto disassembler::resolve_function(const std::string& index) -> std::string
             }
         }
 
-        GSC_DISASM_ERROR("Couldn't resolve function name at index '0x%04X'!", idx);
+        throw gsc::disasm_error(utils::string::va("Couldn't resolve function name at index '0x%04X'!", idx));
         return index;
     }
     else
     {
-        GSC_DISASM_ERROR("\"%s\" is not valid function address!", index.data());
+        throw gsc::disasm_error(utils::string::va("\"%s\" is not valid function address!", index.data()));
         return index;
     }
 }

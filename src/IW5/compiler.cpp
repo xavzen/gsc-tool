@@ -19,14 +19,19 @@ void compiler::compile(std::vector<std::uint8_t>& data)
 {
     auto result = parse_buffer(data);
 
-    compile_script(result);
+    compile_program(result);
 }
 
-auto compiler::parse_buffer(std::vector<std::uint8_t>& data) -> gsc::script_ptr
+void compiler::set_readf_callback(std::function<std::vector<std::uint8_t>(const std::string&)> func)
+{
+    callback_readf_ = func;
+}
+
+auto compiler::parse_buffer(std::vector<std::uint8_t>& data) -> gsc::program_ptr
 {
     yyscan_t scanner;
-    std::uint32_t location = 1;
-    gsc::script_ptr result(nullptr);
+    std::uint32_t pos = 1;
+    gsc::program_ptr result(nullptr);
     
     // Add the two NULL terminators, required by flex.
     data.reserve(2);
@@ -38,11 +43,11 @@ auto compiler::parse_buffer(std::vector<std::uint8_t>& data) -> gsc::script_ptr
 
     YY_BUFFER_STATE yybuffer = IW5_scan_buffer(reinterpret_cast<char*>(data.data()), data.size(), scanner);
 
-    parser parser(scanner, &location, result);
+    parser parser(scanner, &pos, result);
     
     if(parser.parse() || result == nullptr)
     {
-        GSC_COMP_ERROR("An error ocurred while parsing gsc file.");
+        throw gsc::comp_error(0, "An unknown error ocurred while parsing gsc file.");
     }
 
     IW5_delete_buffer(yybuffer, scanner);
@@ -51,34 +56,34 @@ auto compiler::parse_buffer(std::vector<std::uint8_t>& data) -> gsc::script_ptr
     return result;
 }
 
-auto compiler::parse_file(const std::string& file) -> gsc::script_ptr
+auto compiler::parse_file(const std::string& file) -> gsc::program_ptr
 {
-    auto buffer = utils::file::read(file);
+    auto buffer = callback_readf_(file);
     auto result = parse_buffer(buffer);
 
     return result;
 }
 
-void compiler::compile_script(const gsc::script_ptr& script)
+void compiler::compile_program(const gsc::program_ptr& program)
 {
     index_ = 1;
 
-    for(const auto& def : script->definitions)
+    for(const auto& def : program->definitions)
     {
-        if(def.as_node->type == gsc::node_type::thread)
+        if(def.as_node->type == gsc::node_t::thread)
         {
             local_functions_.push_back(def.as_thread->name->value);
         }
     }
 
-    for(const auto& include : script->includes)
+    for(const auto& include : program->includes)
     {
         emit_include(include);
     }
 
-    for(const auto& def : script->definitions)
+    for(const auto& def : program->definitions)
     {
-        emit_definition(def);  
+        emit_define(def);  
     }
 
 #ifdef DEBUG
@@ -88,34 +93,47 @@ void compiler::compile_script(const gsc::script_ptr& script)
 
 void compiler::emit_include(const gsc::include_ptr& include)
 {
-    GSC_COMP_ERROR("INCLUDE FILES NOT SUPPORTED!");
+    try
+    {
+        auto program = parse_file(include->file->value);
 
-    // TODO:
-    // includes_.push_back(include->file->value);
-    // need to parse the included file here, and make a vector with all function names
-    // later assemble calls check if far call
-    // ...
+        std::vector<std::string> funcs;
+
+        for(const auto& def : program->definitions)
+        {
+            if(def.as_node->type == gsc::node_t::thread)
+            {
+                funcs.push_back(def.as_thread->name->value);
+            }
+        }
+
+        includes_.push_back(include_t(include->file->value, funcs));
+    }
+    catch(const std::exception& e)
+    {
+        throw gsc::comp_error(include->pos, "error parsing include file " + include->file->value + ": " + e.what());
+    }
 }
 
-void compiler::emit_definition(const gsc::definition_ptr& definition)
+void compiler::emit_define(const gsc::define_ptr& define)
 {
-    switch(definition.as_node->type)
+    switch(define.as_node->type)
     {
-        case gsc::node_type::using_animtree: emit_using_animtree(definition.as_using_animtree); break;
-        case gsc::node_type::constant:       emit_constant(definition.as_constant); break;
-        case gsc::node_type::thread:         emit_thread(definition.as_thread); break;
+        case gsc::node_t::usingtree: emit_usingtree(define.as_usingtree); break;
+        case gsc::node_t::constant:  emit_constant(define.as_constant); break;
+        case gsc::node_t::thread:    emit_thread(define.as_thread); break;
         default: break;
     }
 }
 
-void compiler::emit_using_animtree(const gsc::using_animtree_ptr& animtree)
+void compiler::emit_usingtree(const gsc::usingtree_ptr& animtree)
 {
     animtrees_.push_back({ animtree->animtree->value, false });
 }
 
 void compiler::emit_constant(const gsc::constant_ptr& constant)
 {
-    constants_.insert({ constant->id->value, std::move(constant->value) });
+    constants_.insert({ constant->name->value, std::move(constant->value) });
 }
 
 void compiler::emit_thread(const gsc::thread_ptr& thread)
@@ -161,26 +179,26 @@ void compiler::emit_stmt(const gsc::context_ptr& ctx, const gsc::stmt_ptr& stmt,
 {
     switch(stmt.as_node->type)
     {
-        case gsc::node_type::stmt_call:             emit_stmt_call(ctx, stmt.as_call); break;
-        case gsc::node_type::stmt_assign:           emit_stmt_assign(ctx, stmt.as_assign); break;
-        case gsc::node_type::stmt_endon:            emit_stmt_endon(ctx, stmt.as_endon); break;
-        case gsc::node_type::stmt_notify:           emit_stmt_notify(ctx, stmt.as_notify); break;
-        case gsc::node_type::stmt_wait:             emit_stmt_wait(ctx, stmt.as_wait); break;
-        case gsc::node_type::stmt_waittill:         emit_stmt_waittill(ctx, stmt.as_waittill); break;
-        case gsc::node_type::stmt_waittillmatch:    emit_stmt_waittillmatch(ctx, stmt.as_waittillmatch); break;
-        case gsc::node_type::stmt_waittillframeend: emit_stmt_waittillframeend(ctx, stmt.as_waittillframeend); break;
-        case gsc::node_type::stmt_if:               emit_stmt_if(ctx, stmt.as_if, last); break;
-        case gsc::node_type::stmt_ifelse:           emit_stmt_ifelse(ctx, stmt.as_ifelse, last); break;
-        case gsc::node_type::stmt_while:            emit_stmt_while(ctx, stmt.as_while); break;
-        case gsc::node_type::stmt_for:              emit_stmt_for(ctx, stmt.as_for); break;
-        case gsc::node_type::stmt_foreach:          emit_stmt_foreach(ctx, stmt.as_foreach); break;
-        case gsc::node_type::stmt_switch:           emit_stmt_switch(ctx, stmt.as_switch); break;
-        case gsc::node_type::stmt_case:             emit_stmt_case(ctx, stmt.as_case); break;
-        case gsc::node_type::stmt_default:          emit_stmt_default(ctx, stmt.as_default); break;
-        case gsc::node_type::stmt_break:            emit_stmt_break(ctx, stmt.as_break); break;
-        case gsc::node_type::stmt_continue:         emit_stmt_continue(ctx, stmt.as_continue); break;
-        case gsc::node_type::stmt_return:           emit_stmt_return(ctx, stmt.as_return); break;
-        default: GSC_COMP_ERROR("line %s: unknown statement", stmt.as_node->location.data()); break;
+        case gsc::node_t::stmt_call:             emit_stmt_call(ctx, stmt.as_call); break;
+        case gsc::node_t::stmt_assign:           emit_stmt_assign(ctx, stmt.as_assign); break;
+        case gsc::node_t::stmt_endon:            emit_stmt_endon(ctx, stmt.as_endon); break;
+        case gsc::node_t::stmt_notify:           emit_stmt_notify(ctx, stmt.as_notify); break;
+        case gsc::node_t::stmt_wait:             emit_stmt_wait(ctx, stmt.as_wait); break;
+        case gsc::node_t::stmt_waittill:         emit_stmt_waittill(ctx, stmt.as_waittill); break;
+        case gsc::node_t::stmt_waittillmatch:    emit_stmt_waittillmatch(ctx, stmt.as_waittillmatch); break;
+        case gsc::node_t::stmt_waittillframeend: emit_stmt_waittillframeend(ctx, stmt.as_waittillframeend); break;
+        case gsc::node_t::stmt_if:               emit_stmt_if(ctx, stmt.as_if, last); break;
+        case gsc::node_t::stmt_ifelse:           emit_stmt_ifelse(ctx, stmt.as_ifelse, last); break;
+        case gsc::node_t::stmt_while:            emit_stmt_while(ctx, stmt.as_while); break;
+        case gsc::node_t::stmt_for:              emit_stmt_for(ctx, stmt.as_for); break;
+        case gsc::node_t::stmt_foreach:          emit_stmt_foreach(ctx, stmt.as_foreach); break;
+        case gsc::node_t::stmt_switch:           emit_stmt_switch(ctx, stmt.as_switch); break;
+        case gsc::node_t::stmt_case:             emit_stmt_case(ctx, stmt.as_case); break;
+        case gsc::node_t::stmt_default:          emit_stmt_default(ctx, stmt.as_default); break;
+        case gsc::node_t::stmt_break:            emit_stmt_break(ctx, stmt.as_break); break;
+        case gsc::node_t::stmt_continue:         emit_stmt_continue(ctx, stmt.as_continue); break;
+        case gsc::node_t::stmt_return:           emit_stmt_return(ctx, stmt.as_return); break;
+        default: break;
     }
 }
 
@@ -234,8 +252,8 @@ void compiler::emit_stmt_waittill(const gsc::context_ptr& ctx, const gsc::stmt_w
 
     for(const auto& arg : stmt->args->list)
     {
-        create_variable(ctx, arg.as_identifier);
-        emit_opcode(ctx, opcode::OP_SafeSetWaittillVariableFieldCached, variable_access_index(ctx, arg.as_identifier));
+        create_variable(ctx, arg.as_name);
+        emit_opcode(ctx, opcode::OP_SafeSetWaittillVariableFieldCached, variable_access_index(ctx, arg.as_name));
     }
 
     emit_opcode(ctx, opcode::OP_clearparams);
@@ -259,7 +277,7 @@ void compiler::emit_stmt_if(const gsc::context_ptr& ctx, const gsc::stmt_if_ptr&
 {
     auto end_loc = create_label();
 
-    if(stmt->expr.as_node->type == gsc::node_type::expr_not)
+    if(stmt->expr.as_node->type == gsc::node_t::expr_not)
     {
         emit_expr(ctx, stmt->expr.as_not->rvalue);
         emit_opcode(ctx, opcode::OP_JumpOnTrue, end_loc);
@@ -285,7 +303,7 @@ void compiler::emit_stmt_ifelse(const gsc::context_ptr& ctx, const gsc::stmt_ife
     auto else_loc = create_label();
     auto end_loc = create_label();
 
-    if(stmt->expr.as_node->type == gsc::node_type::expr_not)
+    if(stmt->expr.as_node->type == gsc::node_t::expr_not)
     {
         emit_expr(ctx, stmt->expr.as_not->rvalue);
         emit_opcode(ctx, opcode::OP_JumpOnTrue, else_loc);
@@ -350,7 +368,7 @@ void compiler::emit_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_for_pt
     auto break_loc = create_label();
     auto continue_loc = create_label();
 
-    if(stmt->pre_expr.as_node->type != gsc::node_type::null)
+    if(stmt->pre_expr.as_node->type != gsc::node_t::null)
         emit_expr_assign(ctx, stmt->pre_expr.as_assign);
 
     ctx->transfer(stmt->ctx);
@@ -362,7 +380,7 @@ void compiler::emit_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_for_pt
 
     auto begin_loc = insert_label();
 
-    if(stmt->expr.as_node->type != gsc::node_type::null)
+    if(stmt->expr.as_node->type != gsc::node_t::null)
     { 
         emit_expr(ctx, stmt->expr);
         emit_opcode(ctx, opcode::OP_JumpOnFalse, break_loc);
@@ -372,7 +390,7 @@ void compiler::emit_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_for_pt
 
     insert_label(continue_loc);
 
-    if(stmt->post_expr.as_node->type != gsc::node_type::null)
+    if(stmt->post_expr.as_node->type != gsc::node_t::null)
         emit_expr_assign(ctx, stmt->post_expr.as_assign);
 
     emit_opcode(ctx, opcode::OP_jumpback, begin_loc);
@@ -472,16 +490,16 @@ void compiler::emit_stmt_case(const gsc::context_ptr& ctx, const gsc::stmt_case_
 {
     if(!ctx->is_switch)
     {
-        GSC_COMP_ERROR("line %s: illegal case statement outside a switch", stmt->location.data());
+        throw gsc::comp_error(stmt->pos, "illegal case statement outside a switch");
     }
 
-    if(stmt->value.as_node->type == gsc::node_type::data_integer)
+    if(stmt->value.as_node->type == gsc::node_t::data_integer)
     {
         auto loc = insert_label();
         ctx->case_id.push_back(stmt->value.as_integer->value);
         ctx->case_loc.push_back(loc);
     }
-    else if(stmt->value.as_node->type == gsc::node_type::data_string)
+    else if(stmt->value.as_node->type == gsc::node_t::data_string)
     {
         auto loc = insert_label();
         ctx->case_id.push_back(stmt->value.as_string->value);
@@ -489,7 +507,7 @@ void compiler::emit_stmt_case(const gsc::context_ptr& ctx, const gsc::stmt_case_
     }
     else
     {
-        GSC_COMP_ERROR("line %s: illegal case type", stmt->location.data());
+        throw gsc::comp_error(stmt->pos, "illegal case type");
     }
 }
 
@@ -497,7 +515,7 @@ void compiler::emit_stmt_default(const gsc::context_ptr& ctx, const gsc::stmt_de
 {
     if(!ctx->is_switch)
     {
-        GSC_COMP_ERROR("line %s: illegal default statement outside a switch", stmt->location.data());
+        throw gsc::comp_error(stmt->pos, "illegal default statement outside a switch");
     }
 
     auto loc = insert_label();
@@ -509,7 +527,7 @@ void compiler::emit_stmt_break(const gsc::context_ptr& ctx, const gsc::stmt_brea
 {
     if(ctx->loc_break == "")
     {
-        GSC_COMP_ERROR("line %s: illegal break statement outside a loop", stmt->location.data());
+        throw gsc::comp_error(stmt->pos, "illegal break statement outside a loop");
     }
 
     emit_remove_local_vars(ctx);
@@ -520,7 +538,7 @@ void compiler::emit_stmt_continue(const gsc::context_ptr& ctx, const gsc::stmt_c
 {
     if(ctx->loc_continue == "")
     {
-        GSC_COMP_ERROR("line %s: illegal continue statement outside a loop", stmt->location.data());
+        throw gsc::comp_error(stmt->pos, "illegal continue statement outside a loop");
     }
 
     emit_remove_local_vars(ctx);
@@ -529,7 +547,7 @@ void compiler::emit_stmt_continue(const gsc::context_ptr& ctx, const gsc::stmt_c
 
 void compiler::emit_stmt_return(const gsc::context_ptr& ctx, const gsc::stmt_return_ptr& stmt)
 {
-    if(stmt->expr.as_node->type == gsc::node_type::null)
+    if(stmt->expr.as_node->type == gsc::node_t::null)
     {
         emit_opcode(ctx, opcode::OP_End);
         return; 
@@ -543,70 +561,72 @@ void compiler::emit_expr(const gsc::context_ptr& ctx, const gsc::expr_ptr& expr)
 {
     switch(expr.as_node->type)
     {
-        case gsc::node_type::expr_ternary:          emit_expr_ternary(ctx, expr.as_ternary); break;
-        case gsc::node_type::expr_and:              emit_expr_and(ctx, expr.as_and); break;
-        case gsc::node_type::expr_or:               emit_expr_or(ctx, expr.as_or); break;
-        case gsc::node_type::expr_equality:         emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_inequality:       emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_less:             emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_greater:          emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_less_equal:       emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_greater_equal:    emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_bitwise_or:       emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_bitwise_and:      emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_bitwise_exor:     emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_shift_left:       emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_shift_right:      emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_add:              emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_sub:              emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_mult:             emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_div:              emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_mod:              emit_expr_binary(ctx, expr.as_binary); break;
-        case gsc::node_type::expr_complement:       emit_expr_complement(ctx, expr.as_complement); break;
-        case gsc::node_type::expr_not:              emit_expr_not(ctx, expr.as_not); break;
-        case gsc::node_type::expr_call:             emit_expr_call(ctx, expr.as_call); break;
-        case gsc::node_type::expr_array:            emit_array_variable(ctx, expr.as_array); break;
-        case gsc::node_type::expr_field:            emit_field_variable(ctx, expr.as_field); break;
-        case gsc::node_type::expr_vector:           emit_expr_vector(ctx, expr.as_vector_expr); break;
-        case gsc::node_type::expr_size:             emit_expr_size(ctx, expr.as_size_expr); break;
-        case gsc::node_type::expr_function_ref:     emit_expr_function_ref(ctx, expr.as_function_ref); break;
-        case gsc::node_type::empty_array:           emit_opcode(ctx, opcode::OP_EmptyArray); break;
-        case gsc::node_type::undefined:             emit_opcode(ctx, opcode::OP_GetUndefined); break;
-        case gsc::node_type::level:                 emit_opcode(ctx, opcode::OP_GetLevel); break;
-        case gsc::node_type::anim:                  emit_opcode(ctx, opcode::OP_GetAnim); break;
-        case gsc::node_type::self:                  emit_opcode(ctx, opcode::OP_GetSelf); break;
-        case gsc::node_type::game:                  emit_opcode(ctx, opcode::OP_GetGame); break;
-        case gsc::node_type::identifier:            emit_local_variable(ctx, expr.as_identifier); break;
-        case gsc::node_type::data_string:           emit_string(ctx, expr.as_string); break;
-        case gsc::node_type::data_localized_string: emit_localized_string(ctx, expr.as_localized_string); break;
-        case gsc::node_type::data_float:            emit_float(ctx, expr.as_float); break;
-        case gsc::node_type::data_integer:          emit_integer(ctx, expr.as_integer); break;
-        case gsc::node_type::data_vector:           emit_vector(ctx, expr.as_vector); break;
-        case gsc::node_type::animtree:              emit_animtree(ctx, expr.as_animtree); break;
-        case gsc::node_type::animref:               emit_animation(ctx, expr.as_animref); break;
-        case gsc::node_type::data_true:             emit_true(ctx, expr.as_true); break;
-        case gsc::node_type::data_false:            emit_false(ctx, expr.as_false); break;
-        default: GSC_COMP_ERROR("line %s: unknown expression", expr.as_node->location.data()); break;
+        case gsc::node_t::expr_and:              emit_expr_and(ctx, expr.as_and); break;
+        case gsc::node_t::expr_or:               emit_expr_or(ctx, expr.as_or); break;
+        case gsc::node_t::expr_equality:         emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_inequality:       emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_less:             emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_greater:          emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_less_equal:       emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_greater_equal:    emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_bitwise_or:       emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_bitwise_and:      emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_bitwise_exor:     emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_shift_left:       emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_shift_right:      emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_add:              emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_sub:              emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_mult:             emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_div:              emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_mod:              emit_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_complement:       emit_expr_complement(ctx, expr.as_complement); break;
+        case gsc::node_t::expr_not:              emit_expr_not(ctx, expr.as_not); break;
+        case gsc::node_t::expr_call:             emit_expr_call(ctx, expr.as_call); break;
+        case gsc::node_t::expr_function:         emit_expr_function(ctx, expr.as_function); break;
+        case gsc::node_t::expr_vector:           emit_expr_vector(ctx, expr.as_vector_expr); break;
+        case gsc::node_t::expr_add_array:        emit_expr_add_array(ctx, expr.as_add_array); break;
+        case gsc::node_t::expr_array:            emit_array_variable(ctx, expr.as_array); break;
+        case gsc::node_t::expr_field:            emit_field_variable(ctx, expr.as_field); break;
+        case gsc::node_t::expr_self:             emit_expr_self(ctx, expr.as_self_expr); break;
+        case gsc::node_t::expr_size:             emit_expr_size(ctx, expr.as_size_expr); break;
+        case gsc::node_t::data_thisthread:       emit_opcode(ctx, opcode::OP_GetThisthread); break;
+        case gsc::node_t::data_empty_array:      emit_opcode(ctx, opcode::OP_EmptyArray); break;
+        case gsc::node_t::data_undefined:        emit_opcode(ctx, opcode::OP_GetUndefined); break;
+        case gsc::node_t::data_game:             emit_opcode(ctx, opcode::OP_GetGame); break;
+        case gsc::node_t::data_self:             emit_opcode(ctx, opcode::OP_GetSelf); break;
+        case gsc::node_t::data_anim:             emit_opcode(ctx, opcode::OP_GetAnim); break;
+        case gsc::node_t::data_level:            emit_opcode(ctx, opcode::OP_GetLevel); break;
+        case gsc::node_t::data_animation:        emit_animation(ctx, expr.as_animation); break;
+        case gsc::node_t::data_animtree:         emit_animtree(ctx, expr.as_animtree); break;
+        case gsc::node_t::data_name:             emit_local_variable(ctx, expr.as_name); break;
+        case gsc::node_t::data_istring:          emit_istring(ctx, expr.as_istring); break;
+        case gsc::node_t::data_string:           emit_string(ctx, expr.as_string); break;
+        case gsc::node_t::data_vector:           emit_vector(ctx, expr.as_vector); break;
+        case gsc::node_t::data_float:            emit_float(ctx, expr.as_float); break;
+        case gsc::node_t::data_integer:          emit_integer(ctx, expr.as_integer); break;
+        case gsc::node_t::data_false:            emit_false(ctx, expr.as_false); break;
+        case gsc::node_t::data_true:             emit_true(ctx, expr.as_true); break;
+        default: throw gsc::comp_error(expr.as_node->pos, "unknown expression"); break;
     }
 }
 
 void compiler::emit_expr_assign(const gsc::context_ptr& ctx, const gsc::expr_assign_ptr& expr)	
 {
-    if(expr->type == gsc::node_type::expr_increment)
+    if(expr->type == gsc::node_t::expr_increment)
     {
         emit_variable_ref(ctx, expr->lvalue, false);
         emit_opcode(ctx, opcode::OP_inc);
         emit_opcode(ctx, opcode::OP_SetVariableField);
     }
-    else if(expr->type == gsc::node_type::expr_decrement)
+    else if(expr->type == gsc::node_t::expr_decrement)
     {
         emit_variable_ref(ctx, expr->lvalue, false);
         emit_opcode(ctx, opcode::OP_dec);
         emit_opcode(ctx, opcode::OP_SetVariableField);
     }
-    else if(expr->type == gsc::node_type::expr_assign_equal)
+    else if(expr->type == gsc::node_t::expr_assign_equal)
     {
-        if(expr->rvalue.as_node->type == gsc::node_type::undefined)
+        if(expr->rvalue.as_node->type == gsc::node_t::data_undefined)
         {
             emit_expr_clear_variable(ctx, expr->lvalue);
         }
@@ -623,26 +643,21 @@ void compiler::emit_expr_assign(const gsc::context_ptr& ctx, const gsc::expr_ass
 
         switch(expr->type)
         {
-            case gsc::node_type::expr_assign_add:           emit_opcode(ctx, opcode::OP_plus); break;
-            case gsc::node_type::expr_assign_sub:           emit_opcode(ctx, opcode::OP_minus); break;
-            case gsc::node_type::expr_assign_mult:          emit_opcode(ctx, opcode::OP_multiply); break;
-            case gsc::node_type::expr_assign_div:           emit_opcode(ctx, opcode::OP_divide); break;
-            case gsc::node_type::expr_assign_mod:           emit_opcode(ctx, opcode::OP_mod); break;
-            case gsc::node_type::expr_assign_shift_left:    emit_opcode(ctx, opcode::OP_shift_left); break;
-            case gsc::node_type::expr_assign_shift_right:   emit_opcode(ctx, opcode::OP_shift_right); break;
-            case gsc::node_type::expr_assign_bitwise_or:    emit_opcode(ctx, opcode::OP_bit_or); break;
-            case gsc::node_type::expr_assign_bitwise_and:   emit_opcode(ctx, opcode::OP_bit_and); break;
-            case gsc::node_type::expr_assign_bitwise_exor:  emit_opcode(ctx, opcode::OP_bit_ex_or); break;
-            default: GSC_COMP_ERROR("line %s: unknown assign operation", expr->location.data()); break;
+            case gsc::node_t::expr_assign_add:           emit_opcode(ctx, opcode::OP_plus); break;
+            case gsc::node_t::expr_assign_sub:           emit_opcode(ctx, opcode::OP_minus); break;
+            case gsc::node_t::expr_assign_mult:          emit_opcode(ctx, opcode::OP_multiply); break;
+            case gsc::node_t::expr_assign_div:           emit_opcode(ctx, opcode::OP_divide); break;
+            case gsc::node_t::expr_assign_mod:           emit_opcode(ctx, opcode::OP_mod); break;
+            case gsc::node_t::expr_assign_shift_left:    emit_opcode(ctx, opcode::OP_shift_left); break;
+            case gsc::node_t::expr_assign_shift_right:   emit_opcode(ctx, opcode::OP_shift_right); break;
+            case gsc::node_t::expr_assign_bitwise_or:    emit_opcode(ctx, opcode::OP_bit_or); break;
+            case gsc::node_t::expr_assign_bitwise_and:   emit_opcode(ctx, opcode::OP_bit_and); break;
+            case gsc::node_t::expr_assign_bitwise_exor:  emit_opcode(ctx, opcode::OP_bit_ex_or); break;
+            default: throw gsc::comp_error(expr->pos, "unknown assign operation"); break;
         }
 
         emit_variable_ref(ctx, expr->lvalue, true);
     }  
-}
-
-void compiler::emit_expr_ternary(const gsc::context_ptr& ctx, const gsc::expr_ternary_ptr& expr)
-{
-    GSC_COMP_ERROR("TERNARY EXPRESSION NOT SUPPORTED!");
 }
 
 void compiler::emit_expr_binary(const gsc::context_ptr& ctx, const gsc::expr_binary_ptr& expr)
@@ -652,23 +667,23 @@ void compiler::emit_expr_binary(const gsc::context_ptr& ctx, const gsc::expr_bin
 
     switch(expr->type)
     {
-        case gsc::node_type::expr_equality:         emit_opcode(ctx, opcode::OP_equality); break;
-        case gsc::node_type::expr_inequality:       emit_opcode(ctx, opcode::OP_inequality); break;
-        case gsc::node_type::expr_less:             emit_opcode(ctx, opcode::OP_less); break;
-        case gsc::node_type::expr_greater:          emit_opcode(ctx, opcode::OP_greater); break;
-        case gsc::node_type::expr_less_equal:       emit_opcode(ctx, opcode::OP_less_equal); break;
-        case gsc::node_type::expr_greater_equal:    emit_opcode(ctx, opcode::OP_greater_equal); break;
-        case gsc::node_type::expr_bitwise_or:       emit_opcode(ctx, opcode::OP_bit_or); break;
-        case gsc::node_type::expr_bitwise_and:      emit_opcode(ctx, opcode::OP_bit_and); break;
-        case gsc::node_type::expr_bitwise_exor:     emit_opcode(ctx, opcode::OP_bit_ex_or); break;
-        case gsc::node_type::expr_shift_left:       emit_opcode(ctx, opcode::OP_shift_left); break;
-        case gsc::node_type::expr_shift_right:      emit_opcode(ctx, opcode::OP_shift_right); break;
-        case gsc::node_type::expr_add:              emit_opcode(ctx, opcode::OP_plus); break;
-        case gsc::node_type::expr_sub:              emit_opcode(ctx, opcode::OP_minus); break;
-        case gsc::node_type::expr_mult:             emit_opcode(ctx, opcode::OP_multiply); break;
-        case gsc::node_type::expr_div:              emit_opcode(ctx, opcode::OP_divide); break;
-        case gsc::node_type::expr_mod:              emit_opcode(ctx, opcode::OP_mod); break;
-        default: GSC_COMP_ERROR("line %s: unknown binary expression", expr->location.data()); break;
+        case gsc::node_t::expr_equality:         emit_opcode(ctx, opcode::OP_equality); break;
+        case gsc::node_t::expr_inequality:       emit_opcode(ctx, opcode::OP_inequality); break;
+        case gsc::node_t::expr_less:             emit_opcode(ctx, opcode::OP_less); break;
+        case gsc::node_t::expr_greater:          emit_opcode(ctx, opcode::OP_greater); break;
+        case gsc::node_t::expr_less_equal:       emit_opcode(ctx, opcode::OP_less_equal); break;
+        case gsc::node_t::expr_greater_equal:    emit_opcode(ctx, opcode::OP_greater_equal); break;
+        case gsc::node_t::expr_bitwise_or:       emit_opcode(ctx, opcode::OP_bit_or); break;
+        case gsc::node_t::expr_bitwise_and:      emit_opcode(ctx, opcode::OP_bit_and); break;
+        case gsc::node_t::expr_bitwise_exor:     emit_opcode(ctx, opcode::OP_bit_ex_or); break;
+        case gsc::node_t::expr_shift_left:       emit_opcode(ctx, opcode::OP_shift_left); break;
+        case gsc::node_t::expr_shift_right:      emit_opcode(ctx, opcode::OP_shift_right); break;
+        case gsc::node_t::expr_add:              emit_opcode(ctx, opcode::OP_plus); break;
+        case gsc::node_t::expr_sub:              emit_opcode(ctx, opcode::OP_minus); break;
+        case gsc::node_t::expr_mult:             emit_opcode(ctx, opcode::OP_multiply); break;
+        case gsc::node_t::expr_div:              emit_opcode(ctx, opcode::OP_divide); break;
+        case gsc::node_t::expr_mod:              emit_opcode(ctx, opcode::OP_mod); break;
+        default: throw gsc::comp_error(expr->pos, "unknown binary expression"); break;
     }
 }
 
@@ -716,12 +731,12 @@ void compiler::emit_expr_call(const gsc::context_ptr& ctx, const gsc::expr_call_
 
     thread = expr->thread;
 
-    if(expr->obj.as_node->type != gsc::node_type::null)
+    if(expr->obj.as_node->type != gsc::node_t::null)
     {
         method = true;
     }
 
-    if(expr->func.as_node->type == gsc::node_type::expr_call_pointer)
+    if(expr->func.as_node->type == gsc::node_t::expr_call_pointer)
     {
         builtin = expr->func.as_pointer->builtin;
         
@@ -765,7 +780,7 @@ void compiler::emit_expr_call(const gsc::context_ptr& ctx, const gsc::expr_call_
             else
             {
                 // maybe a far call, but include files not supported!
-                GSC_COMP_ERROR("line %s: unknown function call '%s'", expr->location.data(), name.data());
+                throw gsc::comp_error(expr->pos, "unknown function call " + name);
             }
         }
 
@@ -922,10 +937,10 @@ void compiler::emit_expr_arguments(const gsc::context_ptr& ctx, const gsc::expr_
     }
 }
 
-void compiler::emit_expr_function_ref(const gsc::context_ptr& ctx, const gsc::expr_function_ref_ptr& expr)
+void compiler::emit_expr_function(const gsc::context_ptr& ctx, const gsc::expr_function_ptr& expr)
 {
     bool far = false, local = false, builtin = false, method = false;
-    auto name = expr->func->value;
+    auto name = expr->name->value;
     auto file = expr->file->value;
 
     if(file != "")
@@ -968,21 +983,21 @@ void compiler::emit_expr_clear_variable(const gsc::context_ptr& ctx, const gsc::
 {
     switch(lvalue.as_node->type)
     {
-    case gsc::node_type::expr_array:
+    case gsc::node_t::expr_array:
         emit_expr(ctx, lvalue.as_array->key);
-        lvalue.as_array->obj.as_node->type == gsc::node_type::game ? emit_opcode(ctx, opcode::OP_GetGameRef) : emit_variable_ref(ctx, lvalue.as_array->obj, false);
+        lvalue.as_array->obj.as_node->type == gsc::node_t::data_game ? emit_opcode(ctx, opcode::OP_GetGameRef) : emit_variable_ref(ctx, lvalue.as_array->obj, false);
         emit_opcode(ctx, opcode::OP_ClearArray);
         break;
-    case gsc::node_type::expr_field:
+    case gsc::node_t::expr_field:
         emit_object(ctx, lvalue.as_field->obj);
         emit_opcode(ctx, opcode::OP_ClearFieldVariable,lvalue.as_field->field->value);
         break;
-    case gsc::node_type::identifier:
+    case gsc::node_t::data_name:
         emit_opcode(ctx, opcode::OP_GetUndefined);
-        emit_local_variable_ref(ctx, lvalue.as_identifier, true);
+        emit_local_variable_ref(ctx, lvalue.as_name, true);
         break;
     default:
-        GSC_COMP_ERROR("line %s: unknown clear variable lvalue", lvalue.as_node->location.data());
+        throw gsc::comp_error(lvalue.as_node->pos, "unknown clear variable lvalue");
         break;
     }
 }
@@ -991,9 +1006,9 @@ void compiler::emit_expr_add_array(const gsc::context_ptr& ctx, const gsc::expr_
 {
     if(expr->args->list.size() <= 0)
     {
-        GSC_COMP_ERROR("line %s: invalid empty add array. did u mean '[]' ?", expr->location.data());
+        throw gsc::comp_error(expr->pos, "invalid empty add array. did u mean '[]' ?");
     }
-    
+
     emit_opcode(ctx, opcode::OP_EmptyArray);
 
     for(const auto& arg : expr->args->list)
@@ -1011,6 +1026,11 @@ void compiler::emit_expr_vector(const gsc::context_ptr& ctx, const gsc::expr_vec
     emit_opcode(ctx, opcode::OP_vector);
 }
 
+void compiler::emit_expr_self(const gsc::context_ptr& ctx, const gsc::expr_self_ptr& expr)
+{
+    throw gsc::comp_error(expr->pos, "SELF FIELD EXPR NOT IMPLEMENTED!");
+}
+
 void compiler::emit_expr_size(const gsc::context_ptr& ctx, const gsc::expr_size_ptr& expr)
 {
     emit_variable(ctx, expr->obj);
@@ -1021,10 +1041,10 @@ void compiler::emit_variable_ref(const gsc::context_ptr& ctx, const gsc::expr_pt
 {
     switch(expr.as_node->type)
     {
-        case gsc::node_type::expr_array: emit_array_variable_ref(ctx, expr.as_array, set); break;
-        case gsc::node_type::expr_field: emit_field_variable_ref(ctx, expr.as_field, set); break;
-        case gsc::node_type::identifier: emit_local_variable_ref(ctx, expr.as_identifier, set); break;
-        default: GSC_COMP_ERROR("line %s: invalid variable reference type.", expr.as_node->location.data()); break;
+        case gsc::node_t::expr_array: emit_array_variable_ref(ctx, expr.as_array, set); break;
+        case gsc::node_t::expr_field: emit_field_variable_ref(ctx, expr.as_field, set); break;
+        case gsc::node_t::data_name: emit_local_variable_ref(ctx, expr.as_name, set); break;
+        default: throw gsc::comp_error(expr.as_node->pos, "invalid variable reference type."); break;
     }
 }
 
@@ -1034,46 +1054,46 @@ void compiler::emit_array_variable_ref(const gsc::context_ptr& ctx, const gsc::e
 
     switch(expr->obj.as_node->type)
     {
-    case gsc::node_type::game:
+    case gsc::node_t::data_game:
         emit_opcode(ctx, opcode::OP_GetGameRef);
         emit_opcode(ctx, opcode::OP_EvalArrayRef);
         if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
         break;
-    case gsc::node_type::expr_array:
-    case gsc::node_type::expr_field:
+    case gsc::node_t::expr_array:
+    case gsc::node_t::expr_field:
         emit_variable_ref(ctx, expr->obj, false);
         emit_opcode(ctx, opcode::OP_EvalArrayRef);      
         if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
         break;
-    case gsc::node_type::identifier:
+    case gsc::node_t::data_name:
     {
-        if(!variable_initialized(ctx, expr->obj.as_identifier))
+        if(!variable_initialized(ctx, expr->obj.as_name))
         {
-            initialize_variable(ctx, expr->obj.as_identifier);
-            emit_opcode(ctx, opcode::OP_EvalNewLocalArrayRefCached0, variable_create_index(ctx, expr->obj.as_identifier));
+            initialize_variable(ctx, expr->obj.as_name);
+            emit_opcode(ctx, opcode::OP_EvalNewLocalArrayRefCached0, variable_create_index(ctx, expr->obj.as_name));
 
             if(!set)
             {
-                GSC_COMP_ERROR("INTERNAL: VAR CREATED BUT NOT SET! line %s", expr->location.data());
+                throw gsc::comp_error(expr->pos, "INTERNAL: VAR CREATED BUT NOT SET!");
             }
         }
-        else if(variable_stack_index(ctx, expr->obj.as_identifier) == 0)
+        else if(variable_stack_index(ctx, expr->obj.as_name) == 0)
         {
             emit_opcode(ctx, opcode::OP_EvalLocalArrayRefCached0);
         }
         else
         {
-            emit_opcode(ctx, opcode::OP_EvalLocalArrayRefCached, variable_access_index(ctx, expr->obj.as_identifier));
+            emit_opcode(ctx, opcode::OP_EvalLocalArrayRefCached, variable_access_index(ctx, expr->obj.as_name));
         }
 
         if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
     }
         break;
-    case gsc::node_type::expr_call:
-        GSC_COMP_ERROR("line %s: call result can't be referenced.", expr->location.data());
+    case gsc::node_t::expr_call:
+        throw gsc::comp_error(expr->pos, "call result can't be referenced.");
         break;
     default:
-        GSC_COMP_ERROR("line %s: unknown array object type", expr->location.data());
+        throw gsc::comp_error(expr->pos, "unknown array object type");
         break;
     }
 }
@@ -1084,43 +1104,50 @@ void compiler::emit_field_variable_ref(const gsc::context_ptr& ctx, const gsc::e
 
     switch(expr->obj.as_node->type)
     {
-    case gsc::node_type::level:
+    case gsc::node_t::data_level:
         set ? emit_opcode(ctx, opcode::OP_SetLevelFieldVariableField, field) : emit_opcode(ctx, opcode::OP_EvalLevelFieldVariableRef, field);
         break;
-    case gsc::node_type::anim:
+    case gsc::node_t::data_anim:
         set ? emit_opcode(ctx, opcode::OP_SetAnimFieldVariableField, field) : emit_opcode(ctx, opcode::OP_EvalAnimFieldVariableRef, field);
         break;
-    case gsc::node_type::self:
+    case gsc::node_t::data_self:
         set ? emit_opcode(ctx, opcode::OP_SetSelfFieldVariableField, field) : emit_opcode(ctx, opcode::OP_EvalSelfFieldVariableRef, field);
         break;
-    case gsc::node_type::expr_array:
+    case gsc::node_t::expr_array:
         emit_array_variable(ctx, expr->obj.as_array);
         emit_opcode(ctx, opcode::OP_CastFieldObject);
         emit_opcode(ctx, opcode::OP_EvalFieldVariableRef, field);
         if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
         break;
-    case gsc::node_type::expr_field:
+    case gsc::node_t::expr_field:
         emit_field_variable(ctx, expr->obj.as_field);
         emit_opcode(ctx, opcode::OP_CastFieldObject);
         emit_opcode(ctx, opcode::OP_EvalFieldVariableRef, field);
         if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
         break;
-    case gsc::node_type::identifier:
-        emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, variable_access_index(ctx, expr->obj.as_identifier));
+    case gsc::node_t::data_name:
+        emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, variable_access_index(ctx, expr->obj.as_name));
         emit_opcode(ctx, opcode::OP_EvalFieldVariableRef, field);
         if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
         break;
-    case gsc::node_type::expr_call:
-        GSC_COMP_ERROR("line %s: function call result can't be referenced", expr->location.data());
+    case gsc::node_t::expr_call:
+        throw gsc::comp_error(expr->pos, "function call result can't be referenced");
         break;
     default:
-        GSC_COMP_ERROR("line %s: unknown field variable object type", expr->location.data());
+        throw gsc::comp_error(expr->pos, "unknown field variable object type");
         break;
     }
 }
 
-void compiler::emit_local_variable_ref(const gsc::context_ptr& ctx, const gsc::identifier_ptr& expr, bool set)
+void compiler::emit_local_variable_ref(const gsc::context_ptr& ctx, const gsc::name_ptr& expr, bool set)
 {
+    const auto itr = constants_.find(expr->value);
+
+    if (itr != constants_.end())
+    {
+        throw gsc::comp_error(expr->pos, "variable name already defined as constant " + expr->value);
+    }
+
     if(set)
     {
         if(!variable_initialized(ctx, expr))
@@ -1153,11 +1180,11 @@ void compiler::emit_variable(const gsc::context_ptr& ctx, const gsc::expr_ptr& e
     // for obj.size
     switch(expr.as_node->type)
     {
-        case gsc::node_type::expr_array: emit_array_variable(ctx, expr.as_array); break;
-        case gsc::node_type::expr_field: emit_field_variable(ctx, expr.as_field); break;
-        case gsc::node_type::identifier: emit_local_variable(ctx, expr.as_identifier); break;
-        case gsc::node_type::expr_call:  emit_expr_call(ctx, expr.as_call); break;
-        default: GSC_COMP_ERROR("line %s: invalid variable type.", expr.as_node->location.data()); break;
+        case gsc::node_t::expr_array: emit_array_variable(ctx, expr.as_array); break;
+        case gsc::node_t::expr_field: emit_field_variable(ctx, expr.as_field); break;
+        case gsc::node_t::data_name: emit_local_variable(ctx, expr.as_name); break;
+        case gsc::node_t::expr_call:  emit_expr_call(ctx, expr.as_call); break;
+        default: throw gsc::comp_error(expr.as_node->pos, "invalid variable type."); break;
     }
 }
 
@@ -1165,9 +1192,9 @@ void compiler::emit_array_variable(const gsc::context_ptr& ctx, const gsc::expr_
 {
     emit_expr(ctx, expr->key);
 
-    if(expr->obj.as_node->type == gsc::node_type::identifier)
+    if(expr->obj.as_node->type == gsc::node_t::data_name)
     {
-        emit_opcode(ctx, opcode::OP_EvalLocalArrayCached, variable_access_index(ctx, expr->obj.as_identifier));
+        emit_opcode(ctx, opcode::OP_EvalLocalArrayCached, variable_access_index(ctx, expr->obj.as_name));
     }
     else
     {
@@ -1182,41 +1209,41 @@ void compiler::emit_field_variable(const gsc::context_ptr& ctx, const gsc::expr_
 
     switch(expr->obj.as_node->type)
     {
-    case gsc::node_type::level:
+    case gsc::node_t::data_level:
         emit_opcode(ctx, opcode::OP_EvalLevelFieldVariable, field);
         break;
-    case gsc::node_type::anim:
+    case gsc::node_t::data_anim:
         emit_opcode(ctx, opcode::OP_EvalAnimFieldVariable, field);
         break;
-    case gsc::node_type::self:
+    case gsc::node_t::data_self:
         emit_opcode(ctx, opcode::OP_EvalSelfFieldVariable, field);
         break;
-    case gsc::node_type::expr_array:
+    case gsc::node_t::expr_array:
         emit_array_variable(ctx, expr->obj.as_array);
         emit_opcode(ctx, opcode::OP_CastFieldObject);
         emit_opcode(ctx, opcode::OP_EvalFieldVariable, field);  
         break;
-    case gsc::node_type::expr_field:
+    case gsc::node_t::expr_field:
         emit_field_variable(ctx, expr->obj.as_field);
         emit_opcode(ctx, opcode::OP_CastFieldObject);
         emit_opcode(ctx, opcode::OP_EvalFieldVariable, field);
         break;
-    case gsc::node_type::expr_call:
+    case gsc::node_t::expr_call:
         emit_expr_call(ctx, expr->obj.as_call);
         emit_opcode(ctx, opcode::OP_CastFieldObject);
         emit_opcode(ctx, opcode::OP_EvalFieldVariable, field);
         break;
-    case gsc::node_type::identifier:
-        emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, variable_access_index(ctx, expr->obj.as_identifier));
+    case gsc::node_t::data_name:
+        emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, variable_access_index(ctx, expr->obj.as_name));
         emit_opcode(ctx, opcode::OP_EvalFieldVariable, field);
         break;
     default:
-        GSC_COMP_ERROR("line %s: unknown field variable object type", expr->location.data());
+       throw gsc::comp_error(expr->pos, "unknown field variable object type");
         break;
     }
 }
 
-void compiler::emit_local_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& expr)
+void compiler::emit_local_variable(const gsc::context_ptr& ctx, const gsc::name_ptr& expr)
 {
     // is constant ( should only allow: string, loc string, number, vector)
     const auto itr = constants_.find(expr->value);
@@ -1243,7 +1270,7 @@ void compiler::emit_local_variable(const gsc::context_ptr& ctx, const gsc::ident
     }
 }
 
-void compiler::emit_clear_local_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& expr)
+void compiler::emit_clear_local_variable(const gsc::context_ptr& ctx, const gsc::name_ptr& expr)
 {
     auto index = variable_stack_index(ctx, expr);
 
@@ -1286,48 +1313,98 @@ void compiler::emit_object(const gsc::context_ptr& ctx, const gsc::expr_ptr& exp
     // need revision used for clear variable
     switch(expr.as_node->type)
     {
-        case gsc::node_type::level:
+        case gsc::node_t::data_level:
             emit_opcode(ctx, opcode::OP_GetLevelObject);
             break;
-        case gsc::node_type::anim:
+        case gsc::node_t::data_anim:
             emit_opcode(ctx, opcode::OP_GetAnimObject);
             break;
-        case gsc::node_type::self:
+        case gsc::node_t::data_self:
             emit_opcode(ctx, opcode::OP_GetSelfObject);
             break;
-        case gsc::node_type::identifier:
-            emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, variable_access_index(ctx, expr.as_identifier));
+        case gsc::node_t::data_name:
+            emit_opcode(ctx, opcode::OP_EvalLocalVariableObjectCached, variable_access_index(ctx, expr.as_name));
             break;
-        case gsc::node_type::expr_call:
+        case gsc::node_t::expr_call:
             emit_expr_call(ctx, expr.as_call);
             emit_opcode(ctx, opcode::OP_CastFieldObject);
             break;
         // array ?
         // field ?
         default:
-            GSC_COMP_ERROR("line %s: unknown object type", expr.as_node->location.data());
+            throw gsc::comp_error(expr.as_node->pos, "unknown object type");
             break;
     }
+}
+
+void compiler::emit_animtree(const gsc::context_ptr& ctx, const gsc::animtree_ptr& animtree)
+{
+    if(animtrees_.size() == 0)
+    {
+        throw gsc::comp_error( animtree->pos, "trying to use animtree without specified using animtree");
+    }
+
+    auto& tree = animtrees_.back();
+
+    if(tree.loaded)
+    {
+        emit_opcode(ctx, opcode::OP_GetAnimTree, "''");
+    }
+    else
+    {
+        emit_opcode(ctx, opcode::OP_GetAnimTree, tree.name);
+        tree.loaded = true;
+    }
+}
+
+void compiler::emit_animation(const gsc::context_ptr& ctx, const gsc::animation_ptr& animation)
+{
+    if(animtrees_.size() == 0)
+    {
+        throw gsc::comp_error(animation->pos, "trying to use animation without specified using animtree");
+    }
+
+    auto& tree = animtrees_.back();
+
+    if(tree.loaded)
+    {
+        emit_opcode(ctx, opcode::OP_GetAnimation, { "''", animation->value });
+    }
+    else
+    {
+        emit_opcode(ctx, opcode::OP_GetAnimation, { tree.name, animation->value });
+        tree.loaded = true;
+    }
+}
+
+void compiler::emit_istring(const gsc::context_ptr& ctx, const gsc::istring_ptr& str)
+{
+    emit_opcode(ctx, opcode::OP_GetIString, str->value);
+}
+
+void compiler::emit_string(const gsc::context_ptr& ctx, const gsc::string_ptr& str)
+{
+    emit_opcode(ctx, opcode::OP_GetString, str->value);
 }
 
 void compiler::emit_vector(const gsc::context_ptr& ctx, const gsc::vector_ptr& vec)
 {
     std::vector<std::string> data;
 
-    if(vec->x->type == gsc::node_type::data_integer)
-        data.push_back(static_cast<gsc::node_integer*>(vec->x.get())->value);
-    else if(vec->x->type == gsc::node_type::data_float)
-        data.push_back(static_cast<gsc::node_float*>(vec->x.get())->value);
+    if(vec->x.as_node->type == gsc::node_t::data_integer)
+        data.push_back(vec->x.as_integer->value);
+    else if(vec->x.as_node->type == gsc::node_t::data_float)
+        data.push_back(vec->x.as_float->value);
     
-    if(vec->y->type == gsc::node_type::data_integer)
-        data.push_back(static_cast<gsc::node_integer*>(vec->y.get())->value);
-    else if(vec->y->type == gsc::node_type::data_float)
-        data.push_back(static_cast<gsc::node_float*>(vec->y.get())->value);
+    if(vec->y.as_node->type == gsc::node_t::data_integer)
+        data.push_back(vec->y.as_integer->value);
+    else if(vec->y.as_node->type == gsc::node_t::data_float)
+        data.push_back(vec->y.as_float->value);
     
-    if(vec->z->type == gsc::node_type::data_integer)
-        data.push_back(static_cast<gsc::node_integer*>(vec->z.get())->value);
-    else if(vec->z->type == gsc::node_type::data_float)
-        data.push_back(static_cast<gsc::node_float*>(vec->z.get())->value);
+    if(vec->z.as_node->type == gsc::node_t::data_integer)
+        data.push_back(vec->z.as_integer->value);
+    else if(vec->z.as_node->type == gsc::node_t::data_float)
+        data.push_back(vec->z.as_float->value);
 
     emit_opcode(ctx, opcode::OP_GetVector, data);
 }
@@ -1339,7 +1416,7 @@ void compiler::emit_float(const gsc::context_ptr& ctx, const gsc::float_ptr& num
 
 void compiler::emit_integer(const gsc::context_ptr& ctx, const gsc::integer_ptr& num)
 {
-    auto value = std::atol(num->value.data());
+    auto value = std::atoi(num->value.data());
 
     if(value == 0)
     {
@@ -1367,64 +1444,14 @@ void compiler::emit_integer(const gsc::context_ptr& ctx, const gsc::integer_ptr&
     } 
 }
 
-void compiler::emit_localized_string(const gsc::context_ptr& ctx, const gsc::localized_string_ptr& str)
+void compiler::emit_false(const gsc::context_ptr& ctx, const gsc::false_ptr& expr)
 {
-    emit_opcode(ctx, opcode::OP_GetIString, str->value);
-}
-
-void compiler::emit_string(const gsc::context_ptr& ctx, const gsc::string_ptr& str)
-{
-    emit_opcode(ctx, opcode::OP_GetString, str->value);
-}
-
-void compiler::emit_animtree(const gsc::context_ptr& ctx, const gsc::animtree_ptr& animtree)
-{
-    if(animtrees_.size() == 0)
-    {
-        GSC_COMP_ERROR("line %s: trying to use animtree without specified using animtree", animtree->location.data());
-    }
-
-    auto& tree = animtrees_.back();
-
-    if(tree.loaded)
-    {
-        emit_opcode(ctx, opcode::OP_GetAnimTree, "''");
-    }
-    else
-    {
-        emit_opcode(ctx, opcode::OP_GetAnimTree, tree.name);
-        tree.loaded = true;
-    }
-}
-
-void compiler::emit_animation(const gsc::context_ptr& ctx, const gsc::animref_ptr& anim)
-{
-    if(animtrees_.size() == 0)
-    {
-        GSC_COMP_ERROR("line %s: trying to use animation without specified using animtree", anim->location.data());
-    }
-
-    auto& tree = animtrees_.back();
-
-    if(tree.loaded)
-    {
-        emit_opcode(ctx, opcode::OP_GetAnimation, { "''", anim->value });
-    }
-    else
-    {
-        emit_opcode(ctx, opcode::OP_GetAnimation, { tree.name, anim->value });
-        tree.loaded = true;
-    }
+    emit_opcode(ctx, opcode::OP_GetZero);
 }
 
 void compiler::emit_true(const gsc::context_ptr& ctx, const gsc::true_ptr& expr)
 {
     emit_opcode(ctx, opcode::OP_GetByte, "1");
-}
-
-void compiler::emit_false(const gsc::context_ptr& ctx, const gsc::false_ptr& expr)
-{
-    emit_opcode(ctx, opcode::OP_GetZero);
 }
 
 void compiler::emit_opcode(const gsc::context_ptr& ctx, opcode op)
@@ -1485,14 +1512,14 @@ void compiler::calc_local_vars_block(const gsc::context_ptr& ctx, const gsc::blo
     {
         switch(stmt.as_node->type)
         {
-            case gsc::node_type::stmt_assign:   calc_local_vars_expr(ctx, stmt.as_assign->expr->lvalue); break;
-            case gsc::node_type::stmt_waittill: calc_local_vars_waittill(ctx, stmt.as_waittill); break;
-            case gsc::node_type::stmt_if:       calc_local_vars_if(ctx, stmt.as_if); break;
-            case gsc::node_type::stmt_ifelse:   calc_local_vars_ifelse(ctx, stmt.as_ifelse); break;
-            case gsc::node_type::stmt_while:    calc_local_vars_while(ctx, stmt.as_while); break;
-            case gsc::node_type::stmt_for:      calc_local_vars_for(ctx, stmt.as_for); break;
-            case gsc::node_type::stmt_foreach:  calc_local_vars_foreach(ctx, stmt.as_foreach); break;
-            case gsc::node_type::stmt_switch:   calc_local_vars_switch(ctx, stmt.as_switch); break;
+            case gsc::node_t::stmt_assign:   calc_local_vars_expr(ctx, stmt.as_assign->expr->lvalue); break;
+            case gsc::node_t::stmt_waittill: calc_local_vars_waittill(ctx, stmt.as_waittill); break;
+            case gsc::node_t::stmt_if:       calc_local_vars_if(ctx, stmt.as_if); break;
+            case gsc::node_t::stmt_ifelse:   calc_local_vars_ifelse(ctx, stmt.as_ifelse); break;
+            case gsc::node_t::stmt_while:    calc_local_vars_while(ctx, stmt.as_while); break;
+            case gsc::node_t::stmt_for:      calc_local_vars_for(ctx, stmt.as_for); break;
+            case gsc::node_t::stmt_foreach:  calc_local_vars_foreach(ctx, stmt.as_foreach); break;
+            case gsc::node_t::stmt_switch:   calc_local_vars_switch(ctx, stmt.as_switch); break;
             default: break;
         }
     }
@@ -1500,11 +1527,11 @@ void compiler::calc_local_vars_block(const gsc::context_ptr& ctx, const gsc::blo
 
 void compiler::calc_local_vars_expr(const gsc::context_ptr& ctx, const gsc::expr_ptr& expr)
 {
-    if(expr.as_node->type == gsc::node_type::identifier)
+    if(expr.as_node->type == gsc::node_t::data_name)
     {
-        register_variable(ctx, expr.as_identifier->value);
+        register_variable(ctx, expr.as_name->value);
     }
-    else if(expr.as_node->type == gsc::node_type::expr_array)
+    else if(expr.as_node->type == gsc::node_t::expr_array)
     {
         calc_local_vars_expr(ctx, expr.as_array->obj);
     }
@@ -1516,7 +1543,7 @@ void compiler::calc_local_vars_waittill(const gsc::context_ptr& ctx, const gsc::
 
     for(const auto& arg : stmt->args->list)
     {
-        register_variable(ctx, arg.as_identifier->value);
+        register_variable(ctx, arg.as_name->value);
     }
 
     std::reverse(stmt->args->list.begin(), stmt->args->list.end());
@@ -1575,7 +1602,7 @@ void compiler::calc_local_vars_for(const gsc::context_ptr& ctx, const gsc::stmt_
     auto for_ctx = std::make_unique<gsc::context>();
 
     // TODO: modify this
-    if(stmt->pre_expr.as_node->type == gsc::node_type::expr_assign_equal)
+    if(stmt->pre_expr.as_node->type == gsc::node_t::expr_assign_equal)
     {
         calc_local_vars_expr(ctx, stmt->pre_expr.as_assign->lvalue);
     }
@@ -1596,7 +1623,7 @@ void compiler::calc_local_vars_foreach(const gsc::context_ptr& ctx, const gsc::s
 
     label_idx_++;
     auto name = utils::string::va("temp_%d", label_idx_);
-    stmt->array = std::make_unique<gsc::node_identifier>(name);
+    stmt->array = std::make_unique<gsc::node_name>(name);
     register_variable(ctx, stmt->array->value);
     register_variable(ctx, stmt->element->value);
 
@@ -1604,7 +1631,7 @@ void compiler::calc_local_vars_foreach(const gsc::context_ptr& ctx, const gsc::s
     {
         label_idx_++;
         auto name2 = utils::string::va("temp_%d", label_idx_);
-        stmt->key = std::make_unique<gsc::node_identifier>(name2);
+        stmt->key = std::make_unique<gsc::node_name>(name2);
     }
 
     register_variable(ctx, stmt->key->value);
@@ -1641,7 +1668,7 @@ void compiler::register_variable(const gsc::context_ptr& ctx, const std::string&
     if(it == ctx->local_vars.end())
     {
         auto found = false;
-        for(auto i = 0; i < local_stack_.size(); i++)
+        for(std::size_t i = 0; i < local_stack_.size(); i++)
         {
             if(local_stack_[i] == name)
             {
@@ -1660,7 +1687,7 @@ void compiler::register_variable(const gsc::context_ptr& ctx, const std::string&
     }
 }
 
-void compiler::initialize_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name)
+void compiler::initialize_variable(const gsc::context_ptr& ctx, const gsc::name_ptr& name)
 {
     auto it = std::find_if(ctx->local_vars.begin(), ctx->local_vars.end(), 
             [&](const gsc::local_var& v) { return v.name == name->value; });
@@ -1675,14 +1702,12 @@ void compiler::initialize_variable(const gsc::context_ptr& ctx, const gsc::ident
         return;
     }
 
-    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
+    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
 }
 
-void compiler::create_variable(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name)
+void compiler::create_variable(const gsc::context_ptr& ctx, const gsc::name_ptr& name)
 {
-    auto i = 0;
-
-    for(auto i = 0; i < ctx->local_vars.size(); i++)
+    for(std::size_t i = 0; i < ctx->local_vars.size(); i++)
     {
         auto& var = ctx->local_vars.at(i);
         if(var.name == name->value)
@@ -1697,12 +1722,12 @@ void compiler::create_variable(const gsc::context_ptr& ctx, const gsc::identifie
         }
     }
 
-    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
+    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
 }
 
-auto compiler::variable_stack_index(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> std::uint8_t
+auto compiler::variable_stack_index(const gsc::context_ptr& ctx, const gsc::name_ptr& name) -> std::uint8_t
 {
-    for(auto i = 0; i < ctx->local_vars.size(); i++)
+    for(std::size_t i = 0; i < ctx->local_vars.size(); i++)
     {
         if(ctx->local_vars[i].name == name->value)
         {
@@ -1711,29 +1736,29 @@ auto compiler::variable_stack_index(const gsc::context_ptr& ctx, const gsc::iden
                 return ctx->local_vars_create_count - 1 - i;
             }
 
-            GSC_COMP_ERROR("line %s: local variable '%s' not initialized", name->location.data(), name->value.data());
+            throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not initialized.");
         }   
     }
 
-    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
+    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
     return 0xFF;
 }
 
-auto compiler::variable_create_index(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> std::string
+auto compiler::variable_create_index(const gsc::context_ptr& ctx, const gsc::name_ptr& name) -> std::string
 {
-    for(auto i = 0; i < ctx->local_vars.size(); i++)
+    for(std::size_t i = 0; i < ctx->local_vars.size(); i++)
     {
         if(ctx->local_vars[i].name == name->value)
             return utils::string::va("%d", ctx->local_vars[i].create);
     }
 
-    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
+    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
     return "";
 }
 
-auto compiler::variable_access_index(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> std::string
+auto compiler::variable_access_index(const gsc::context_ptr& ctx, const gsc::name_ptr& name) -> std::string
 {
-    for(auto i = 0; i < ctx->local_vars.size(); i++)
+    for(std::size_t i = 0; i < ctx->local_vars.size(); i++)
     {
         if(ctx->local_vars[i].name == name->value)
         {
@@ -1742,17 +1767,17 @@ auto compiler::variable_access_index(const gsc::context_ptr& ctx, const gsc::ide
                 return utils::string::va("%d", ctx->local_vars_create_count - 1 - i);
             }
 
-            GSC_COMP_ERROR("line %s: local variable '%s' not initialized", name->location.data(), name->value.data());
+            throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not initialized.");
         }   
     }
 
-    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
+    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
     return "";
 }
 
-auto compiler::variable_initialized(const gsc::context_ptr& ctx, const gsc::identifier_ptr& name) -> bool
+auto compiler::variable_initialized(const gsc::context_ptr& ctx, const gsc::name_ptr& name) -> bool
 {
-    for(auto i = 0; i < ctx->local_vars.size(); i++)
+    for(std::size_t i = 0; i < ctx->local_vars.size(); i++)
     {
         if(ctx->local_vars[i].name == name->value)
         {
@@ -1760,7 +1785,7 @@ auto compiler::variable_initialized(const gsc::context_ptr& ctx, const gsc::iden
         }
     }
 
-    GSC_COMP_ERROR("line %s: local variable '%s' not found.", name->location.data(), name->value.data());
+    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
     return false;
 }
 

@@ -701,7 +701,7 @@ extern int yylex (yyscan_t yyscanner);
 #undef yyTABLES_NAME
 #endif
 
-#line 140 "S2.lexer.lpp"
+#line 141 "S2.lexer.lpp"
 
 
 #line 707 "./S2/compiler_lexer.hpp"

@@ -16,6 +16,7 @@
 #endif
 
 // C/C++
+#include <stdexcept>
 #include <stack>
 #include <array>
 #include <vector>
@@ -50,6 +51,7 @@ using namespace std::literals;
 #include "types/nodetree.hpp"
 
 // GSC Interfaces
+#include "interfaces/exception.hpp"
 #include "interfaces/assembler.hpp"
 #include "interfaces/disassembler.hpp"
 #include "interfaces/compiler.hpp"
