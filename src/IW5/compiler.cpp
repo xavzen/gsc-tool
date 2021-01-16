@@ -261,8 +261,8 @@ void compiler::emit_stmt_waittill(const gsc::context_ptr& ctx, const gsc::stmt_w
 
 void compiler::emit_stmt_waittillmatch(const gsc::context_ptr& ctx, const gsc::stmt_waittillmatch_ptr& stmt)
 {
-    emit_expr(ctx, stmt->rexpr);
-    emit_expr(ctx, stmt->lexpr);
+    emit_expr_arguments(ctx, stmt->args);
+    emit_expr(ctx, stmt->expr);
     emit_expr(ctx, stmt->obj);
     emit_opcode(ctx, opcode::OP_waittillmatch);
     emit_opcode(ctx, opcode::OP_clearparams);

@@ -1402,12 +1402,24 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto obj = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
+            auto expr = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
-            stack_.pop();
-            pos = rvalue.as_node->pos;
-            auto stmt = std::make_unique<gsc::node_stmt_waittillmatch>(pos, std::move(obj), std::move(lvalue), std::move(rvalue));
+            pos = expr.as_node->pos;
+
+            gsc::expr_arguments_ptr args = std::make_unique<gsc::node_expr_arguments>();
+            args->pos = pos;
+
+            while(stack_.size() > 0)
+            {
+                auto node = std::move(stack_.top());
+                stack_.pop();
+                args->pos = node->pos;
+                args->list.push_back(std::move(node));
+                
+            }
+            pos = args->pos;
+
+            auto stmt = std::make_unique<gsc::node_stmt_waittillmatch>(pos, std::move(obj), std::move(expr), std::move(args));
             stack_.push(std::move(stmt));
         }
         break;

@@ -1634,18 +1634,23 @@ struct node_stmt_waittill : public node
 struct node_stmt_waittillmatch : public node
 {
     expr_ptr obj;
-    expr_ptr lexpr;
-    expr_ptr rexpr;
+    expr_ptr expr;
+    expr_arguments_ptr args;
 
-    node_stmt_waittillmatch(expr_ptr obj, expr_ptr lexpr, expr_ptr rexpr)
-        : node(node_t::stmt_waittillmatch), obj(std::move(obj)), lexpr(std::move(lexpr)), rexpr(std::move(rexpr)) {}
+    node_stmt_waittillmatch(expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
+        : node(node_t::stmt_waittillmatch), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
 
-    node_stmt_waittillmatch(std::uint32_t pos, expr_ptr obj, expr_ptr lexpr, expr_ptr rexpr)
-        : node(node_t::stmt_waittillmatch, pos), obj(std::move(obj)), lexpr(std::move(lexpr)), rexpr(std::move(rexpr)) {}
+    node_stmt_waittillmatch(std::uint32_t pos, expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
+        : node(node_t::stmt_waittillmatch, pos), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
 
     auto print() -> std::string override
     {
-        return obj.as_node->print() + " waittillmatch( " + lexpr.as_node->print() + ", " + rexpr.as_node->print() + " );";
+        if (args->list.size() == 0)
+        {
+            return obj.as_node->print() + " waittillmatch( " + expr.as_node->print() + " );";
+        }
+
+        return obj.as_node->print() + " waittillmatch( " + expr.as_node->print() + ", " + args->print() + " );";
     };
 };
 

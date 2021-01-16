@@ -252,8 +252,10 @@ stmt_waittill
     ;
 
 stmt_waittillmatch
-    : object WAITTILLMATCH LPAREN expr COMMA expr RPAREN SEMICOLON
+    : object WAITTILLMATCH LPAREN expr COMMA expr_arguments RPAREN SEMICOLON
         { $$ = std::make_unique<gsc::node_stmt_waittillmatch>(*pos, std::move($1), std::move($4), std::move($6)); }
+    | object WAITTILLMATCH LPAREN expr RPAREN SEMICOLON
+        { $$ = std::make_unique<gsc::node_stmt_waittillmatch>(*pos, std::move($1), std::move($4), std::make_unique<gsc::node_expr_arguments>(*pos)); }
     ;
 
 stmt_waittillframeend
