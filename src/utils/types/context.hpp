@@ -49,11 +49,16 @@ struct context
 
             if ( pos < 0 )
             {
-                child->local_vars.insert(child->local_vars.begin() + pos, this->local_vars.at(i));
+                child->local_vars.insert(child->local_vars.begin() + i, this->local_vars.at(i));
             }
             else
             {
-                child->local_vars.at(pos).init = this->local_vars.at(i).init;
+                auto& v = child->local_vars;
+                if (pos > i)
+                    std::rotate(v.rend() - pos - 1, v.rend() - pos, v.rend() - i);
+                else		
+                    std::rotate(v.begin() + pos, v.begin() + pos + 1, v.begin() + i + 1);
+                child->local_vars.at(i).init = this->local_vars.at(i).init;
             }
         }
 
@@ -70,7 +75,7 @@ struct context
     void append(const std::vector<context*>& childs)
     {
         bool glob = true;
-        for (std::size_t i = 0; i < childs.at(0)->local_vars.size(); ++i )
+        for (std::size_t i = 0; i < childs.at(0)->local_vars.size(); i++ )
         {
             glob = true;
             auto& var =  childs.at(0)->local_vars.at(i);

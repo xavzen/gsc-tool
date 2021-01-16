@@ -264,7 +264,7 @@ stmt_if
         { $$ = std::make_unique<gsc::node_stmt_if>(*pos, std::move($3), std::move($6)); }
     | IF LPAREN expr RPAREN stmt
         {
-            auto blk = std::make_unique<gsc::node_block>(*pos);
+            auto blk = std::make_unique<gsc::node_block>($5.as_node->pos);
             blk->stmts.push_back(std::move($5));
             $$ = std::make_unique<gsc::node_stmt_if>(*pos, std::move($3), std::move(blk));
         }
@@ -275,21 +275,21 @@ stmt_ifelse
         { $$ = std::make_unique<gsc::node_stmt_ifelse>(*pos, std::move($3), std::move($6), std::move($10)); }
     | IF LPAREN expr RPAREN stmt ELSE LBRACE block RBRACE
         {
-            auto blk = std::make_unique<gsc::node_block>(*pos);
+            auto blk = std::make_unique<gsc::node_block>($5.as_node->pos);
             blk->stmts.push_back(std::move($5));
             $$ = std::make_unique<gsc::node_stmt_ifelse>(*pos, std::move($3), std::move(blk), std::move($8));
         }
     | IF LPAREN expr RPAREN LBRACE block RBRACE ELSE stmt
         { 
-            auto blk = std::make_unique<gsc::node_block>(*pos);
+            auto blk = std::make_unique<gsc::node_block>($9.as_node->pos);
             blk->stmts.push_back(std::move($9));
             $$ = std::make_unique<gsc::node_stmt_ifelse>(*pos, std::move($3), std::move($6), std::move(blk));
         }
     | IF LPAREN expr RPAREN stmt ELSE stmt
         {
-            auto blk1 = std::make_unique<gsc::node_block>(*pos);
+            auto blk1 = std::make_unique<gsc::node_block>($5.as_node->pos);
             blk1->stmts.push_back(std::move($5));
-            auto blk2 = std::make_unique<gsc::node_block>(*pos);
+            auto blk2 = std::make_unique<gsc::node_block>($7.as_node->pos);
             blk2->stmts.push_back(std::move($7));
             $$ = std::make_unique<gsc::node_stmt_ifelse>(*pos, std::move($3), std::move(blk1), std::move(blk2));
         }
@@ -300,7 +300,7 @@ stmt_while
         { $$ = std::make_unique<gsc::node_stmt_while>(*pos, std::move($3), std::move($6)); }
     | WHILE LPAREN expr RPAREN stmt
         {
-            auto blk = std::make_unique<gsc::node_block>(*pos);
+            auto blk = std::make_unique<gsc::node_block>($5.as_node->pos);
             blk->stmts.push_back(std::move($5));
             $$ = std::make_unique<gsc::node_stmt_while>(*pos, std::move($3), std::move(blk)); }
     ;
@@ -310,7 +310,7 @@ stmt_for
         { $$ = std::make_unique<gsc::node_stmt_for>(*pos, std::move($3), std::move($5), std::move($7), std::move($10)); }
     | FOR LPAREN for_stmt SEMICOLON for_expr SEMICOLON for_stmt RPAREN stmt
         {
-            auto blk = std::make_unique<gsc::node_block>(*pos);
+            auto blk = std::make_unique<gsc::node_block>($9.as_node->pos);
             blk->stmts.push_back(std::move($9));
             $$ = std::make_unique<gsc::node_stmt_for>(*pos, std::move($3), std::move($5), std::move($7), std::move(blk));
         }
@@ -323,13 +323,13 @@ stmt_foreach
         { $$ = std::make_unique<gsc::node_stmt_foreach>(*pos, std::move($3), std::move($5), std::move($7), std::move($10)); }
     | FOREACH LPAREN name IN expr RPAREN stmt
         {
-        auto blk = std::make_unique<gsc::node_block>(*pos);
+        auto blk = std::make_unique<gsc::node_block>($7.as_node->pos);
             blk->stmts.push_back(std::move($7));
             $$ = std::make_unique<gsc::node_stmt_foreach>(*pos, std::move($3), std::move($5), std::move(blk));
         }
     | FOREACH LPAREN name COMMA name IN expr RPAREN stmt
         {
-            auto blk = std::make_unique<gsc::node_block>(*pos);
+            auto blk = std::make_unique<gsc::node_block>($9.as_node->pos);
             blk->stmts.push_back(std::move($9));
             $$ = std::make_unique<gsc::node_stmt_foreach>(*pos, std::move($3), std::move($5), std::move($7), std::move(blk));
         }

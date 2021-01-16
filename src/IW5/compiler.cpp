@@ -146,7 +146,7 @@ void compiler::emit_thread(const gsc::thread_ptr& thread)
     stack_idx_ = 0;
     local_stack_.clear();
     calc_local_vars(ctx, thread);
-    
+
     emit_parameters(ctx, thread->params);
     emit_block(ctx, thread->block, true);
     emit_opcode(ctx, opcode::OP_End);
@@ -1689,17 +1689,26 @@ void compiler::register_variable(const gsc::context_ptr& ctx, const std::string&
 
 void compiler::initialize_variable(const gsc::context_ptr& ctx, const gsc::name_ptr& name)
 {
-    auto it = std::find_if(ctx->local_vars.begin(), ctx->local_vars.end(), 
-            [&](const gsc::local_var& v) { return v.name == name->value; });
-
-    if(it != ctx->local_vars.end())
+    for(std::uint32_t i = 0; i < ctx->local_vars.size(); i++)
     {
-        if(!it->init)
+        if(ctx->local_vars[i].name == name->value)
         {
-            it->init = true;
-            ctx->local_vars_create_count++;
+            if(!ctx->local_vars[i].init)
+            {
+                for(std::uint32_t j = 0; j < i; j++)
+                {
+                    if(!ctx->local_vars[j].init)
+                    {
+                        emit_opcode(ctx, opcode::OP_CreateLocalVariable, utils::string::va("%d", ctx->local_vars[j].create));
+                        ctx->local_vars[j].init = true;
+                        ctx->local_vars_create_count++;
+                    }
+                }
+                ctx->local_vars[i].init = true;
+                ctx->local_vars_create_count++;
+                return;
+            }
         }
-        return;
     }
 
     throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
