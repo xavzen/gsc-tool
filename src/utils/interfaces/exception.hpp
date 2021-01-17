@@ -30,8 +30,8 @@ public:
 class comp_error : public std::runtime_error
 {
 public:
-    comp_error(std::uint32_t pos, const std::string& what)
-        : std::runtime_error("[compiler]:"s + std::to_string(pos) + ": " + what) { }
+    comp_error(gsc::location loc, const std::string& what)
+        : std::runtime_error("[compiler]:"s + std::to_string(loc.begin.line) + ": " + what) { }
 };
 
 class decomp_error : public std::runtime_error

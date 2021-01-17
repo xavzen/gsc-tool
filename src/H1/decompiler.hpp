@@ -11,6 +11,7 @@ namespace H1
 
 class decompiler : public gsc::decompiler
 {
+    std::string filename_;
     std::unique_ptr<utils::byte_buffer> output_;
     gsc::program_ptr program_;
     gsc::thread_ptr func_;
@@ -24,7 +25,7 @@ class decompiler : public gsc::decompiler
 
 public:
     auto output() -> std::vector<std::uint8_t>;
-    void decompile(std::vector<gsc::function_ptr>& functions);
+    void decompile(const std::string& file, std::vector<gsc::function_ptr>& functions);
 
 private:
     void decompile_function(const gsc::function_ptr& func);

@@ -13,7 +13,7 @@ class decompiler
 {
 public:
     virtual auto output() -> std::vector<std::uint8_t> = 0;
-    virtual void decompile(std::vector<gsc::function_ptr>& functions) = 0;
+    virtual void decompile(const std::string& file, std::vector<gsc::function_ptr>& functions) = 0;
 };
 
 } // namespace gsc

@@ -21,8 +21,12 @@
 #endif
 }
 
+%{
+#define YY_USER_ACTION  loc.columns(yyleng);
+%}
+
 RGX_FILE			([_A-Za-z0-9]+\\)+[_A-Za-z0-9]+
-RGX_NAME			[_A-Za-z][_A-Za-z0-9\-]*
+RGX_NAME			[_A-Za-z][_A-Za-z0-9]*
 RGX_STRING			\"(?:\\.|[^\"])*?\"|\'(?:\\.|[^\'])*?\'
 RGX_FLOAT			[0-9]+\.(?:[0-9]*)?f?|\.[0-9]+f?
 RGX_INTEGER			[0-9]+
@@ -33,108 +37,112 @@ RGX_DEFAULT			(.|\n)
 
 %%
 
-[ \t\r]
+%{
+    loc.step();
+%}
 
-\n							{ (*pos)++; }
+[ \t\r]                     { loc.step(); }
+
+\n							{ loc.lines(yyleng); loc.step(); }
 
 "//".*
 
 "/*"						{ BEGIN(COMMENT_BLOCK_STATE); }
 <COMMENT_BLOCK_STATE>.
-<COMMENT_BLOCK_STATE>\n		{ (*pos)++; }
+<COMMENT_BLOCK_STATE>\n		{ loc.lines(yyleng); loc.step(); }
 <COMMENT_BLOCK_STATE>"*/"	{ BEGIN(INITIAL); }
 
 "/#"						{ BEGIN(DEVELOPER_BLOCK_STATE); }
 <DEVELOPER_BLOCK_STATE>.
-<DEVELOPER_BLOCK_STATE>\n	{ (*pos)++; }
+<DEVELOPER_BLOCK_STATE>\n	{ loc.lines(yyleng); loc.step(); }
 <DEVELOPER_BLOCK_STATE>"#/"	{ BEGIN(INITIAL); }	
 
-"#include"			{ return IW5::parser::make_INCLUDE(); }
-"#using_animtree"	{ return IW5::parser::make_USINGTREE(); }
-"#animtree"			{ return IW5::parser::make_ANIMTREE(); }
-"endon"				{ return IW5::parser::make_ENDON(); }
-"notify"			{ return IW5::parser::make_NOTIFY(); }
-"wait"				{ return IW5::parser::make_WAIT(); }
-"waittill"			{ return IW5::parser::make_WAITTILL(); }
-"waittillmatch"		{ return IW5::parser::make_WAITTILLMATCH(); }
-"waittillframeend"	{ return IW5::parser::make_WAITTILLFRAMEEND(); }
-"if"				{ return IW5::parser::make_IF(); }
-"else"				{ return IW5::parser::make_ELSE(); }
-"while"				{ return IW5::parser::make_WHILE(); }
-"for"				{ return IW5::parser::make_FOR(); }
-"foreach"			{ return IW5::parser::make_FOREACH(); }
-"in"				{ return IW5::parser::make_IN(); }
-"switch"			{ return IW5::parser::make_SWITCH(); }
-"case"				{ return IW5::parser::make_CASE(); }
-"default"			{ return IW5::parser::make_DEFAULT(); }
-"break"				{ return IW5::parser::make_BREAK(); }
-"continue"			{ return IW5::parser::make_CONTINUE(); }
-"return"			{ return IW5::parser::make_RETURN(); }
-"thread"			{ return IW5::parser::make_THREAD(); }
-"childthread"		{ return IW5::parser::make_CHILDTHREAD(); }
-"thisthread"		{ return IW5::parser::make_THISTHREAD(); }
-"call"				{ return IW5::parser::make_CALL(); }
-"true"				{ return IW5::parser::make_TRUE(); }
-"false"				{ return IW5::parser::make_FALSE(); }
-"undefined"			{ return IW5::parser::make_UNDEFINED(); }
-"size"				{ return IW5::parser::make_SIZE(); }
-"game"				{ return IW5::parser::make_GAME(); }
-"self"				{ return IW5::parser::make_SELF(); }
-"anim"				{ return IW5::parser::make_ANIM(); }
-"level"				{ return IW5::parser::make_LEVEL(); }
-"[]"				{ return IW5::parser::make_EMPTY_ARRAY(); }
-\(					{ return IW5::parser::make_LPAREN(); }
-\)					{ return IW5::parser::make_RPAREN(); }
-\{					{ return IW5::parser::make_LBRACE(); }
-\}					{ return IW5::parser::make_RBRACE(); }
-\[					{ return IW5::parser::make_LBRACKET(); }
-\]					{ return IW5::parser::make_RBRACKET(); }
-\,					{ return IW5::parser::make_COMMA(); }
-\.					{ return IW5::parser::make_DOT(); }
-\:\:				{ return IW5::parser::make_DOUBLECOLON(); }
-\:					{ return IW5::parser::make_COLON(); }
-\;					{ return IW5::parser::make_SEMICOLON(); }
-\+\+				{ return IW5::parser::make_INCREMENT(); }
-\-\-				{ return IW5::parser::make_DECREMENT(); }
-\<\<\=				{ return IW5::parser::make_ASSIGN_LSHIFT(); }
-\>\>\=				{ return IW5::parser::make_ASSIGN_RSHIFT(); }
-\<\<				{ return IW5::parser::make_LSHIFT(); }
-\>\>				{ return IW5::parser::make_RSHIFT(); }
-\|\|				{ return IW5::parser::make_OR(); }
-\&\&				{ return IW5::parser::make_AND(); }
-\=\=				{ return IW5::parser::make_EQUALITY(); }
-\!\=				{ return IW5::parser::make_INEQUALITY(); }
-\<\=				{ return IW5::parser::make_LESS_EQUAL(); }
-\>\=				{ return IW5::parser::make_GREATER_EQUAL(); }
-\<					{ return IW5::parser::make_LESS(); }
-\>					{ return IW5::parser::make_GREATER(); }
-\+\=				{ return IW5::parser::make_ASSIGN_ADD(); }
-\-\=				{ return IW5::parser::make_ASSIGN_SUB(); }
-\*\=				{ return IW5::parser::make_ASSIGN_MULT(); }
-\/\=				{ return IW5::parser::make_ASSIGN_DIV(); }
-\%\=				{ return IW5::parser::make_ASSIGN_MOD(); }
-\|\=				{ return IW5::parser::make_ASSIGN_BITWISE_OR(); }
-\&\=				{ return IW5::parser::make_ASSIGN_BITWISE_AND(); }
-\^\=				{ return IW5::parser::make_ASSIGN_BITWISE_EXOR(); }
-\=					{ return IW5::parser::make_ASSIGN(); }
-\+					{ return IW5::parser::make_ADD(); }
-\-					{ return IW5::parser::make_SUB(); }
-\*					{ return IW5::parser::make_MULT(); }
-\/					{ return IW5::parser::make_DIV(); }
-\%					{ return IW5::parser::make_MOD(); }
-\!					{ return IW5::parser::make_NOT(); }
-\~					{ return IW5::parser::make_COMPLEMENT(); }
-\|					{ return IW5::parser::make_BITWISE_OR(); }
-\&					{ return IW5::parser::make_BITWISE_AND(); }
-\^					{ return IW5::parser::make_BITWISE_EXOR(); }
+"#include"			{ return IW5::parser::make_INCLUDE(loc); }
+"#using_animtree"	{ return IW5::parser::make_USINGTREE(loc); }
+"#animtree"			{ return IW5::parser::make_ANIMTREE(loc); }
+"endon"				{ return IW5::parser::make_ENDON(loc); }
+"notify"			{ return IW5::parser::make_NOTIFY(loc); }
+"wait"				{ return IW5::parser::make_WAIT(loc); }
+"waittill"			{ return IW5::parser::make_WAITTILL(loc); }
+"waittillmatch"		{ return IW5::parser::make_WAITTILLMATCH(loc); }
+"waittillframeend"	{ return IW5::parser::make_WAITTILLFRAMEEND(loc); }
+"if"				{ return IW5::parser::make_IF(loc); }
+"else"				{ return IW5::parser::make_ELSE(loc); }
+"while"				{ return IW5::parser::make_WHILE(loc); }
+"for"				{ return IW5::parser::make_FOR(loc); }
+"foreach"			{ return IW5::parser::make_FOREACH(loc); }
+"in"				{ return IW5::parser::make_IN(loc); }
+"switch"			{ return IW5::parser::make_SWITCH(loc); }
+"case"				{ return IW5::parser::make_CASE(loc); }
+"default"			{ return IW5::parser::make_DEFAULT(loc); }
+"break"				{ return IW5::parser::make_BREAK(loc); }
+"continue"			{ return IW5::parser::make_CONTINUE(loc); }
+"return"			{ return IW5::parser::make_RETURN(loc); }
+"thread"			{ return IW5::parser::make_THREAD(loc); }
+"childthread"		{ return IW5::parser::make_CHILDTHREAD(loc); }
+"thisthread"		{ return IW5::parser::make_THISTHREAD(loc); }
+"call"				{ return IW5::parser::make_CALL(loc); }
+"true"				{ return IW5::parser::make_TRUE(loc); }
+"false"				{ return IW5::parser::make_FALSE(loc); }
+"undefined"			{ return IW5::parser::make_UNDEFINED(loc); }
+"size"				{ return IW5::parser::make_SIZE(loc); }
+"game"				{ return IW5::parser::make_GAME(loc); }
+"self"				{ return IW5::parser::make_SELF(loc); }
+"anim"				{ return IW5::parser::make_ANIM(loc); }
+"level"				{ return IW5::parser::make_LEVEL(loc); }
+"[]"				{ return IW5::parser::make_EMPTY_ARRAY(loc); }
+\(					{ return IW5::parser::make_LPAREN(loc); }
+\)					{ return IW5::parser::make_RPAREN(loc); }
+\{					{ return IW5::parser::make_LBRACE(loc); }
+\}					{ return IW5::parser::make_RBRACE(loc); }
+\[					{ return IW5::parser::make_LBRACKET(loc); }
+\]					{ return IW5::parser::make_RBRACKET(loc); }
+\,					{ return IW5::parser::make_COMMA(loc); }
+\.					{ return IW5::parser::make_DOT(loc); }
+\:\:				{ return IW5::parser::make_DOUBLECOLON(loc); }
+\:					{ return IW5::parser::make_COLON(loc); }
+\;					{ return IW5::parser::make_SEMICOLON(loc); }
+\+\+				{ return IW5::parser::make_INCREMENT(loc); }
+\-\-				{ return IW5::parser::make_DECREMENT(loc); }
+\<\<\=				{ return IW5::parser::make_ASSIGN_LSHIFT(loc); }
+\>\>\=				{ return IW5::parser::make_ASSIGN_RSHIFT(loc); }
+\<\<				{ return IW5::parser::make_LSHIFT(loc); }
+\>\>				{ return IW5::parser::make_RSHIFT(loc); }
+\|\|				{ return IW5::parser::make_OR(loc); }
+\&\&				{ return IW5::parser::make_AND(loc); }
+\=\=				{ return IW5::parser::make_EQUALITY(loc); }
+\!\=				{ return IW5::parser::make_INEQUALITY(loc); }
+\<\=				{ return IW5::parser::make_LESS_EQUAL(loc); }
+\>\=				{ return IW5::parser::make_GREATER_EQUAL(loc); }
+\<					{ return IW5::parser::make_LESS(loc); }
+\>					{ return IW5::parser::make_GREATER(loc); }
+\+\=				{ return IW5::parser::make_ASSIGN_ADD(loc); }
+\-\=				{ return IW5::parser::make_ASSIGN_SUB(loc); }
+\*\=				{ return IW5::parser::make_ASSIGN_MULT(loc); }
+\/\=				{ return IW5::parser::make_ASSIGN_DIV(loc); }
+\%\=				{ return IW5::parser::make_ASSIGN_MOD(loc); }
+\|\=				{ return IW5::parser::make_ASSIGN_BITWISE_OR(loc); }
+\&\=				{ return IW5::parser::make_ASSIGN_BITWISE_AND(loc); }
+\^\=				{ return IW5::parser::make_ASSIGN_BITWISE_EXOR(loc); }
+\=					{ return IW5::parser::make_ASSIGN(loc); }
+\+					{ return IW5::parser::make_ADD(loc); }
+\-					{ return IW5::parser::make_SUB(loc); }
+\*					{ return IW5::parser::make_MULT(loc); }
+\/					{ return IW5::parser::make_DIV(loc); }
+\%					{ return IW5::parser::make_MOD(loc); }
+\!					{ return IW5::parser::make_NOT(loc); }
+\~					{ return IW5::parser::make_COMPLEMENT(loc); }
+\|					{ return IW5::parser::make_BITWISE_OR(loc); }
+\&					{ return IW5::parser::make_BITWISE_AND(loc); }
+\^					{ return IW5::parser::make_BITWISE_EXOR(loc); }
 
-{RGX_FILE}			{ return IW5::parser::make_FILE(std::string(yytext)); }
-{RGX_NAME}			{ return IW5::parser::make_NAME(utils::string::to_lower(yytext)); }
-\&{RGX_STRING}		{ return IW5::parser::make_ISTRING(std::string(yytext).substr(1)); }
-{RGX_STRING}		{ return IW5::parser::make_STRING(std::string(yytext)); }
-{RGX_FLOAT}			{ return IW5::parser::make_FLOAT(std::string(yytext)); }
-{RGX_INTEGER}		{ return IW5::parser::make_INTEGER(std::string(yytext)); }
+{RGX_FILE}			{ return IW5::parser::make_FILE(std::string(yytext), loc); }
+{RGX_NAME}			{ return IW5::parser::make_NAME(utils::string::to_lower(yytext), loc); }
+\&{RGX_STRING}		{ return IW5::parser::make_ISTRING(std::string(yytext).substr(1), loc); }
+{RGX_STRING}		{ return IW5::parser::make_STRING(std::string(yytext), loc); }
+{RGX_FLOAT}			{ return IW5::parser::make_FLOAT(std::string(yytext), loc); }
+{RGX_INTEGER}		{ return IW5::parser::make_INTEGER(std::string(yytext), loc); }
 
-<<EOF>>				{ return IW5::parser::make_IW5EOF(); }
-<*>{RGX_DEFAULT}	{ throw IW5::parser::syntax_error("invalid character: \'" + std::string(yytext) + "\' at line " + std::to_string(*pos)); }
+<<EOF>>				{ return IW5::parser::make_IW5EOF(loc); }
+<*>{RGX_DEFAULT}	{ throw IW5::parser::syntax_error(loc, "invalid character: \'" + std::string(yytext) + "\'"); }
 %%

@@ -27,6 +27,7 @@ class compiler : public gsc::compiler
         bool loaded;
     };
 
+    std::string filename_;
     std::vector<gsc::function_ptr> assembly_;
     gsc::function_ptr function_;
     std::uint32_t index_;
@@ -41,12 +42,12 @@ class compiler : public gsc::compiler
 
 public:
     auto output() -> std::vector<gsc::function_ptr>;
-    void compile(std::vector<std::uint8_t>& data);
+    void compile(const std::string& file, std::vector<std::uint8_t>& data);
     void set_readf_callback(std::function<std::vector<std::uint8_t>(const std::string&)> func);
 
 
 private:
-    auto parse_buffer(std::vector<std::uint8_t>& data) -> gsc::program_ptr;
+    auto parse_buffer(const std::string& file, std::vector<std::uint8_t>& data) -> gsc::program_ptr;
     auto parse_file(const std::string& file) -> gsc::program_ptr;
     void compile_program(const gsc::program_ptr& program);
     void emit_include(const gsc::include_ptr& include);
@@ -92,8 +93,6 @@ private:
     void emit_expr_function(const gsc::context_ptr& ctx, const gsc::expr_function_ptr& node);
     void emit_expr_clear_variable(const gsc::context_ptr& ctx, const gsc::expr_ptr& lvalue);
     void emit_expr_add_array(const gsc::context_ptr& ctx, const gsc::expr_add_array_ptr& expr);
-    void emit_expr_vector(const gsc::context_ptr& ctx, const gsc::expr_vector_ptr& expr);
-    void emit_expr_self(const gsc::context_ptr& ctx, const gsc::expr_self_ptr& expr);
     void emit_expr_size(const gsc::context_ptr& ctx, const gsc::expr_size_ptr& expr);
     void emit_variable_ref(const gsc::context_ptr& ctx, const gsc::expr_ptr& expr, bool set);
     void emit_array_variable_ref(const gsc::context_ptr& ctx, const gsc::expr_array_ptr& expr, bool set);
@@ -144,6 +143,13 @@ private:
     auto create_label() -> std::string;
     auto insert_label() -> std::string;
     void insert_label(const std::string& label);
+
+    // debug
+    void print_debug_info();
+    void print_opcodes(std::uint32_t index, std::uint32_t size);
+    void print_function(const gsc::function_ptr& func);
+    void print_instruction(const gsc::instruction_ptr& inst);
+    void print_label(const std::string& label);
 };
 
 } // namespace H1

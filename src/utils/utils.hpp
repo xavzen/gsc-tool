@@ -48,6 +48,7 @@ using namespace std::literals;
 #include "types/asset.hpp"
 #include "types/assembly.hpp"
 #include "types/context.hpp"
+#include "types/location.hpp"
 #include "types/nodetree.hpp"
 
 // GSC Interfaces

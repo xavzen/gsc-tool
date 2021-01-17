@@ -33,8 +33,9 @@ auto disassembler::output_data() -> std::vector<std::uint8_t>
     return output;
 }
 
-void disassembler::disassemble(std::vector<std::uint8_t>& script, std::vector<std::uint8_t>& stack)
+void disassembler::disassemble(const std::string& file, std::vector<std::uint8_t>& script, std::vector<std::uint8_t>& stack)
 {
+    filename_ = file;
     script_ = std::make_unique<utils::byte_buffer>(script);
     stack_ = std::make_unique<utils::byte_buffer>(stack);
     functions_.clear();

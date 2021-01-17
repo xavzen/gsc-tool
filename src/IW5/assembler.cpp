@@ -32,7 +32,7 @@ auto assembler::output_stack() -> std::vector<std::uint8_t>
     return stack;
 }
 
-void assembler::assemble(std::vector<std::uint8_t>& data)
+void assembler::assemble(const std::string& file, std::vector<std::uint8_t>& data)
 {
     std::vector<std::string> assembly = utils::string::clean_buffer_lines(data);
     std::vector<gsc::function_ptr> functions;
@@ -104,14 +104,14 @@ void assembler::assemble(std::vector<std::uint8_t>& data)
         }
     }
 
-    this->assemble(functions);
+    this->assemble(file, functions);
 }
 
-void assembler::assemble(std::vector<gsc::function_ptr>& functions)
+void assembler::assemble(const std::string& file, std::vector<gsc::function_ptr>& functions)
 {
     script_ = std::make_unique<utils::byte_buffer>(0x100000);
     stack_ = std::make_unique<utils::byte_buffer>(0x100000);
-
+    filename_ = file;
     functions_ = std::move(functions);
 
     script_->write<std::uint8_t>(0x00);

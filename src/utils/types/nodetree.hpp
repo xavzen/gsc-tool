@@ -31,10 +31,8 @@ enum class node_t
     data_empty_array,
     data_thisthread,
     expr_size,
-    expr_self,
     expr_field,
     expr_array,
-    expr_vector,
     expr_add_array,
     expr_function,
     expr_arguments,
@@ -134,10 +132,8 @@ struct node_undefined;
 struct node_empty_array;
 struct node_thisthread;
 struct node_expr_size;
-struct node_expr_self;
 struct node_expr_field;
 struct node_expr_array;
-struct node_expr_vector;
 struct node_expr_add_array;
 struct node_expr_function;
 struct node_expr_arguments;
@@ -235,10 +231,8 @@ using undefined_ptr = std::unique_ptr<node_undefined>;
 using empty_array_ptr = std::unique_ptr<node_empty_array>;
 using thisthread_ptr = std::unique_ptr<node_thisthread>;
 using expr_size_ptr = std::unique_ptr<node_expr_size>;
-using expr_self_ptr = std::unique_ptr<node_expr_self>;
 using expr_field_ptr = std::unique_ptr<node_expr_field>;
 using expr_array_ptr = std::unique_ptr<node_expr_array>;
-using expr_vector_ptr = std::unique_ptr<node_expr_vector>;
 using expr_add_array_ptr = std::unique_ptr<node_expr_add_array>;
 using expr_function_ptr = std::unique_ptr<node_expr_function>;
 using expr_arguments_ptr = std::unique_ptr<node_expr_arguments>;
@@ -361,11 +355,9 @@ union expr_ptr
     undefined_ptr as_undefined;
     empty_array_ptr as_empty_array;
     thisthread_ptr as_thisthread;
-    expr_size_ptr as_size_expr;
-    expr_self_ptr as_self_expr;
+    expr_size_ptr as_size;
     expr_field_ptr as_field;
     expr_array_ptr as_array;
-    expr_vector_ptr as_vector_expr;
     expr_add_array_ptr as_add_array;
     expr_function_ptr as_function;
     expr_arguments_ptr as_arguments;
@@ -484,11 +476,11 @@ union define_ptr
 struct node
 {
     node_t type;
-    std::uint32_t pos;
+    location loc;
 
     node() : type(node_t::null) {}
     node(node_t type) : type(type) {}
-    node(node_t type, std::uint32_t pos) : type(type), pos(pos) {}
+    node(node_t type, const location& loc) : type(type), loc(loc) {}
     
     virtual ~node() = default;
     virtual auto print() -> std::string { return ""; };
@@ -507,7 +499,7 @@ protected:
 struct node_true : public node
 {
     node_true() : node(node_t::data_true) {}
-    node_true(std::uint32_t pos) : node(node_t::data_true, pos) {}
+    node_true(const location& loc) : node(node_t::data_true, loc) {}
 
     auto print() -> std::string override
     {
@@ -518,7 +510,7 @@ struct node_true : public node
 struct node_false : public node
 {
     node_false() : node(node_t::data_false) {}
-    node_false(std::uint32_t pos) : node(node_t::data_false, pos) {}
+    node_false(const location& loc) : node(node_t::data_false, loc) {}
 
     auto print() -> std::string override
     {
@@ -533,8 +525,8 @@ struct node_integer : public node
     node_integer(const std::string& value)
         : node(node_t::data_integer), value(std::move(value)) {}
 
-    node_integer(std::uint32_t pos, const std::string& value)
-        : node(node_t::data_integer, pos), value(std::move(value)) {}
+    node_integer(const location& loc, const std::string& value)
+        : node(node_t::data_integer, loc), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -549,8 +541,8 @@ struct node_float : public node
     node_float(const std::string& value)
         : node(node_t::data_float), value(std::move(value)) {}
 
-    node_float(std::uint32_t pos, const std::string& value)
-        : node(node_t::data_float, pos), value(std::move(value)) {}
+    node_float(const location& loc, const std::string& value)
+        : node(node_t::data_float, loc), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -560,15 +552,15 @@ struct node_float : public node
 
 struct node_vector : public node
 {
-    number_ptr x;
-    number_ptr y;
-    number_ptr z;
+    expr_ptr x;
+    expr_ptr y;
+    expr_ptr z;
 
-    node_vector(number_ptr x, number_ptr y, number_ptr z)
+    node_vector(expr_ptr x, expr_ptr y, expr_ptr z)
         : node(node_t::data_vector), x(std::move(x)), y(std::move(y)), z(std::move(z)) {}
 
-    node_vector(std::uint32_t pos, number_ptr x, number_ptr y, number_ptr z)
-        : node(node_t::data_vector, pos), x(std::move(x)), y(std::move(y)), z(std::move(z)) {}
+    node_vector(const location& loc, expr_ptr x, expr_ptr y, expr_ptr z)
+        : node(node_t::data_vector, loc), x(std::move(x)), y(std::move(y)), z(std::move(z)) {}
 
     auto print() -> std::string override
     {
@@ -583,8 +575,8 @@ struct node_string : public node
     node_string(const std::string& value)
         : node(node_t::data_string), value(value) {}
 
-    node_string(std::uint32_t pos, const std::string& value)
-        : node(node_t::data_string, pos), value(value) {}
+    node_string(const location& loc, const std::string& value)
+        : node(node_t::data_string, loc), value(value) {}
 
     auto print() -> std::string override
     {
@@ -599,8 +591,8 @@ struct node_istring : public node
     node_istring(const std::string& value)
         : node(node_t::data_istring), value(std::move(value)) {}
 
-    node_istring(std::uint32_t pos, const std::string& value)
-        : node(node_t::data_istring, pos), value(std::move(value)) {}
+    node_istring(const location& loc, const std::string& value)
+        : node(node_t::data_istring, loc), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -617,11 +609,11 @@ struct node_file : public node
     node_file(const std::string& value)
         : node(node_t::data_file), value(value) {}
 
-    node_file(std::uint32_t pos)
-        : node(node_t::data_file, pos) {}
+    node_file(const location& loc)
+        : node(node_t::data_file, loc) {}
 
-    node_file(std::uint32_t pos, const std::string& value)
-        : node(node_t::data_file, pos), value(value) {}
+    node_file(const location& loc, const std::string& value)
+        : node(node_t::data_file, loc), value(value) {}
 
     auto print() -> std::string override
     {
@@ -636,8 +628,8 @@ struct node_name : public node
     node_name(const std::string& value)
         : node(node_t::data_name), value(value) {}
 
-    node_name(std::uint32_t pos, const std::string& value)
-        : node(node_t::data_name, pos), value(value) {}
+    node_name(const location& loc, const std::string& value)
+        : node(node_t::data_name, loc), value(value) {}
 
     auto print() -> std::string override
     {
@@ -649,7 +641,7 @@ struct node_animtree : public node
 {
     node_animtree() : node(node_t::data_animtree) {}
 
-    node_animtree(std::uint32_t pos) : node(node_t::data_animtree, pos) {}
+    node_animtree(const location& loc) : node(node_t::data_animtree, loc) {}
 
     auto print() -> std::string override
     {
@@ -664,8 +656,8 @@ struct node_animation : public node
     node_animation(const std::string& value)
         : node(node_t::data_animation), value(value) {}
 
-    node_animation(std::uint32_t pos, const std::string& value)
-        : node(node_t::data_animation, pos), value(value) {}
+    node_animation(const location& loc, const std::string& value)
+        : node(node_t::data_animation, loc), value(value) {}
 
     auto print() -> std::string override
     {
@@ -677,7 +669,7 @@ struct node_level : public node
 {
     node_level() : node(node_t::data_level) {}
 
-    node_level(std::uint32_t pos) : node(node_t::data_level, pos) {}
+    node_level(const location& loc) : node(node_t::data_level, loc) {}
 
     auto print() -> std::string override
     {
@@ -689,7 +681,7 @@ struct node_anim : public node
 {
     node_anim() : node(node_t::data_anim) {}
 
-    node_anim(std::uint32_t pos) : node(node_t::data_anim, pos) {}
+    node_anim(const location& loc) : node(node_t::data_anim, loc) {}
 
     auto print() -> std::string override
     {
@@ -701,7 +693,7 @@ struct node_self : public node
 {
     node_self() : node(node_t::data_self) {}
 
-    node_self(std::uint32_t pos) : node(node_t::data_self, pos) {}
+    node_self(const location& loc) : node(node_t::data_self, loc) {}
 
     auto print() -> std::string override
     {
@@ -713,7 +705,7 @@ struct node_game : public node
 {
     node_game() : node(node_t::data_game) {}
 
-    node_game(std::uint32_t pos) : node(node_t::data_game, pos) {}
+    node_game(const location& loc) : node(node_t::data_game, loc) {}
 
     auto print() -> std::string override
     {
@@ -725,7 +717,7 @@ struct node_undefined : public node
 {
     node_undefined() : node(node_t::data_undefined) {}
 
-    node_undefined(std::uint32_t pos) : node(node_t::data_undefined, pos) {}
+    node_undefined(const location& loc) : node(node_t::data_undefined, loc) {}
 
     auto print() -> std::string override
     {
@@ -737,7 +729,7 @@ struct node_empty_array : public node
 {
     node_empty_array() : node(node_t::data_empty_array) {}
 
-    node_empty_array(std::uint32_t pos) : node(node_t::data_empty_array, pos) {}
+    node_empty_array(const location& loc) : node(node_t::data_empty_array, loc) {}
 
     auto print() -> std::string override
     {
@@ -749,7 +741,7 @@ struct node_thisthread : public node
 {
     node_thisthread() : node(node_t::data_thisthread) {}
 
-    node_thisthread(std::uint32_t pos) : node(node_t::data_thisthread, pos) {}
+    node_thisthread(const location& loc) : node(node_t::data_thisthread, loc) {}
 
     auto print() -> std::string override
     {
@@ -764,28 +756,12 @@ struct node_expr_size : public node
     node_expr_size(expr_ptr obj)
         : node(node_t::expr_size), obj(std::move(obj)) {}
 
-    node_expr_size(std::uint32_t pos, expr_ptr obj)
-        : node(node_t::expr_size, pos), obj(std::move(obj)) {}
+    node_expr_size(const location& loc, expr_ptr obj)
+        : node(node_t::expr_size, loc), obj(std::move(obj)) {}
 
     auto print() -> std::string override
     {
         return obj.as_node->print() + ".size";
-    }
-};
-
-struct node_expr_self : public node
-{
-    expr_ptr obj;
-
-    node_expr_self(expr_ptr obj)
-        : node(node_t::expr_size), obj(std::move(obj)) {}
-
-    node_expr_self(std::uint32_t pos, expr_ptr obj)
-        : node(node_t::expr_size, pos), obj(std::move(obj)) {}
-
-    auto print() -> std::string override
-    {
-        return obj.as_node->print() + ".self";
     }
 };
 
@@ -797,8 +773,8 @@ struct node_expr_field : public node
     node_expr_field(expr_ptr obj, name_ptr field)
         : node(node_t::expr_field), obj(std::move(obj)), field(std::move(field)) {}
 
-    node_expr_field(std::uint32_t pos, expr_ptr obj, name_ptr field)
-        : node(node_t::expr_field, pos), obj(std::move(obj)), field(std::move(field)) {}
+    node_expr_field(const location& loc, expr_ptr obj, name_ptr field)
+        : node(node_t::expr_field, loc), obj(std::move(obj)), field(std::move(field)) {}
 
     auto print() -> std::string override
     {
@@ -814,30 +790,12 @@ struct node_expr_array : public node
     node_expr_array(expr_ptr obj, expr_ptr key)
         : node(node_t::expr_array), obj(std::move(obj)), key(std::move(key)) {}
 
-    node_expr_array(std::uint32_t pos, expr_ptr obj, expr_ptr key)
-        : node(node_t::expr_array, pos), obj(std::move(obj)), key(std::move(key)) {}
+    node_expr_array(const location& loc, expr_ptr obj, expr_ptr key)
+        : node(node_t::expr_array, loc), obj(std::move(obj)), key(std::move(key)) {}
 
     auto print() -> std::string override
     {
         return obj.as_node->print() + "[" + key.as_node->print() + "]";
-    }
-};
-
-struct node_expr_vector : public node
-{
-    expr_ptr x;
-    expr_ptr y;
-    expr_ptr z;
-
-    node_expr_vector(expr_ptr x, expr_ptr y, expr_ptr z)
-        : node(node_t::expr_vector), x(std::move(x)), y(std::move(y)), z(std::move(z)) {}
-
-    node_expr_vector(std::uint32_t pos, expr_ptr x, expr_ptr y, expr_ptr z)
-        : node(node_t::expr_vector, pos), x(std::move(x)), y(std::move(y)), z(std::move(z)) {}
-
-    auto print() -> std::string override
-    {
-        return "( "s + x.as_node->print() + ", " + y.as_node->print() + ", "+ z.as_node->print() + " )";
     }
 };
 
@@ -847,7 +805,7 @@ struct node_expr_arguments : public node
 
     node_expr_arguments() : node(node_t::expr_arguments) {}
 
-    node_expr_arguments(std::uint32_t pos) : node(node_t::expr_arguments, pos) {}
+    node_expr_arguments(const location& loc) : node(node_t::expr_arguments, loc) {}
 
     auto print() -> std::string override
     {
@@ -870,8 +828,8 @@ struct node_expr_add_array : public node
     node_expr_add_array(expr_arguments_ptr args)
         : node(node_t::expr_add_array), args(std::move(args)) {}
 
-    node_expr_add_array(std::uint32_t pos, expr_arguments_ptr args)
-        : node(node_t::expr_add_array, pos), args(std::move(args)) {}
+    node_expr_add_array(const location& loc, expr_arguments_ptr args)
+        : node(node_t::expr_add_array, loc), args(std::move(args)) {}
 
     auto print() -> std::string override
     {
@@ -887,8 +845,8 @@ struct node_expr_function : public node
     node_expr_function(file_ptr file, name_ptr name)
         : node(node_t::expr_function), file(std::move(file)), name(std::move(name)) {}
 
-    node_expr_function(std::uint32_t pos, file_ptr file, name_ptr name)
-        : node(node_t::expr_function, pos), file(std::move(file)), name(std::move(name)) {}
+    node_expr_function(const location& loc, file_ptr file, name_ptr name)
+        : node(node_t::expr_function, loc), file(std::move(file)), name(std::move(name)) {}
 
     auto print() -> std::string override
     {
@@ -905,8 +863,8 @@ struct node_expr_call_pointer : public node
     node_expr_call_pointer(bool builtin, expr_ptr expr, expr_arguments_ptr args)
         : node(node_t::expr_call_pointer), builtin(builtin), expr(std::move(expr)), args(std::move(args)) {}
 
-    node_expr_call_pointer(std::uint32_t pos, bool builtin, expr_ptr expr, expr_arguments_ptr args)
-        : node(node_t::expr_call_pointer, pos), builtin(builtin), expr(std::move(expr)), args(std::move(args)) {}
+    node_expr_call_pointer(const location& loc, bool builtin, expr_ptr expr, expr_arguments_ptr args)
+        : node(node_t::expr_call_pointer, loc), builtin(builtin), expr(std::move(expr)), args(std::move(args)) {}
 
     auto print() -> std::string override
     {
@@ -926,8 +884,8 @@ struct node_expr_call_function : public node
     node_expr_call_function(file_ptr file, name_ptr name, expr_arguments_ptr args)
         : node(node_t::expr_call_function), file(std::move(file)), name(std::move(name)), args(std::move(args)) {}
 
-    node_expr_call_function(std::uint32_t pos, file_ptr file, name_ptr name, expr_arguments_ptr args)
-        : node(node_t::expr_call_function, pos), file(std::move(file)), name(std::move(name)), args(std::move(args)) {}
+    node_expr_call_function(const location& loc, file_ptr file, name_ptr name, expr_arguments_ptr args)
+        : node(node_t::expr_call_function, loc), file(std::move(file)), name(std::move(name)), args(std::move(args)) {}
 
     auto print() -> std::string override
     {
@@ -947,8 +905,8 @@ struct node_expr_call : public node
     node_expr_call(bool thread, bool child, expr_ptr obj, expr_call_type_ptr func)
         : node(node_t::expr_call), thread(thread), child(child), obj(std::move(obj)), func(std::move(func)){}
 
-    node_expr_call(std::uint32_t pos, bool thread, bool child,  expr_ptr obj, expr_call_type_ptr func)
-        : node(node_t::expr_call, pos), thread(thread), child(child), obj(std::move(obj)), func(std::move(func)){}
+    node_expr_call(const location& loc, bool thread, bool child,  expr_ptr obj, expr_call_type_ptr func)
+        : node(node_t::expr_call, loc), thread(thread), child(child), obj(std::move(obj)), func(std::move(func)){}
 
     auto print() -> std::string override
     {
@@ -976,8 +934,8 @@ struct node_expr_complement : public node
     node_expr_complement(expr_ptr rvalue)
         : node(node_t::expr_complement), rvalue(std::move(rvalue)) {}
 
-    node_expr_complement(std::uint32_t pos, expr_ptr rvalue)
-        : node(node_t::expr_complement, pos), rvalue(std::move(rvalue)) {}
+    node_expr_complement(const location& loc, expr_ptr rvalue)
+        : node(node_t::expr_complement, loc), rvalue(std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -992,8 +950,8 @@ struct node_expr_not : public node
     node_expr_not(expr_ptr rvalue)
         : node(node_t::expr_not), rvalue(std::move(rvalue)) {}
 
-    node_expr_not(std::uint32_t pos, expr_ptr rvalue)
-        : node(node_t::expr_not, pos), rvalue(std::move(rvalue)) {}
+    node_expr_not(const location& loc, expr_ptr rvalue)
+        : node(node_t::expr_not, loc), rvalue(std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1009,8 +967,8 @@ struct node_expr_binary : public node
     node_expr_binary(node_t type, expr_ptr lvalue, expr_ptr rvalue)
         : node(type), lvalue(std::move(lvalue)), rvalue(std::move(rvalue)) {}
 
-    node_expr_binary(node_t type, std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node(type, pos), lvalue(std::move(lvalue)), rvalue(std::move(rvalue)) {}
+    node_expr_binary(node_t type, const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node(type, loc), lvalue(std::move(lvalue)), rvalue(std::move(rvalue)) {}
 };
 
 struct node_expr_add : public node_expr_binary
@@ -1018,8 +976,8 @@ struct node_expr_add : public node_expr_binary
     node_expr_add(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_add, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_add(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_add, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_add(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_add, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1032,8 +990,8 @@ struct node_expr_sub : public node_expr_binary
     node_expr_sub(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_sub, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_sub(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_sub, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_sub(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_sub, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1046,8 +1004,8 @@ struct node_expr_mult : public node_expr_binary
     node_expr_mult( expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_mult, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_mult(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_mult, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_mult(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_mult, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1060,8 +1018,8 @@ struct node_expr_div : public node_expr_binary
     node_expr_div(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_div, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_div(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_div, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_div(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_div, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1074,8 +1032,8 @@ struct node_expr_mod : public node_expr_binary
     node_expr_mod(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_mod, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_mod(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_mod, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_mod(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_mod, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1088,8 +1046,8 @@ struct node_expr_shift_left : public node_expr_binary
     node_expr_shift_left(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_shift_left, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_shift_left(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_shift_left, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_shift_left(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_shift_left, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1102,8 +1060,8 @@ struct node_expr_shift_right : public node_expr_binary
     node_expr_shift_right(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_shift_right, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_shift_right(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_shift_right, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_shift_right(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_shift_right, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1116,8 +1074,8 @@ struct node_expr_bitwise_or : public node_expr_binary
     node_expr_bitwise_or(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_bitwise_or, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_bitwise_or(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_bitwise_or, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_bitwise_or(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_bitwise_or, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1130,8 +1088,8 @@ struct node_expr_bitwise_and : public node_expr_binary
     node_expr_bitwise_and(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_bitwise_and, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_bitwise_and(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_bitwise_and, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_bitwise_and(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_bitwise_and, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1144,8 +1102,8 @@ struct node_expr_bitwise_exor : public node_expr_binary
     node_expr_bitwise_exor(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_bitwise_exor, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_bitwise_exor(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_bitwise_exor, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_bitwise_exor(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_bitwise_exor, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1158,8 +1116,8 @@ struct node_expr_equality : public node_expr_binary
     node_expr_equality(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_equality, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_equality(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_equality, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_equality(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_equality, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1172,8 +1130,8 @@ struct node_expr_inequality : public node_expr_binary
     node_expr_inequality(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_inequality, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_inequality(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_inequality, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_inequality(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_inequality, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1186,8 +1144,8 @@ struct node_expr_less_equal : public node_expr_binary
     node_expr_less_equal(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_less_equal, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_less_equal(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_less_equal, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_less_equal(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_less_equal, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1200,8 +1158,8 @@ struct node_expr_greater_equal : public node_expr_binary
     node_expr_greater_equal(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_greater_equal, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_greater_equal(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_greater_equal, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_greater_equal(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_greater_equal, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1214,8 +1172,8 @@ struct node_expr_less : public node_expr_binary
     node_expr_less(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_less, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_less(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_less, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_less(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_less, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1228,8 +1186,8 @@ struct node_expr_greater : public node_expr_binary
     node_expr_greater(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_greater, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_greater(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_greater, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_greater(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_greater, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1242,8 +1200,8 @@ struct node_expr_or : public node_expr_binary
     node_expr_or(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_or, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_or(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_or, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_or(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_or, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1256,8 +1214,8 @@ struct node_expr_and : public node_expr_binary
     node_expr_and(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_binary(node_t::expr_and, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_and(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_binary(node_t::expr_and, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_and(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_binary(node_t::expr_and, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1273,8 +1231,8 @@ struct node_expr_assign: public node
     node_expr_assign(node_t type, expr_ptr lvalue, expr_ptr rvalue)
         : node(type), lvalue(std::move(lvalue)), rvalue(std::move(rvalue)) {}
 
-    node_expr_assign(node_t type, std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node(type, pos), lvalue(std::move(lvalue)), rvalue(std::move(rvalue)) {}
+    node_expr_assign(node_t type, const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node(type, loc), lvalue(std::move(lvalue)), rvalue(std::move(rvalue)) {}
 };
 
 struct node_expr_assign_equal : public node_expr_assign
@@ -1282,8 +1240,8 @@ struct node_expr_assign_equal : public node_expr_assign
     node_expr_assign_equal(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_assign(node_t::expr_assign_equal, std::move(lvalue), std::move(rvalue)) {}
     
-    node_expr_assign_equal(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_assign(node_t::expr_assign_equal, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_assign_equal(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_assign(node_t::expr_assign_equal, loc, std::move(lvalue), std::move(rvalue)) {}
     
     auto print() -> std::string override
     {
@@ -1296,8 +1254,8 @@ struct node_expr_assign_add : public node_expr_assign
     node_expr_assign_add(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_assign(node_t::expr_assign_add, std::move(lvalue), std::move(rvalue)) {}
     
-    node_expr_assign_add(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_assign(node_t::expr_assign_add, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_assign_add(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_assign(node_t::expr_assign_add, loc, std::move(lvalue), std::move(rvalue)) {}
     
     auto print() -> std::string override
     {
@@ -1310,8 +1268,8 @@ struct node_expr_assign_sub : public node_expr_assign
     node_expr_assign_sub(expr_ptr lvalue, expr_ptr rvalue)
        : node_expr_assign(node_t::expr_assign_sub, std::move(lvalue), std::move(rvalue)) {}
     
-    node_expr_assign_sub(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-       : node_expr_assign(node_t::expr_assign_sub, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_assign_sub(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+       : node_expr_assign(node_t::expr_assign_sub, loc, std::move(lvalue), std::move(rvalue)) {}
     
     auto print() -> std::string override
     {
@@ -1324,8 +1282,8 @@ struct node_expr_assign_mult : public node_expr_assign
     node_expr_assign_mult(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_assign(node_t::expr_assign_mult, std::move(lvalue), std::move(rvalue)) {}
     
-    node_expr_assign_mult(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_assign(node_t::expr_assign_mult, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_assign_mult(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_assign(node_t::expr_assign_mult, loc, std::move(lvalue), std::move(rvalue)) {}
     
     auto print() -> std::string override
     {
@@ -1338,8 +1296,8 @@ struct node_expr_assign_div : public node_expr_assign
     node_expr_assign_div(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_assign(node_t::expr_assign_div, std::move(lvalue), std::move(rvalue)) {}
     
-    node_expr_assign_div(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_assign(node_t::expr_assign_div, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_assign_div(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_assign(node_t::expr_assign_div, loc, std::move(lvalue), std::move(rvalue)) {}
     
     auto print() -> std::string override
     {
@@ -1352,8 +1310,8 @@ struct node_expr_assign_mod : public node_expr_assign
     node_expr_assign_mod(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_assign(node_t::expr_assign_mod, std::move(lvalue), std::move(rvalue)) {}
     
-    node_expr_assign_mod(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_assign(node_t::expr_assign_mod, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_assign_mod(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_assign(node_t::expr_assign_mod, loc, std::move(lvalue), std::move(rvalue)) {}
     
     auto print() -> std::string override
     {
@@ -1366,8 +1324,8 @@ struct node_expr_assign_shift_left : public node_expr_assign
     node_expr_assign_shift_left(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_assign(node_t::expr_assign_shift_left, std::move(lvalue), std::move(rvalue)) {}
     
-    node_expr_assign_shift_left(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_assign(node_t::expr_assign_shift_left, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_assign_shift_left(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_assign(node_t::expr_assign_shift_left, loc, std::move(lvalue), std::move(rvalue)) {}
     
     auto print() -> std::string override
     {
@@ -1380,8 +1338,8 @@ struct node_expr_assign_shift_right : public node_expr_assign
     node_expr_assign_shift_right(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_assign(node_t::expr_assign_shift_right, std::move(lvalue), std::move(rvalue)) {}
     
-    node_expr_assign_shift_right(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_assign(node_t::expr_assign_shift_right, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_assign_shift_right(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_assign(node_t::expr_assign_shift_right, loc, std::move(lvalue), std::move(rvalue)) {}
     
     auto print() -> std::string override
     {
@@ -1395,8 +1353,8 @@ struct node_expr_assign_bitwise_or : public node_expr_assign
         : node_expr_assign(node_t::expr_assign_bitwise_or, std::move(lvalue),
             std::move(rvalue)) {}
 
-    node_expr_assign_bitwise_or(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_assign(node_t::expr_assign_bitwise_or, pos, std::move(lvalue),
+    node_expr_assign_bitwise_or(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_assign(node_t::expr_assign_bitwise_or, loc, std::move(lvalue),
             std::move(rvalue)) {}
 
     auto print() -> std::string override
@@ -1410,8 +1368,8 @@ struct node_expr_assign_bitwise_and : public node_expr_assign
     node_expr_assign_bitwise_and(expr_ptr lvalue, expr_ptr rvalue)
         : node_expr_assign(node_t::expr_assign_bitwise_and, std::move(lvalue), std::move(rvalue)) {}
 
-    node_expr_assign_bitwise_and(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_assign(node_t::expr_assign_bitwise_and, pos, std::move(lvalue), std::move(rvalue)) {}
+    node_expr_assign_bitwise_and(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_assign(node_t::expr_assign_bitwise_and, loc, std::move(lvalue), std::move(rvalue)) {}
 
     auto print() -> std::string override
     {
@@ -1425,8 +1383,8 @@ struct node_expr_assign_bitwise_exor : public node_expr_assign
         : node_expr_assign(node_t::expr_assign_bitwise_exor, std::move(lvalue),
             std::move(rvalue)) {}
 
-    node_expr_assign_bitwise_exor(std::uint32_t pos, expr_ptr lvalue, expr_ptr rvalue)
-        : node_expr_assign(node_t::expr_assign_bitwise_exor, pos, std::move(lvalue),
+    node_expr_assign_bitwise_exor(const location& loc, expr_ptr lvalue, expr_ptr rvalue)
+        : node_expr_assign(node_t::expr_assign_bitwise_exor, loc, std::move(lvalue),
             std::move(rvalue)) {}
 
     auto print() -> std::string override
@@ -1440,8 +1398,8 @@ struct node_expr_increment : public node_expr_assign
     node_expr_increment(expr_ptr lvalue)
         : node_expr_assign(node_t::expr_increment, std::move(lvalue), std::make_unique<node>()) {}
 
-    node_expr_increment(std::uint32_t pos, expr_ptr lvalue)
-        : node_expr_assign(node_t::expr_increment, pos, std::move(lvalue), std::make_unique<node>()) {}
+    node_expr_increment(const location& loc, expr_ptr lvalue)
+        : node_expr_assign(node_t::expr_increment, loc, std::move(lvalue), std::make_unique<node>()) {}
 
     auto print() -> std::string override
     {
@@ -1454,8 +1412,8 @@ struct node_expr_decrement : public node_expr_assign
     node_expr_decrement(expr_ptr lvalue)
         : node_expr_assign(node_t::expr_decrement, std::move(lvalue), std::make_unique<node>()) {}
 
-    node_expr_decrement(std::uint32_t pos, expr_ptr lvalue)
-        : node_expr_assign(node_t::expr_decrement, pos, std::move(lvalue), std::make_unique<node>()) {}
+    node_expr_decrement(const location& loc, expr_ptr lvalue)
+        : node_expr_assign(node_t::expr_decrement, loc, std::move(lvalue), std::make_unique<node>()) {}
 
     auto print() -> std::string override
     {
@@ -1469,7 +1427,7 @@ struct node_block : public node
 
     node_block() : node(node_t::block) {}
 
-    node_block(std::uint32_t pos) : node(node_t::block, pos) {}
+    node_block(const location& loc) : node(node_t::block, loc) {}
 
     auto print() -> std::string override
     {
@@ -1520,8 +1478,8 @@ struct node_stmt_call : public node
     node_stmt_call(expr_call_ptr expr)
         : node(node_t::stmt_call), expr(std::move(expr)) {}
 
-    node_stmt_call(std::uint32_t pos, expr_call_ptr expr)
-        : node(node_t::stmt_call, pos), expr(std::move(expr)) {}
+    node_stmt_call(const location& loc, expr_call_ptr expr)
+        : node(node_t::stmt_call, loc), expr(std::move(expr)) {}
 
     auto print()->std::string override
     {
@@ -1536,8 +1494,8 @@ struct node_stmt_assign : public node
     node_stmt_assign(expr_assign_ptr expr)
         : node(node_t::stmt_assign), expr(std::move(expr)) {}
     
-    node_stmt_assign(std::uint32_t pos, expr_assign_ptr expr)
-        : node(node_t::stmt_assign, pos), expr(std::move(expr)) {}
+    node_stmt_assign(const location& loc, expr_assign_ptr expr)
+        : node(node_t::stmt_assign, loc), expr(std::move(expr)) {}
     
     auto print()->std::string override
     {
@@ -1553,8 +1511,8 @@ struct node_stmt_endon : public node
     node_stmt_endon(expr_ptr obj, expr_ptr expr)
         : node(node_t::stmt_endon), obj(std::move(obj)), expr(std::move(expr)) {}
 
-    node_stmt_endon(std::uint32_t pos, expr_ptr obj, expr_ptr expr)
-        : node(node_t::stmt_endon, pos), obj(std::move(obj)), expr(std::move(expr)) {}
+    node_stmt_endon(const location& loc, expr_ptr obj, expr_ptr expr)
+        : node(node_t::stmt_endon, loc), obj(std::move(obj)), expr(std::move(expr)) {}
 
     auto print() -> std::string override
     {
@@ -1571,8 +1529,8 @@ struct node_stmt_notify : public node
     node_stmt_notify(expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
         : node(node_t::stmt_notify), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
 
-    node_stmt_notify(std::uint32_t pos, expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
-        : node(node_t::stmt_notify, pos), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
+    node_stmt_notify(const location& loc, expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
+        : node(node_t::stmt_notify, loc), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
 
     auto print() -> std::string override
     {
@@ -1594,8 +1552,8 @@ struct node_stmt_wait : public node
     node_stmt_wait(expr_ptr expr)
         : node(node_t::stmt_wait), expr(std::move(expr)) {}
 
-    node_stmt_wait(std::uint32_t pos, expr_ptr expr)
-        : node(node_t::stmt_wait, pos), expr(std::move(expr)) {}
+    node_stmt_wait(const location& loc, expr_ptr expr)
+        : node(node_t::stmt_wait, loc), expr(std::move(expr)) {}
 
     auto print() -> std::string override
     {
@@ -1615,8 +1573,8 @@ struct node_stmt_waittill : public node
     node_stmt_waittill(expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
         : node(node_t::stmt_waittill), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
 
-    node_stmt_waittill(std::uint32_t pos, expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
-        : node(node_t::stmt_waittill, pos), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
+    node_stmt_waittill(const location& loc, expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
+        : node(node_t::stmt_waittill, loc), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
 
     auto print() -> std::string override
     {
@@ -1640,8 +1598,8 @@ struct node_stmt_waittillmatch : public node
     node_stmt_waittillmatch(expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
         : node(node_t::stmt_waittillmatch), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
 
-    node_stmt_waittillmatch(std::uint32_t pos, expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
-        : node(node_t::stmt_waittillmatch, pos), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
+    node_stmt_waittillmatch(const location& loc, expr_ptr obj, expr_ptr expr, expr_arguments_ptr args)
+        : node(node_t::stmt_waittillmatch, loc), obj(std::move(obj)), expr(std::move(expr)), args(std::move(args)) {}
 
     auto print() -> std::string override
     {
@@ -1658,7 +1616,7 @@ struct node_stmt_waittillframeend : public node
 {
     node_stmt_waittillframeend() : node(node_t::stmt_waittillframeend) {}
 
-    node_stmt_waittillframeend(std::uint32_t pos) : node(node_t::stmt_waittillframeend, pos) {}
+    node_stmt_waittillframeend(const location& loc) : node(node_t::stmt_waittillframeend, loc) {}
 
     auto print() -> std::string override
     {
@@ -1670,7 +1628,7 @@ struct node_stmt_waitframe : public node
 {
     node_stmt_waitframe() : node(node_t::stmt_waitframe) {}
 
-    node_stmt_waitframe(std::uint32_t pos) : node(node_t::stmt_waitframe, pos) {}
+    node_stmt_waitframe(const location& loc) : node(node_t::stmt_waitframe, loc) {}
 
     auto print() -> std::string override
     {
@@ -1687,8 +1645,8 @@ struct node_stmt_if : public node
     node_stmt_if(expr_ptr expr, block_ptr block)
         : node(node_t::stmt_if), expr(std::move(expr)), block(std::move(block)) {}
 
-    node_stmt_if(std::uint32_t pos, expr_ptr expr, block_ptr block)
-        : node(node_t::stmt_if, pos), expr(std::move(expr)), block(std::move(block)) {}
+    node_stmt_if(const location& loc, expr_ptr expr, block_ptr block)
+        : node(node_t::stmt_if, loc), expr(std::move(expr)), block(std::move(block)) {}
 
     auto print() -> std::string override
     {
@@ -1728,8 +1686,8 @@ struct node_stmt_ifelse : public node
     node_stmt_ifelse(expr_ptr expr, block_ptr block_if, block_ptr block_else)
         : node(node_t::stmt_ifelse), expr(std::move(expr)), block_if(std::move(block_if)), block_else(std::move(block_else)) {}
 
-    node_stmt_ifelse(std::uint32_t pos, expr_ptr expr, block_ptr block_if, block_ptr block_else)
-        : node(node_t::stmt_ifelse, pos), expr(std::move(expr)), block_if(std::move(block_if)), block_else(std::move(block_else)) {}
+    node_stmt_ifelse(const location& loc, expr_ptr expr, block_ptr block_if, block_ptr block_else)
+        : node(node_t::stmt_ifelse, loc), expr(std::move(expr)), block_if(std::move(block_if)), block_else(std::move(block_else)) {}
 
     auto print() -> std::string override
     {
@@ -1790,8 +1748,8 @@ struct node_stmt_while : public node
     node_stmt_while(expr_ptr expr, block_ptr block)
         : node(node_t::stmt_while), expr(std::move(expr)), block(std::move(block)) {}
 
-    node_stmt_while(std::uint32_t pos, expr_ptr expr, block_ptr block)
-        : node(node_t::stmt_while, pos), expr(std::move(expr)), block(std::move(block)) {}
+    node_stmt_while(const location& loc, expr_ptr expr, block_ptr block)
+        : node(node_t::stmt_while, loc), expr(std::move(expr)), block(std::move(block)) {}
 
     auto print() -> std::string override
     {
@@ -1841,8 +1799,8 @@ struct node_stmt_for : public node
         : node(node_t::stmt_for), pre_expr(std::move(pre_expr)), expr(std::move(expr)),
             post_expr(std::move(post_expr)), block(std::move(block)) {}
 
-    node_stmt_for(std::uint32_t pos, expr_ptr pre_expr, expr_ptr expr, expr_ptr post_expr, block_ptr block)
-        : node(node_t::stmt_for, pos), pre_expr(std::move(pre_expr)), expr(std::move(expr)),
+    node_stmt_for(const location& loc, expr_ptr pre_expr, expr_ptr expr, expr_ptr post_expr, block_ptr block)
+        : node(node_t::stmt_for, loc), pre_expr(std::move(pre_expr)), expr(std::move(expr)),
             post_expr(std::move(post_expr)), block(std::move(block)) {}
 
     auto print() -> std::string override
@@ -1899,12 +1857,12 @@ struct node_stmt_foreach : public node
         : node(node_t::stmt_foreach), key(std::move(key)), element(std::move(element)), container(std::move(container)),
             block(std::move(block)), use_key(true) {}
 
-    node_stmt_foreach(std::uint32_t pos, name_ptr element, expr_ptr container, block_ptr block)
-        : node(node_t::stmt_foreach, pos), element(std::move(element)), container(std::move(container)),
+    node_stmt_foreach(const location& loc, name_ptr element, expr_ptr container, block_ptr block)
+        : node(node_t::stmt_foreach, loc), element(std::move(element)), container(std::move(container)),
             block(std::move(block)), use_key(false) {}
 
-    node_stmt_foreach(std::uint32_t pos, name_ptr key, name_ptr element, expr_ptr container, block_ptr block)
-        : node(node_t::stmt_foreach, pos), key(std::move(key)), element(std::move(element)), container(std::move(container)),
+    node_stmt_foreach(const location& loc, name_ptr key, name_ptr element, expr_ptr container, block_ptr block)
+        : node(node_t::stmt_foreach, loc), key(std::move(key)), element(std::move(element)), container(std::move(container)),
             block(std::move(block)), use_key(true) {}
 
     auto print() -> std::string override
@@ -1953,8 +1911,8 @@ struct node_stmt_switch : public node
     node_stmt_switch(expr_ptr expr, block_ptr block)
         : node(node_t::stmt_switch), expr(std::move(expr)), block(std::move(block)) {}
 
-    node_stmt_switch(std::uint32_t pos, expr_ptr expr, block_ptr block)
-        : node(node_t::stmt_switch, pos), expr(std::move(expr)), block(std::move(block)) {}
+    node_stmt_switch(const location& loc, expr_ptr expr, block_ptr block)
+        : node(node_t::stmt_switch, loc), expr(std::move(expr)), block(std::move(block)) {}
 
     auto print() -> std::string override
     {
@@ -1975,8 +1933,8 @@ struct node_stmt_case : public node
     node_stmt_case(expr_ptr value)
         : node(node_t::stmt_case), value(std::move(value)) {}
 
-    node_stmt_case(std::uint32_t pos, expr_ptr value)
-        : node(node_t::stmt_case, pos), value(std::move(value)) {}
+    node_stmt_case(const location& loc, expr_ptr value)
+        : node(node_t::stmt_case, loc), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -1989,8 +1947,8 @@ struct node_stmt_default : public node
     node_stmt_default()
         : node(node_t::stmt_default) {}
 
-    node_stmt_default(std::uint32_t pos)
-        : node(node_t::stmt_default, pos) {}
+    node_stmt_default(const location& loc)
+        : node(node_t::stmt_default, loc) {}
 
     auto print() -> std::string override
     {
@@ -2003,8 +1961,8 @@ struct node_stmt_break : public node
     node_stmt_break()
         : node(node_t::stmt_break) {}
 
-    node_stmt_break(std::uint32_t pos)
-        : node(node_t::stmt_break, pos) {}
+    node_stmt_break(const location& loc)
+        : node(node_t::stmt_break, loc) {}
 
     auto print() -> std::string override
     {
@@ -2017,8 +1975,8 @@ struct node_stmt_continue : public node
     node_stmt_continue()
         : node(node_t::stmt_continue) {}
 
-    node_stmt_continue(std::uint32_t pos)
-        : node(node_t::stmt_continue, pos) {}
+    node_stmt_continue(const location& loc)
+        : node(node_t::stmt_continue, loc) {}
 
     auto print() -> std::string override
     {
@@ -2033,8 +1991,8 @@ struct node_stmt_return : public node
     node_stmt_return(expr_ptr expr)
         : node(node_t::stmt_return), expr(std::move(expr)) {}
 
-    node_stmt_return(std::uint32_t pos, expr_ptr expr)
-        : node(node_t::stmt_return, pos), expr(std::move(expr)) {}
+    node_stmt_return(const location& loc, expr_ptr expr)
+        : node(node_t::stmt_return, loc), expr(std::move(expr)) {}
 
     auto print() -> std::string override
     {
@@ -2051,8 +2009,8 @@ struct node_parameters : public node
     node_parameters()
         : node(node_t::parameters) {}
 
-    node_parameters(std::uint32_t pos)
-        : node(node_t::parameters, pos) {}
+    node_parameters(const location& loc)
+        : node(node_t::parameters, loc) {}
 
     auto print() -> std::string override
     {
@@ -2078,8 +2036,8 @@ struct node_thread : public node
         : node(node_t::thread), name(std::move(name)), params(std::move(params)),
             block(std::move(block)) {}
 
-    node_thread(std::uint32_t pos, name_ptr name, parameters_ptr params, block_ptr block)
-        : node(node_t::thread, pos), name(std::move(name)), params(std::move(params)),
+    node_thread(const location& loc, name_ptr name, parameters_ptr params, block_ptr block)
+        : node(node_t::thread, loc), name(std::move(name)), params(std::move(params)),
             block(std::move(block)) {}
 
     auto print() -> std::string override
@@ -2096,8 +2054,8 @@ struct node_constant : public node
     node_constant(name_ptr name, expr_ptr value)
         : node(node_t::constant), name(std::move(name)), value(std::move(value)) {}
 
-    node_constant(std::uint32_t pos, name_ptr name, expr_ptr value)
-        : node(node_t::constant, pos), name(std::move(name)), value(std::move(value)) {}
+    node_constant(const location& loc, name_ptr name, expr_ptr value)
+        : node(node_t::constant, loc), name(std::move(name)), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -2112,8 +2070,8 @@ struct node_usingtree : public node
     node_usingtree(string_ptr animtree)
         : node(node_t::usingtree), animtree(std::move(animtree)) {}
 
-    node_usingtree(std::uint32_t pos, string_ptr animtree)
-        : node(node_t::usingtree, pos), animtree(std::move(animtree)) {}
+    node_usingtree(const location& loc, string_ptr animtree)
+        : node(node_t::usingtree, loc), animtree(std::move(animtree)) {}
 
     auto print() -> std::string override
     {
@@ -2128,8 +2086,8 @@ struct node_include : public node
     node_include(file_ptr file)
         : node(node_t::include), file(std::move(file)) {}
 
-    node_include(std::uint32_t pos, file_ptr file)
-        : node(node_t::include, pos), file(std::move(file)) {}
+    node_include(const location& loc, file_ptr file)
+        : node(node_t::include, loc), file(std::move(file)) {}
 
     auto print() -> std::string override
     {
@@ -2144,7 +2102,7 @@ struct node_program : public node
     
     node_program() : node(node_t::program) {}
 
-    node_program(std::uint32_t pos) : node(node_t::program, pos) {}
+    node_program(const location& loc) : node(node_t::program, loc) {}
 
     auto print() -> std::string override
     {
@@ -2176,8 +2134,8 @@ struct node_asm_loc : public node
     node_asm_loc(std::string value)
         : node(node_t::asm_loc), value(std::move(value)) {}
 
-    node_asm_loc(std::uint32_t pos, std::string value)
-        : node(node_t::asm_loc, pos), value(std::move(value)) {}
+    node_asm_loc(const location& loc, std::string value)
+        : node(node_t::asm_loc, loc), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -2192,8 +2150,8 @@ struct node_asm_jump : public node
     node_asm_jump(std::string value)
         : node(node_t::asm_jump), value(std::move(value)) {}
 
-    node_asm_jump(std::uint32_t pos, std::string value)
-        : node(node_t::asm_jump, pos), value(std::move(value)) {}
+    node_asm_jump(const location& loc, std::string value)
+        : node(node_t::asm_jump, loc), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -2208,8 +2166,8 @@ struct node_asm_jump_back : public node
     node_asm_jump_back(std::string value)
         : node(node_t::asm_jump_back), value(std::move(value)) {}
 
-    node_asm_jump_back(std::uint32_t pos, std::string value)
-        : node(node_t::asm_jump_back, pos), value(std::move(value)) {}
+    node_asm_jump_back(const location& loc, std::string value)
+        : node(node_t::asm_jump_back, loc), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -2225,8 +2183,8 @@ struct node_asm_jump_cond : public node
     node_asm_jump_cond(expr_ptr expr, std::string value)
         : node(node_t::asm_jump_cond), expr(std::move(expr)), value(std::move(value)) {}
 
-    node_asm_jump_cond(std::uint32_t pos, expr_ptr expr, std::string value)
-        : node(node_t::asm_jump_cond, pos), expr(std::move(expr)), value(std::move(value)) {}
+    node_asm_jump_cond(const location& loc, expr_ptr expr, std::string value)
+        : node(node_t::asm_jump_cond, loc), expr(std::move(expr)), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -2242,8 +2200,8 @@ struct node_asm_jump_true_expr : public node
     node_asm_jump_true_expr(expr_ptr expr, std::string value)
         : node(node_t::asm_jump_true_expr), expr(std::move(expr)), value(std::move(value)) {}
 
-    node_asm_jump_true_expr(std::uint32_t pos, expr_ptr expr, std::string value)
-        : node(node_t::asm_jump_true_expr, pos), expr(std::move(expr)), value(std::move(value)) {}
+    node_asm_jump_true_expr(const location& loc, expr_ptr expr, std::string value)
+        : node(node_t::asm_jump_true_expr, loc), expr(std::move(expr)), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -2259,8 +2217,8 @@ struct node_asm_jump_false_expr : public node
     node_asm_jump_false_expr(expr_ptr expr, std::string value)
         : node(node_t::asm_jump_false_expr), expr(std::move(expr)), value(std::move(value)) {}
 
-    node_asm_jump_false_expr(std::uint32_t pos, expr_ptr expr, std::string value)
-        : node(node_t::asm_jump_false_expr, pos), expr(std::move(expr)), value(std::move(value)) {}
+    node_asm_jump_false_expr(const location& loc, expr_ptr expr, std::string value)
+        : node(node_t::asm_jump_false_expr, loc), expr(std::move(expr)), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -2276,8 +2234,8 @@ struct node_asm_switch : public node
     node_asm_switch(expr_ptr expr, std::string value)
         : node(node_t::asm_switch), expr(std::move(expr)), value(std::move(value)) {}
 
-    node_asm_switch(std::uint32_t pos, expr_ptr expr, std::string value)
-        : node(node_t::asm_switch, pos), expr(std::move(expr)), value(std::move(value)) {}
+    node_asm_switch(const location& loc, expr_ptr expr, std::string value)
+        : node(node_t::asm_switch, loc), expr(std::move(expr)), value(std::move(value)) {}
 
     auto print() -> std::string override
     {
@@ -2293,8 +2251,8 @@ struct node_asm_endswitch : public node
     node_asm_endswitch(std::vector<std::string> data, std::string count)
         : node(node_t::asm_endswitch), data(std::move(data)), count(std::move(count)) {}
 
-    node_asm_endswitch(std::uint32_t pos, std::vector<std::string> data, std::string count)
-        : node(node_t::asm_endswitch, pos), data(std::move(data)), count(std::move(count)) {}
+    node_asm_endswitch(const location& loc, std::vector<std::string> data, std::string count)
+        : node(node_t::asm_endswitch, loc), data(std::move(data)), count(std::move(count)) {}
 
     auto print() -> std::string override
     {
@@ -2312,8 +2270,8 @@ struct node_asm_prescriptcall : public node
     node_asm_prescriptcall()
         : node(node_t::asm_prescriptcall) {}
 
-    node_asm_prescriptcall(std::uint32_t pos)
-        : node(node_t::asm_prescriptcall, pos) {}
+    node_asm_prescriptcall(const location& loc)
+        : node(node_t::asm_prescriptcall, loc) {}
 
     auto print() -> std::string override
     {
@@ -2326,8 +2284,8 @@ struct node_asm_voidcodepos : public node
     node_asm_voidcodepos()
         : node(node_t::asm_voidcodepos) {}
 
-    node_asm_voidcodepos(std::uint32_t pos)
-        : node(node_t::asm_voidcodepos, pos) {}
+    node_asm_voidcodepos(const location& loc)
+        : node(node_t::asm_voidcodepos, loc) {}
 
     auto print() -> std::string override
     {

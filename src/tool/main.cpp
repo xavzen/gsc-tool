@@ -76,7 +76,7 @@ void assemble_file(gsc::assembler& assembler, std::string file, bool zonetool)
 
         auto data = utils::file::read(file + ext);
 
-        assembler.assemble(data);
+        assembler.assemble(file, data);
 
         if (overwrite_prompt(file + (zonetool ? ".cgsc" : ".gscbin")))
         {
@@ -133,7 +133,7 @@ void disassemble_file(gsc::disassembler& disassembler, std::string file, game& g
             auto script = utils::file::read(file + ".cgsc");
             auto stack = utils::file::read(file + ".cgsc.stack");
 
-            disassembler.disassemble(script, stack);
+            disassembler.disassemble(file, script, stack);
         }
         else
         {
@@ -153,7 +153,7 @@ void disassemble_file(gsc::disassembler& disassembler, std::string file, game& g
 
             auto stack = utils::zlib::decompress(script.buffer, script.len);
 
-            disassembler.disassemble(script.bytecode, stack);
+            disassembler.disassemble(file, script.bytecode, stack);
         }
 
         auto scriptid = std::filesystem::path(file).filename().string();
@@ -198,11 +198,11 @@ void compile_file(gsc::assembler& assembler, gsc::compiler& compiler, std::strin
 
         auto data = utils::file::read(file + ext);
 
-        compiler.compile(data);
+        compiler.compile(file, data);
 
         auto assembly = compiler.output();
 
-        assembler.assemble(assembly);
+        assembler.assemble(file, assembly);
 
         if (overwrite_prompt(file + (zonetool ? ".cgsc" : ".gscbin")))
         {
@@ -259,7 +259,7 @@ void decompile_file(gsc::disassembler& disassembler, gsc::decompiler& decompiler
             auto script = utils::file::read(file + ".cgsc");
             auto stack = utils::file::read(file + ".cgsc.stack");
 
-            disassembler.disassemble(script, stack);
+            disassembler.disassemble(file, script, stack);
         }
         else
         {
@@ -279,12 +279,12 @@ void decompile_file(gsc::disassembler& disassembler, gsc::decompiler& decompiler
 
             auto stack = utils::zlib::decompress(script.buffer, script.len);
 
-            disassembler.disassemble(script.bytecode, stack);
+            disassembler.disassemble(file, script.bytecode, stack);
         }
 
         auto output = disassembler.output();
 
-        decompiler.decompile(output);
+        decompiler.decompile(file, output);
 
         auto scriptid = std::filesystem::path(file).filename().string();
 

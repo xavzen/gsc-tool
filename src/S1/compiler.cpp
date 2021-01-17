@@ -15,9 +15,11 @@ auto compiler::output() -> std::vector<gsc::function_ptr>
     return std::move(assembly_);
 }
 
-void compiler::compile(std::vector<std::uint8_t>& data)
+void compiler::compile(const std::string& file, std::vector<std::uint8_t>& data)
 {
-    auto result = parse_buffer(data);
+    filename_ = file;
+
+    auto result = parse_buffer(filename_, data);
 
     compile_program(result);
 }
@@ -27,12 +29,13 @@ void compiler::set_readf_callback(std::function<std::vector<std::uint8_t>(const 
     callback_readf_ = func;
 }
 
-auto compiler::parse_buffer(std::vector<std::uint8_t>& data) -> gsc::program_ptr
+auto compiler::parse_buffer(const std::string& file, std::vector<std::uint8_t>& data) -> gsc::program_ptr
 {
     yyscan_t scanner;
-    std::uint32_t pos = 1;
+    gsc::location loc;
     gsc::program_ptr result(nullptr);
     
+    loc.initialize(&file);
     // Add the two NULL terminators, required by flex.
     data.reserve(2);
     data.push_back(0);
@@ -43,11 +46,11 @@ auto compiler::parse_buffer(std::vector<std::uint8_t>& data) -> gsc::program_ptr
 
     YY_BUFFER_STATE yybuffer = S1_scan_buffer(reinterpret_cast<char*>(data.data()), data.size(), scanner);
 
-    parser parser(scanner, &pos, result);
+    parser parser(scanner, loc, result);
     
     if(parser.parse() || result == nullptr)
     {
-        throw gsc::comp_error(0, "An unknown error ocurred while parsing gsc file.");
+        throw gsc::comp_error(loc, "An unknown error ocurred while parsing gsc file.");
     }
 
     S1_delete_buffer(yybuffer, scanner);
@@ -59,7 +62,7 @@ auto compiler::parse_buffer(std::vector<std::uint8_t>& data) -> gsc::program_ptr
 auto compiler::parse_file(const std::string& file) -> gsc::program_ptr
 {
     auto buffer = callback_readf_(file);
-    auto result = parse_buffer(buffer);
+    auto result = parse_buffer(file, buffer);
 
     return result;
 }
@@ -85,6 +88,10 @@ void compiler::compile_program(const gsc::program_ptr& program)
     {
         emit_define(def);  
     }
+
+#ifdef DEBUG
+    print_debug_info();
+#endif
 }
 
 void compiler::emit_include(const gsc::include_ptr& include)
@@ -107,7 +114,7 @@ void compiler::emit_include(const gsc::include_ptr& include)
     }
     catch(const std::exception& e)
     {
-        throw gsc::comp_error(include->pos, "error parsing include file " + include->file->value + ": " + e.what());
+        throw gsc::comp_error(include->loc, "error parsing include file " + include->file->value + ": " + e.what());
     }
 }
 
@@ -142,7 +149,7 @@ void compiler::emit_thread(const gsc::thread_ptr& thread)
     stack_idx_ = 0;
     local_stack_.clear();
     calc_local_vars(ctx, thread);
-    
+
     emit_parameters(ctx, thread->params);
     emit_block(ctx, thread->block, true);
     emit_opcode(ctx, opcode::OP_End);
@@ -486,7 +493,7 @@ void compiler::emit_stmt_case(const gsc::context_ptr& ctx, const gsc::stmt_case_
 {
     if(!ctx->is_switch)
     {
-        throw gsc::comp_error(stmt->pos, "illegal case statement outside a switch");
+        throw gsc::comp_error(stmt->loc, "illegal case statement outside a switch");
     }
 
     if(stmt->value.as_node->type == gsc::node_t::data_integer)
@@ -503,7 +510,7 @@ void compiler::emit_stmt_case(const gsc::context_ptr& ctx, const gsc::stmt_case_
     }
     else
     {
-        throw gsc::comp_error(stmt->pos, "illegal case type");
+        throw gsc::comp_error(stmt->loc, "illegal case type");
     }
 }
 
@@ -511,7 +518,7 @@ void compiler::emit_stmt_default(const gsc::context_ptr& ctx, const gsc::stmt_de
 {
     if(!ctx->is_switch)
     {
-        throw gsc::comp_error(stmt->pos, "illegal default statement outside a switch");
+        throw gsc::comp_error(stmt->loc, "illegal default statement outside a switch");
     }
 
     auto loc = insert_label();
@@ -523,7 +530,7 @@ void compiler::emit_stmt_break(const gsc::context_ptr& ctx, const gsc::stmt_brea
 {
     if(ctx->loc_break == "")
     {
-        throw gsc::comp_error(stmt->pos, "illegal break statement outside a loop");
+        throw gsc::comp_error(stmt->loc, "illegal break statement outside a loop");
     }
 
     emit_remove_local_vars(ctx);
@@ -534,7 +541,7 @@ void compiler::emit_stmt_continue(const gsc::context_ptr& ctx, const gsc::stmt_c
 {
     if(ctx->loc_continue == "")
     {
-        throw gsc::comp_error(stmt->pos, "illegal continue statement outside a loop");
+        throw gsc::comp_error(stmt->loc, "illegal continue statement outside a loop");
     }
 
     emit_remove_local_vars(ctx);
@@ -579,12 +586,10 @@ void compiler::emit_expr(const gsc::context_ptr& ctx, const gsc::expr_ptr& expr)
         case gsc::node_t::expr_not:              emit_expr_not(ctx, expr.as_not); break;
         case gsc::node_t::expr_call:             emit_expr_call(ctx, expr.as_call); break;
         case gsc::node_t::expr_function:         emit_expr_function(ctx, expr.as_function); break;
-        case gsc::node_t::expr_vector:           emit_expr_vector(ctx, expr.as_vector_expr); break;
         case gsc::node_t::expr_add_array:        emit_expr_add_array(ctx, expr.as_add_array); break;
         case gsc::node_t::expr_array:            emit_array_variable(ctx, expr.as_array); break;
         case gsc::node_t::expr_field:            emit_field_variable(ctx, expr.as_field); break;
-        case gsc::node_t::expr_self:             emit_expr_self(ctx, expr.as_self_expr); break;
-        case gsc::node_t::expr_size:             emit_expr_size(ctx, expr.as_size_expr); break;
+        case gsc::node_t::expr_size:             emit_expr_size(ctx, expr.as_size); break;
         case gsc::node_t::data_thisthread:       emit_opcode(ctx, opcode::OP_GetThisthread); break;
         case gsc::node_t::data_empty_array:      emit_opcode(ctx, opcode::OP_EmptyArray); break;
         case gsc::node_t::data_undefined:        emit_opcode(ctx, opcode::OP_GetUndefined); break;
@@ -602,7 +607,7 @@ void compiler::emit_expr(const gsc::context_ptr& ctx, const gsc::expr_ptr& expr)
         case gsc::node_t::data_integer:          emit_integer(ctx, expr.as_integer); break;
         case gsc::node_t::data_false:            emit_false(ctx, expr.as_false); break;
         case gsc::node_t::data_true:             emit_true(ctx, expr.as_true); break;
-        default: throw gsc::comp_error(expr.as_node->pos, "unknown expression"); break;
+        default: throw gsc::comp_error(expr.as_node->loc, "unknown expression"); break;
     }
 }
 
@@ -649,7 +654,7 @@ void compiler::emit_expr_assign(const gsc::context_ptr& ctx, const gsc::expr_ass
             case gsc::node_t::expr_assign_bitwise_or:    emit_opcode(ctx, opcode::OP_bit_or); break;
             case gsc::node_t::expr_assign_bitwise_and:   emit_opcode(ctx, opcode::OP_bit_and); break;
             case gsc::node_t::expr_assign_bitwise_exor:  emit_opcode(ctx, opcode::OP_bit_ex_or); break;
-            default: throw gsc::comp_error(expr->pos, "unknown assign operation"); break;
+            default: throw gsc::comp_error(expr->loc, "unknown assign operation"); break;
         }
 
         emit_variable_ref(ctx, expr->lvalue, true);
@@ -679,7 +684,7 @@ void compiler::emit_expr_binary(const gsc::context_ptr& ctx, const gsc::expr_bin
         case gsc::node_t::expr_mult:             emit_opcode(ctx, opcode::OP_multiply); break;
         case gsc::node_t::expr_div:              emit_opcode(ctx, opcode::OP_divide); break;
         case gsc::node_t::expr_mod:              emit_opcode(ctx, opcode::OP_mod); break;
-        default: throw gsc::comp_error(expr->pos, "unknown binary expression"); break;
+        default: throw gsc::comp_error(expr->loc, "unknown binary expression"); break;
     }
 }
 
@@ -776,7 +781,7 @@ void compiler::emit_expr_call(const gsc::context_ptr& ctx, const gsc::expr_call_
             else
             {
                 // maybe a far call, but include files not supported!
-                throw gsc::comp_error(expr->pos, "unknown function call " + name);
+                throw gsc::comp_error(expr->loc, "unknown function call " + name);
             }
         }
 
@@ -993,7 +998,7 @@ void compiler::emit_expr_clear_variable(const gsc::context_ptr& ctx, const gsc::
         emit_local_variable_ref(ctx, lvalue.as_name, true);
         break;
     default:
-        throw gsc::comp_error(lvalue.as_node->pos, "unknown clear variable lvalue");
+        throw gsc::comp_error(lvalue.as_node->loc, "unknown clear variable lvalue");
         break;
     }
 }
@@ -1002,7 +1007,7 @@ void compiler::emit_expr_add_array(const gsc::context_ptr& ctx, const gsc::expr_
 {
     if(expr->args->list.size() <= 0)
     {
-        throw gsc::comp_error(expr->pos, "invalid empty add array. did u mean '[]' ?");
+        throw gsc::comp_error(expr->loc, "invalid empty add array. did u mean '[]' ?");
     }
 
     emit_opcode(ctx, opcode::OP_EmptyArray);
@@ -1012,19 +1017,6 @@ void compiler::emit_expr_add_array(const gsc::context_ptr& ctx, const gsc::expr_
         emit_expr(ctx, arg);
         emit_opcode(ctx, opcode::OP_AddArray);
     }
-}
-
-void compiler::emit_expr_vector(const gsc::context_ptr& ctx, const gsc::expr_vector_ptr& expr)
-{
-    emit_expr(ctx, expr->z);
-    emit_expr(ctx, expr->y);
-    emit_expr(ctx, expr->x);
-    emit_opcode(ctx, opcode::OP_vector);
-}
-
-void compiler::emit_expr_self(const gsc::context_ptr& ctx, const gsc::expr_self_ptr& expr)
-{
-    throw gsc::comp_error(expr->pos, "SELF FIELD EXPR NOT IMPLEMENTED!");
 }
 
 void compiler::emit_expr_size(const gsc::context_ptr& ctx, const gsc::expr_size_ptr& expr)
@@ -1040,7 +1032,7 @@ void compiler::emit_variable_ref(const gsc::context_ptr& ctx, const gsc::expr_pt
         case gsc::node_t::expr_array: emit_array_variable_ref(ctx, expr.as_array, set); break;
         case gsc::node_t::expr_field: emit_field_variable_ref(ctx, expr.as_field, set); break;
         case gsc::node_t::data_name: emit_local_variable_ref(ctx, expr.as_name, set); break;
-        default: throw gsc::comp_error(expr.as_node->pos, "invalid variable reference type."); break;
+        default: throw gsc::comp_error(expr.as_node->loc, "invalid variable reference type."); break;
     }
 }
 
@@ -1070,7 +1062,7 @@ void compiler::emit_array_variable_ref(const gsc::context_ptr& ctx, const gsc::e
 
             if(!set)
             {
-                throw gsc::comp_error(expr->pos, "INTERNAL: VAR CREATED BUT NOT SET!");
+                throw gsc::comp_error(expr->loc, "INTERNAL: VAR CREATED BUT NOT SET!");
             }
         }
         else if(variable_stack_index(ctx, expr->obj.as_name) == 0)
@@ -1086,10 +1078,10 @@ void compiler::emit_array_variable_ref(const gsc::context_ptr& ctx, const gsc::e
     }
         break;
     case gsc::node_t::expr_call:
-        throw gsc::comp_error(expr->pos, "call result can't be referenced.");
+        throw gsc::comp_error(expr->loc, "call result can't be referenced.");
         break;
     default:
-        throw gsc::comp_error(expr->pos, "unknown array object type");
+        throw gsc::comp_error(expr->loc, "unknown array object type");
         break;
     }
 }
@@ -1127,10 +1119,10 @@ void compiler::emit_field_variable_ref(const gsc::context_ptr& ctx, const gsc::e
         if(set) emit_opcode(ctx, opcode::OP_SetVariableField);
         break;
     case gsc::node_t::expr_call:
-        throw gsc::comp_error(expr->pos, "function call result can't be referenced");
+        throw gsc::comp_error(expr->loc, "function call result can't be referenced");
         break;
     default:
-        throw gsc::comp_error(expr->pos, "unknown field variable object type");
+        throw gsc::comp_error(expr->loc, "unknown field variable object type");
         break;
     }
 }
@@ -1141,7 +1133,7 @@ void compiler::emit_local_variable_ref(const gsc::context_ptr& ctx, const gsc::n
 
     if (itr != constants_.end())
     {
-        throw gsc::comp_error(expr->pos, "variable name already defined as constant " + expr->value);
+        throw gsc::comp_error(expr->loc, "variable name already defined as constant " + expr->value);
     }
 
     if(set)
@@ -1180,7 +1172,7 @@ void compiler::emit_variable(const gsc::context_ptr& ctx, const gsc::expr_ptr& e
         case gsc::node_t::expr_field: emit_field_variable(ctx, expr.as_field); break;
         case gsc::node_t::data_name: emit_local_variable(ctx, expr.as_name); break;
         case gsc::node_t::expr_call:  emit_expr_call(ctx, expr.as_call); break;
-        default: throw gsc::comp_error(expr.as_node->pos, "invalid variable type."); break;
+        default: throw gsc::comp_error(expr.as_node->loc, "invalid variable type."); break;
     }
 }
 
@@ -1234,7 +1226,7 @@ void compiler::emit_field_variable(const gsc::context_ptr& ctx, const gsc::expr_
         emit_opcode(ctx, opcode::OP_EvalFieldVariable, field);
         break;
     default:
-       throw gsc::comp_error(expr->pos, "unknown field variable object type");
+       throw gsc::comp_error(expr->loc, "unknown field variable object type");
         break;
     }
 }
@@ -1328,7 +1320,7 @@ void compiler::emit_object(const gsc::context_ptr& ctx, const gsc::expr_ptr& exp
         // array ?
         // field ?
         default:
-            throw gsc::comp_error(expr.as_node->pos, "unknown object type");
+            throw gsc::comp_error(expr.as_node->loc, "unknown object type");
             break;
     }
 }
@@ -1337,7 +1329,7 @@ void compiler::emit_animtree(const gsc::context_ptr& ctx, const gsc::animtree_pt
 {
     if(animtrees_.size() == 0)
     {
-        throw gsc::comp_error( animtree->pos, "trying to use animtree without specified using animtree");
+        throw gsc::comp_error( animtree->loc, "trying to use animtree without specified using animtree");
     }
 
     auto& tree = animtrees_.back();
@@ -1357,7 +1349,7 @@ void compiler::emit_animation(const gsc::context_ptr& ctx, const gsc::animation_
 {
     if(animtrees_.size() == 0)
     {
-        throw gsc::comp_error(animation->pos, "trying to use animation without specified using animtree");
+        throw gsc::comp_error(animation->loc, "trying to use animation without specified using animtree");
     }
 
     auto& tree = animtrees_.back();
@@ -1387,22 +1379,37 @@ void compiler::emit_vector(const gsc::context_ptr& ctx, const gsc::vector_ptr& v
 {
     std::vector<std::string> data;
 
+    bool expr = false;
+
     if(vec->x.as_node->type == gsc::node_t::data_integer)
         data.push_back(vec->x.as_integer->value);
     else if(vec->x.as_node->type == gsc::node_t::data_float)
         data.push_back(vec->x.as_float->value);
-    
+    else expr = true;
+
     if(vec->y.as_node->type == gsc::node_t::data_integer)
         data.push_back(vec->y.as_integer->value);
     else if(vec->y.as_node->type == gsc::node_t::data_float)
         data.push_back(vec->y.as_float->value);
-    
+    else expr = true;
+
     if(vec->z.as_node->type == gsc::node_t::data_integer)
         data.push_back(vec->z.as_integer->value);
     else if(vec->z.as_node->type == gsc::node_t::data_float)
         data.push_back(vec->z.as_float->value);
+    else expr = true;
 
-    emit_opcode(ctx, opcode::OP_GetVector, data);
+    if(!expr)
+    {
+         emit_opcode(ctx, opcode::OP_GetVector, data);
+    }
+    else
+    {
+        emit_expr(ctx, vec->z);
+        emit_expr(ctx, vec->y);
+        emit_expr(ctx, vec->x);
+        emit_opcode(ctx, opcode::OP_vector);
+    }
 }
 
 void compiler::emit_float(const gsc::context_ptr& ctx, const gsc::float_ptr& num)
@@ -1685,20 +1692,29 @@ void compiler::register_variable(const gsc::context_ptr& ctx, const std::string&
 
 void compiler::initialize_variable(const gsc::context_ptr& ctx, const gsc::name_ptr& name)
 {
-    auto it = std::find_if(ctx->local_vars.begin(), ctx->local_vars.end(), 
-            [&](const gsc::local_var& v) { return v.name == name->value; });
-
-    if(it != ctx->local_vars.end())
+    for(std::uint32_t i = 0; i < ctx->local_vars.size(); i++)
     {
-        if(!it->init)
+        if(ctx->local_vars[i].name == name->value)
         {
-            it->init = true;
-            ctx->local_vars_create_count++;
+            if(!ctx->local_vars[i].init)
+            {
+                for(std::uint32_t j = 0; j < i; j++)
+                {
+                    if(!ctx->local_vars[j].init)
+                    {
+                        emit_opcode(ctx, opcode::OP_CreateLocalVariable, utils::string::va("%d", ctx->local_vars[j].create));
+                        ctx->local_vars[j].init = true;
+                        ctx->local_vars_create_count++;
+                    }
+                }
+                ctx->local_vars[i].init = true;
+                ctx->local_vars_create_count++;
+                return;
+            }
         }
-        return;
     }
 
-    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
+    throw gsc::comp_error(name->loc, "local variable '" + name->value + "' not found.");
 }
 
 void compiler::create_variable(const gsc::context_ptr& ctx, const gsc::name_ptr& name)
@@ -1718,7 +1734,7 @@ void compiler::create_variable(const gsc::context_ptr& ctx, const gsc::name_ptr&
         }
     }
 
-    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
+    throw gsc::comp_error(name->loc, "local variable '" + name->value + "' not found.");
 }
 
 auto compiler::variable_stack_index(const gsc::context_ptr& ctx, const gsc::name_ptr& name) -> std::uint8_t
@@ -1732,11 +1748,11 @@ auto compiler::variable_stack_index(const gsc::context_ptr& ctx, const gsc::name
                 return ctx->local_vars_create_count - 1 - i;
             }
 
-            throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not initialized.");
+            throw gsc::comp_error(name->loc, "local variable '" + name->value + "' not initialized.");
         }   
     }
 
-    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
+    throw gsc::comp_error(name->loc, "local variable '" + name->value + "' not found.");
     return 0xFF;
 }
 
@@ -1748,7 +1764,7 @@ auto compiler::variable_create_index(const gsc::context_ptr& ctx, const gsc::nam
             return utils::string::va("%d", ctx->local_vars[i].create);
     }
 
-    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
+    throw gsc::comp_error(name->loc, "local variable '" + name->value + "' not found.");
     return "";
 }
 
@@ -1763,11 +1779,11 @@ auto compiler::variable_access_index(const gsc::context_ptr& ctx, const gsc::nam
                 return utils::string::va("%d", ctx->local_vars_create_count - 1 - i);
             }
 
-            throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not initialized.");
+            throw gsc::comp_error(name->loc, "local variable '" + name->value + "' not initialized.");
         }   
     }
 
-    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
+    throw gsc::comp_error(name->loc, "local variable '" + name->value + "' not found.");
     return "";
 }
 
@@ -1781,7 +1797,7 @@ auto compiler::variable_initialized(const gsc::context_ptr& ctx, const gsc::name
         }
     }
 
-    throw gsc::comp_error(name->pos, "local variable '" + name->value + "' not found.");
+    throw gsc::comp_error(name->loc, "local variable '" + name->value + "' not found.");
     return false;
 }
 
@@ -1868,6 +1884,93 @@ void compiler::insert_label(const std::string& name)
     {
         function_->labels.insert({index_, name});
     }
+}
+
+void compiler::print_debug_info()
+{
+    GSC_LOG_DEBUG("----------------------------------");
+    GSC_LOG_DEBUG("files included: %zu", includes_.size());
+    GSC_LOG_DEBUG("animtrees used: %zu", animtrees_.size());
+    GSC_LOG_DEBUG("functions compiled: %zu",assembly_.size());
+
+    for (auto& func : assembly_)
+    {
+        this->print_function(func);
+
+        for (auto& inst : func->instructions)
+        {
+            const auto itr = func->labels.find(inst->index);
+
+            if (itr != func->labels.end())
+            {
+                this->print_label(itr->second);
+            }
+
+            this->print_instruction(inst);
+        }
+    }
+
+    GSC_LOG_DEBUG("----------------------------------");
+}
+
+void compiler::print_opcodes(std::uint32_t index, std::uint32_t size)
+{
+    printf("    ");
+}
+
+void compiler::print_function(const gsc::function_ptr& func)
+{
+    printf("\n");
+    printf("%s\n", func->name.data());
+}
+
+void compiler::print_instruction(const gsc::instruction_ptr& inst)
+{
+    switch (opcode(inst->opcode))
+    {
+    case opcode::OP_endswitch:
+        this->print_opcodes(inst->index, 3);
+        printf("%s", resolver::opcode_name(inst->opcode).data());
+        printf(" %s\n", inst->data[0].data());
+        {
+            std::uint32_t totalcase = std::stoul(inst->data[0]);
+            auto index = 0;
+            for (auto casenum = 0u; casenum < totalcase; casenum++)
+            {
+                this->print_opcodes(inst->index, 7);
+                if (inst->data[1 + index] == "case")
+                {
+                    printf("%s %s %s", inst->data[1 + index].data(), inst->data[1 + index + 1].data(), inst->data[1 + index + 2].data());
+                    index += 3;
+                }
+                else if (inst->data[1 + index] == "default")
+                {
+                    printf("%s %s", inst->data[1 + index].data(), inst->data[1 + index + 1].data());
+                    index += 2;
+                }
+                if (casenum != totalcase - 1)
+                {
+                    printf("\n");
+                }
+            }
+        }
+        break;
+    default:
+        this->print_opcodes(inst->index, inst->size);
+        printf("%s", resolver::opcode_name(inst->opcode).data());
+        for (auto& d : inst->data)
+        {
+            printf(" %s", d.data());
+        }
+        break;
+    }
+
+    printf("\n");
+}
+
+void compiler::print_label(const std::string& label)
+{
+    printf("  %s\n", label.data());
 }
 
 } // namespace S1

@@ -11,6 +11,7 @@ namespace H2
 
 class assembler : public gsc::assembler
 {
+    std::string filename_;
     utils::byte_buffer_ptr script_;
     utils::byte_buffer_ptr stack_;
     std::vector<gsc::function_ptr> functions_;
@@ -19,8 +20,8 @@ class assembler : public gsc::assembler
 public:
     auto output_script() -> std::vector<std::uint8_t>;
     auto output_stack() -> std::vector<std::uint8_t>;
-    void assemble(std::vector<std::uint8_t>& data);
-    void assemble(std::vector<gsc::function_ptr>& functions);
+    void assemble(const std::string& file, std::vector<std::uint8_t>& data);
+    void assemble(const std::string& file, std::vector<gsc::function_ptr>& functions);
 
 private:
     void assemble_function(const gsc::function_ptr& func);
