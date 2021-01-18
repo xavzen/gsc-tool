@@ -197,7 +197,7 @@ void compile_file(gsc::assembler& assembler, gsc::compiler& compiler, std::strin
         }
 
         auto data = utils::file::read(file + ext);
-
+        compiler.set_readf_callback(utils::file::read);
         compiler.compile(file, data);
 
         auto assembly = compiler.output();

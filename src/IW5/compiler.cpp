@@ -726,179 +726,121 @@ void compiler::emit_expr_not(const gsc::context_ptr& ctx, const gsc::expr_not_pt
 
 void compiler::emit_expr_call(const gsc::context_ptr& ctx, const gsc::expr_call_ptr& expr)
 {
-    bool thread = false, method = false, builtin = false, far = false, local = false;
-    std::string file, name;
-    std::uint32_t args = 0;
-
-    thread = expr->thread;
-
-    if(expr->obj.as_node->type != gsc::node_t::null)
-    {
-        method = true;
-    }
-
     if(expr->func.as_node->type == gsc::node_t::expr_call_pointer)
     {
-        builtin = expr->func.as_pointer->builtin;
-        
-        args = expr->func.as_pointer->args->list.size();
-        
-        if(!thread && !builtin)
-            emit_opcode(ctx, opcode::OP_PreScriptCall);
-  
-        emit_expr_arguments(ctx, expr->func.as_pointer->args);
-
-        if(method)
-            emit_expr(ctx, expr->obj);
-
-        emit_expr(ctx, expr->func.as_pointer->expr);
-        emit_expr_call_pointer(ctx, args, builtin, method, thread, false);
+        emit_expr_call_pointer(ctx, expr);
     }
     else
     {
-        args = expr->func.as_func->args->list.size();
-        name = expr->func.as_func->name->value;
-        file = expr->func.as_func->file->value;
-
-        if(file != "")
-        {
-            far = true;
-        }
-        else
-        {
-            if(is_local_call(name))
-            {
-                local = true;
-            }
-            else if(method && is_builtin_method(name))
-            {
-                builtin = true;
-            }
-            else if(!method && is_builtin_func(name))
-            {
-                builtin = true;
-            }
-            else
-            {
-                // maybe a far call, but include files not supported!
-                throw gsc::comp_error(expr->loc, "unknown function call " + name);
-            }
-        }
-
-        if(!thread && !builtin)
-            emit_opcode(ctx, opcode::OP_PreScriptCall);
-
-        emit_expr_arguments(ctx, expr->func.as_func->args);
-
-        if(method)
-            emit_expr(ctx, expr->obj);
-
-        if(far)
-            emit_expr_call_far(ctx, file, name, args, method, thread, false);
-        else if(local)
-            emit_expr_call_local(ctx, name, args, method, thread, false);
-        else if(builtin)
-            emit_expr_call_builtin(ctx, name, args, method);
+        emit_expr_call_function(ctx, expr);
     }
 }
 
-void compiler::emit_expr_call_pointer(const gsc::context_ptr& ctx, int args, bool builtin, bool method, bool thread, bool child)
+void compiler::emit_expr_call_pointer(const gsc::context_ptr& ctx, const gsc::expr_call_ptr& expr)
+{
+    bool thread = expr->thread;
+    bool child = expr->child;
+    bool method = expr->obj.as_node->type != gsc::node_t::null ? true : false;
+    bool builtin = builtin = expr->func.as_pointer->builtin;
+    std::uint32_t args = expr->func.as_pointer->args->list.size();
+
+    if(thread && child || thread && builtin || child && builtin)
+        throw gsc::comp_error(expr->loc, "function call have more than 1 type (thread, childthread, builtin)");
+
+    if(!thread && !child && !builtin) emit_opcode(ctx, opcode::OP_PreScriptCall);
+  
+    emit_expr_arguments(ctx, expr->func.as_pointer->args);
+
+    if(method) emit_expr(ctx, expr->obj);
+
+    emit_expr(ctx, expr->func.as_pointer->expr);
+    emit_expr_call_pointer_type(ctx, args, builtin, method, thread, child);
+}
+
+void compiler::emit_expr_call_pointer_type(const gsc::context_ptr& ctx, int args, bool builtin, bool method, bool thread, bool child)
 {
     if(builtin && !method)
     {
         emit_opcode(ctx, opcode::OP_CallBuiltinPointer, utils::string::va("%d", args));
     }
-    else if(builtin && !method)
+    else if(builtin && method)
     {
         emit_opcode(ctx, opcode::OP_CallBuiltinMethodPointer, utils::string::va("%d", args));
     }
-    /*else if(thread && method && child)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptMethodChildThreadCallPointer, utils::string::va("%d", args));
-    }*/
-    else if(thread && method && !child)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptMethodThreadCallPointer, utils::string::va("%d", args));
-    }
-    /*else if (thread && !method && child)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptChildThreadCallPointer, utils::string::va("%d", args));
-    }*/
     else if(thread && !method && !child)
     {
         emit_opcode(ctx, opcode::OP_ScriptThreadCallPointer, utils::string::va("%d", args));
     } 
+    else if(thread && method && !child)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptMethodThreadCallPointer, utils::string::va("%d", args));
+    }
+    else if (child && !method && !thread)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptChildThreadCallPointer, utils::string::va("%d", args));
+    }
+    else if(child && method && !thread)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptMethodChildThreadCallPointer, utils::string::va("%d", args));
+    }
     else
     {
         method ? emit_opcode(ctx, opcode::OP_ScriptMethodCallPointer) : emit_opcode(ctx, opcode::OP_ScriptFunctionCallPointer);
     }
 }
 
-void compiler::emit_expr_call_far(const gsc::context_ptr& ctx, const std::string& file, const std::string& func, int args, bool method, bool thread, bool child)
+void compiler::emit_expr_call_function(const gsc::context_ptr& ctx, const gsc::expr_call_ptr& expr)
 {
-    /*if(thread && method && child)
+    bool thread = expr->thread;
+    bool child = expr->child;
+    bool method = expr->obj.as_node->type != gsc::node_t::null ? true : false;
+    std::uint32_t args = expr->func.as_func->args->list.size();
+    auto name = expr->func.as_func->name->value;
+    auto file = expr->func.as_func->file->value;
+
+    bool builtin = false, far = false, local = false;
+
+    if(file != "") far = true;
+    else
     {
-        emit_opcode(ctx, opcode::OP_ScriptFarMethodChildThreadCall, { utils::string::va("%d", args), file, func });
+        if(is_local_call(name)) local = true;
+        else if(method && is_builtin_method(name)) builtin = true;
+        else if(!method && is_builtin_func(name)) builtin = true;
+        else
+        {
+            for(const auto& inc : includes_)
+            {
+                for(const auto& fun : inc.funcs)
+                {
+                    if(name == fun)
+                    {
+                        far = true;
+                        file = inc.name;
+                        break;
+                    }
+                }
+            }
+
+            if(!builtin && !far && !local)
+                throw gsc::comp_error(expr->loc, "unknown function call " + name);
+        }
     }
-    else */if(thread && method && !child)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptFarMethodThreadCall, { utils::string::va("%d", args), file, func });
-    }
-    /*else if(thread && !method && child)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptFarChildThreadCall, { utils::string::va("%d", args), file, func });
-    }*/
-    else if(thread && !method && !child)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptFarThreadCall, { utils::string::va("%d", args), file, func });
-    }
-    else if(!thread && method)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptFarMethodCall, { file, func });
-    }
-    else if(!thread && !method && args == 0)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptFarFunctionCall2, { file, func });
-    }
-    else if(!thread && !method && args != 0)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptFarFunctionCall, { file, func });
-    }
+
+    if(thread && child || thread && builtin || child && builtin)
+        throw gsc::comp_error(expr->loc, "function call have more than 1 type (thread, childthread, builtin)");
+
+    if(!thread && !child && !builtin) emit_opcode(ctx, opcode::OP_PreScriptCall);
+
+    emit_expr_arguments(ctx, expr->func.as_func->args);
+
+    if(method) emit_expr(ctx, expr->obj);
+
+    if(builtin) emit_expr_call_function_builtin(ctx, name, args, method);
+    else if(local) emit_expr_call_function_local(ctx, name, args, method, thread, child);
+    else if(far) emit_expr_call_function_far(ctx, file, name, args, method, thread, child);
 }
 
-void compiler::emit_expr_call_local(const gsc::context_ptr& ctx, const std::string& func, int args, bool method, bool thread, bool child)
-{
-    if(thread && method && child)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptLocalMethodChildThreadCall, { func, utils::string::va("%d", args) });
-    }
-    else if(thread && method && !child)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptLocalMethodThreadCall, { func, utils::string::va("%d", args) });
-    }
-   else if(thread && !method && child)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptLocalChildThreadCall, { func, utils::string::va("%d", args) });
-    }
-    else if(thread && !method && !child)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptLocalThreadCall, { func, utils::string::va("%d", args) });
-    }
-    else if(!thread && method)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptLocalMethodCall, func);
-    }
-    else if(!thread && !method && args == 0)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptLocalFunctionCall2, func);
-    }
-    else if(!thread && !method && args != 0)
-    {
-        emit_opcode(ctx, opcode::OP_ScriptLocalFunctionCall, func);
-    }
-}
-
-void compiler::emit_expr_call_builtin(const gsc::context_ptr& ctx, const std::string& func, int args, bool method)
+void compiler::emit_expr_call_function_builtin(const gsc::context_ptr& ctx, const std::string& func, int args, bool method)
 {
     if(method)
     {
@@ -925,6 +867,70 @@ void compiler::emit_expr_call_builtin(const gsc::context_ptr& ctx, const std::st
             case 5: emit_opcode(ctx, opcode::OP_CallBuiltin5, func); break;
             default: emit_opcode(ctx, opcode::OP_CallBuiltin, { utils::string::va("%d", args), func }); break;
         }
+    }
+}
+
+void compiler::emit_expr_call_function_local(const gsc::context_ptr& ctx, const std::string& func, int args, bool method, bool thread, bool child)
+{
+    if(thread && !method && !child)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptLocalThreadCall, { func, utils::string::va("%d", args) });
+    }
+    else if(thread && method && !child)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptLocalMethodThreadCall, { func, utils::string::va("%d", args) });
+    }
+    else if(child && !method && !thread)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptLocalChildThreadCall, { func, utils::string::va("%d", args) });
+    }
+    else if(child && method && !thread)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptLocalMethodChildThreadCall, { func, utils::string::va("%d", args) });
+    }
+    else if(method && !thread && !child)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptLocalMethodCall, func);
+    }
+    else if(!thread && !child && !method && args == 0)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptLocalFunctionCall2, func);
+    }
+    else if(!thread && !child && !method && args != 0)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptLocalFunctionCall, func);
+    }
+}
+
+void compiler::emit_expr_call_function_far(const gsc::context_ptr& ctx, const std::string& file, const std::string& func, int args, bool method, bool thread, bool child)
+{
+    if(thread && !method && !child)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptFarThreadCall, { utils::string::va("%d", args), file, func });
+    }
+    else if(thread && method && !child)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptFarMethodThreadCall, { utils::string::va("%d", args), file, func });
+    }
+    else if(child && !method && !thread)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptFarChildThreadCall, { utils::string::va("%d", args), file, func });
+    }
+    else if(child && method && !thread)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptFarMethodChildThreadCall, { utils::string::va("%d", args), file, func });
+    }
+    else if(!thread && !child && method)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptFarMethodCall, { file, func });
+    }
+    else if(!thread && !child && !method && args == 0)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptFarFunctionCall2, { file, func });
+    }
+    else if(!thread && !child && !method && args != 0)
+    {
+        emit_opcode(ctx, opcode::OP_ScriptFarFunctionCall, { file, func });
     }
 }
 

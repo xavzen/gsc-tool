@@ -54,7 +54,7 @@ struct context
             else
             {
                 auto& v = child->local_vars;
-                if (pos > i)
+                if (pos > std::int32_t(i))
                     std::rotate(v.rend() - pos - 1, v.rend() - pos, v.rend() - i);
                 else		
                     std::rotate(v.begin() + pos, v.begin() + pos + 1, v.begin() + i + 1);

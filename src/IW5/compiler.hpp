@@ -85,10 +85,12 @@ private:
     void emit_expr_complement(const gsc::context_ptr& ctx, const gsc::expr_complement_ptr& expr);
     void emit_expr_not(const gsc::context_ptr& ctx, const gsc::expr_not_ptr& expr);
     void emit_expr_call(const gsc::context_ptr& ctx, const gsc::expr_call_ptr& expr);
-    void emit_expr_call_pointer(const gsc::context_ptr& ctx, int args, bool builtin, bool method, bool thread, bool child);
-    void emit_expr_call_far(const gsc::context_ptr& ctx, const std::string& file, const std::string& func, int args, bool method, bool thread, bool child);
-    void emit_expr_call_local(const gsc::context_ptr& ctx, const std::string& func, int args, bool method, bool thread, bool child);
-    void emit_expr_call_builtin(const gsc::context_ptr& ctx, const std::string& func, int args, bool method);
+    void emit_expr_call_pointer(const gsc::context_ptr& ctx, const gsc::expr_call_ptr& expr);
+    void emit_expr_call_pointer_type(const gsc::context_ptr& ctx, int args, bool builtin, bool method, bool thread, bool child);
+    void emit_expr_call_function(const gsc::context_ptr& ctx, const gsc::expr_call_ptr& expr);
+    void emit_expr_call_function_builtin(const gsc::context_ptr& ctx, const std::string& func, int args, bool method);
+    void emit_expr_call_function_local(const gsc::context_ptr& ctx, const std::string& func, int args, bool method, bool thread, bool child);
+    void emit_expr_call_function_far(const gsc::context_ptr& ctx, const std::string& file, const std::string& func, int args, bool method, bool thread, bool child);
     void emit_expr_arguments(const gsc::context_ptr& ctx, const gsc::expr_arguments_ptr& arg_list);
     void emit_expr_function(const gsc::context_ptr& ctx, const gsc::expr_function_ptr& node);
     void emit_expr_clear_variable(const gsc::context_ptr& ctx, const gsc::expr_ptr& lvalue);
