@@ -69,6 +69,12 @@ auto compiler::parse_file(const std::string& file) -> gsc::program_ptr
 
 void compiler::compile_program(const gsc::program_ptr& program)
 {
+    assembly_.clear();
+    includes_.clear();
+    animtrees_.clear();
+    constants_.clear();
+    local_functions_.clear();
+    label_idx_ = 0;
     index_ = 1;
 
     for(const auto& def : program->definitions)
@@ -748,7 +754,7 @@ void compiler::emit_expr_call_pointer(const gsc::context_ptr& ctx, const gsc::ex
         throw gsc::comp_error(expr->loc, "function call have more than 1 type (thread, childthread, builtin)");
 
     if(!thread && !child && !builtin) emit_opcode(ctx, opcode::OP_PreScriptCall);
-  
+
     emit_expr_arguments(ctx, expr->func.as_pointer->args);
 
     if(method) emit_expr(ctx, expr->obj);
@@ -829,7 +835,8 @@ void compiler::emit_expr_call_function(const gsc::context_ptr& ctx, const gsc::e
     if(thread && child || thread && builtin || child && builtin)
         throw gsc::comp_error(expr->loc, "function call have more than 1 type (thread, childthread, builtin)");
 
-    if(!thread && !child && !builtin) emit_opcode(ctx, opcode::OP_PreScriptCall);
+    if(!thread && !child && !builtin && !(!method && args == 0)) 
+        emit_opcode(ctx, opcode::OP_PreScriptCall);
 
     emit_expr_arguments(ctx, expr->func.as_func->args);
 
@@ -1437,7 +1444,7 @@ void compiler::emit_integer(const gsc::context_ptr& ctx, const gsc::integer_ptr&
     }
     else if(value < 0 && value >= -256)
     {
-        emit_opcode(ctx, opcode::OP_GetNegByte, num->value);
+        emit_opcode(ctx, opcode::OP_GetNegByte, num->value.substr(1));
     }
     else if(value < 65535)
     {
@@ -1445,7 +1452,7 @@ void compiler::emit_integer(const gsc::context_ptr& ctx, const gsc::integer_ptr&
     }
     else if(value < 0 && value >= -65536)
     {
-        emit_opcode(ctx, opcode::OP_GetNegUnsignedShort, num->value);
+        emit_opcode(ctx, opcode::OP_GetNegUnsignedShort, num->value.substr(1));
     }
     else
     {

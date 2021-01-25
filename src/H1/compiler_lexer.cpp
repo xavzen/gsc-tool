@@ -1697,48 +1697,53 @@ YY_RULE_SETUP
 case 91:
 YY_RULE_SETUP
 #line 141 "H1.lexer.lpp"
-{ return H1::parser::make_NAME(utils::string::to_lower(yytext), loc); }
+{
+        if(std::string(yytext, 3) == "_ID")
+            return H1::parser::make_NAME(std::string(yytext), loc); 
+        else
+            return H1::parser::make_NAME(utils::string::to_lower(yytext), loc);
+    }
 	YY_BREAK
 case 92:
 /* rule 92 can match eol */
 YY_RULE_SETUP
-#line 142 "H1.lexer.lpp"
+#line 147 "H1.lexer.lpp"
 { return H1::parser::make_ISTRING(std::string(yytext).substr(1), loc); }
 	YY_BREAK
 case 93:
 /* rule 93 can match eol */
 YY_RULE_SETUP
-#line 143 "H1.lexer.lpp"
+#line 148 "H1.lexer.lpp"
 { return H1::parser::make_STRING(std::string(yytext), loc); }
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
-#line 144 "H1.lexer.lpp"
+#line 149 "H1.lexer.lpp"
 { return H1::parser::make_FLOAT(std::string(yytext), loc); }
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
-#line 145 "H1.lexer.lpp"
+#line 150 "H1.lexer.lpp"
 { return H1::parser::make_INTEGER(std::string(yytext), loc); }
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT_BLOCK_STATE):
 case YY_STATE_EOF(DEVELOPER_BLOCK_STATE):
-#line 147 "H1.lexer.lpp"
+#line 152 "H1.lexer.lpp"
 { return H1::parser::make_H1EOF(loc); }
 	YY_BREAK
 case 96:
 /* rule 96 can match eol */
 YY_RULE_SETUP
-#line 148 "H1.lexer.lpp"
+#line 153 "H1.lexer.lpp"
 { throw H1::parser::syntax_error(loc, "invalid character: \'" + std::string(yytext) + "\'"); }
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
-#line 149 "H1.lexer.lpp"
+#line 154 "H1.lexer.lpp"
 ECHO;
 	YY_BREAK
-#line 1741 "./H1/compiler_lexer.cpp"
+#line 1746 "./H1/compiler_lexer.cpp"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2868,6 +2873,6 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 149 "H1.lexer.lpp"
+#line 154 "H1.lexer.lpp"
 
 

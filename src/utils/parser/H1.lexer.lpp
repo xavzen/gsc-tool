@@ -137,7 +137,12 @@ RGX_DEFAULT			(.|\n)
 \^					{ return H1::parser::make_BITWISE_EXOR(loc); }
 
 {RGX_FILE}			{ return H1::parser::make_FILE(std::string(yytext), loc); }
-{RGX_NAME}			{ return H1::parser::make_NAME(utils::string::to_lower(yytext), loc); }
+{RGX_NAME}          {
+        if(std::string(yytext, 3) == "_ID")
+            return H1::parser::make_NAME(std::string(yytext), loc); 
+        else
+            return H1::parser::make_NAME(utils::string::to_lower(yytext), loc);
+    }
 \&{RGX_STRING}		{ return H1::parser::make_ISTRING(std::string(yytext).substr(1), loc); }
 {RGX_STRING}		{ return H1::parser::make_STRING(std::string(yytext), loc); }
 {RGX_FLOAT}			{ return H1::parser::make_FLOAT(std::string(yytext), loc); }

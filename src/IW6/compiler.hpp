@@ -45,7 +45,6 @@ public:
     void compile(const std::string& file, std::vector<std::uint8_t>& data);
     void set_readf_callback(std::function<std::vector<std::uint8_t>(const std::string&)> func);
 
-
 private:
     auto parse_buffer(const std::string& file, std::vector<std::uint8_t>& data) -> gsc::program_ptr;
     auto parse_file(const std::string& file) -> gsc::program_ptr;

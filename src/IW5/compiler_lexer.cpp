@@ -1697,48 +1697,53 @@ YY_RULE_SETUP
 case 91:
 YY_RULE_SETUP
 #line 141 "IW5.lexer.lpp"
-{ return IW5::parser::make_NAME(utils::string::to_lower(yytext), loc); }
+{
+        if(std::string(yytext, 3) == "_ID")
+            return IW5::parser::make_NAME(std::string(yytext), loc); 
+        else
+            return IW5::parser::make_NAME(utils::string::to_lower(yytext), loc);
+    }
 	YY_BREAK
 case 92:
 /* rule 92 can match eol */
 YY_RULE_SETUP
-#line 142 "IW5.lexer.lpp"
+#line 147 "IW5.lexer.lpp"
 { return IW5::parser::make_ISTRING(std::string(yytext).substr(1), loc); }
 	YY_BREAK
 case 93:
 /* rule 93 can match eol */
 YY_RULE_SETUP
-#line 143 "IW5.lexer.lpp"
+#line 148 "IW5.lexer.lpp"
 { return IW5::parser::make_STRING(std::string(yytext), loc); }
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
-#line 144 "IW5.lexer.lpp"
+#line 149 "IW5.lexer.lpp"
 { return IW5::parser::make_FLOAT(std::string(yytext), loc); }
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
-#line 145 "IW5.lexer.lpp"
+#line 150 "IW5.lexer.lpp"
 { return IW5::parser::make_INTEGER(std::string(yytext), loc); }
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT_BLOCK_STATE):
 case YY_STATE_EOF(DEVELOPER_BLOCK_STATE):
-#line 147 "IW5.lexer.lpp"
+#line 152 "IW5.lexer.lpp"
 { return IW5::parser::make_IW5EOF(loc); }
 	YY_BREAK
 case 96:
 /* rule 96 can match eol */
 YY_RULE_SETUP
-#line 148 "IW5.lexer.lpp"
+#line 153 "IW5.lexer.lpp"
 { throw IW5::parser::syntax_error(loc, "invalid character: \'" + std::string(yytext) + "\'"); }
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
-#line 149 "IW5.lexer.lpp"
+#line 154 "IW5.lexer.lpp"
 ECHO;
 	YY_BREAK
-#line 1741 "./IW5/compiler_lexer.cpp"
+#line 1746 "./IW5/compiler_lexer.cpp"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2868,6 +2873,6 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 149 "IW5.lexer.lpp"
+#line 154 "IW5.lexer.lpp"
 
 
