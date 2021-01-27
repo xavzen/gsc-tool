@@ -18,26 +18,29 @@ public:
 class asm_error : public std::runtime_error
 {
 public:
-    asm_error(const std::string& what) : std::runtime_error("[assembler]: "s + what) { }
+    asm_error(const std::string& what) : std::runtime_error("[gsc assembler]: "s + what) { }
 };
 
 class disasm_error : public std::runtime_error
 {
 public:
-    disasm_error(const std::string& what) : std::runtime_error("[disassembler]: "s + what) { }
+    disasm_error(const std::string& what) : std::runtime_error("[gsc disassembler]: "s + what) { }
 };
 
 class comp_error : public std::runtime_error
 {
 public:
     comp_error(gsc::location loc, const std::string& what)
-        : std::runtime_error("[compiler]:"s + std::to_string(loc.begin.line) + ": " + what) { }
+        : std::runtime_error("[gsc compiler]:" + 
+            *loc.begin.filename + ":" + 
+            std::to_string(loc.begin.line) + ":" + 
+            std::to_string(loc.begin.column) + ": " + what) { }
 };
 
 class decomp_error : public std::runtime_error
 {
 public:
-    decomp_error(const std::string& what) : std::runtime_error("[decompiler]: "s + what) { }
+    decomp_error(const std::string& what) : std::runtime_error("[gsc decompiler]: "s + what) { }
 };
 
 } // namespace gsc

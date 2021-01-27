@@ -310,18 +310,6 @@ using asm_jump_true_expr_ptr = std::unique_ptr<node_asm_jump_true_expr>;
 using asm_switch_ptr = std::unique_ptr<node_asm_switch>;
 using asm_endswitch_ptr = std::unique_ptr<node_asm_endswitch>;
 
-union number_ptr
-{
-    node_ptr as_node;
-    integer_ptr as_integer;
-    float_ptr as_float;
-
-    number_ptr() {}
-    number_ptr(node_ptr val): as_node(std::move(val)) {}
-    number_ptr(number_ptr && val) { new(&as_node) node_ptr(std::move(val.as_node)); }
-    ~number_ptr(){}
-};
-
 union expr_call_type_ptr
 {
     node_ptr as_node;

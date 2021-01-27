@@ -118,7 +118,6 @@
 %type <gsc::istring_ptr>                istring
 %type <gsc::string_ptr>                 string
 %type <gsc::vector_ptr>                 vector
-%type <gsc::number_ptr>                 number
 %type <gsc::float_ptr>                  neg_float
 %type <gsc::integer_ptr>                neg_integer
 %type <gsc::float_ptr>                  float
@@ -258,10 +257,8 @@ stmt_notify
     ;
 
 stmt_wait
-    : WAIT LPAREN expr RPAREN SEMICOLON
-        { $$ = std::make_unique<gsc::node_stmt_wait>(@$, std::move($3)); }
-    | WAIT number SEMICOLON
-        { $$ = std::make_unique<gsc::node_stmt_wait>(@$, gsc::expr_ptr(std::move($2.as_node))); }
+    : WAIT expr SEMICOLON
+        { $$ = std::make_unique<gsc::node_stmt_wait>(@$, std::move($2)); }
     ;
 
 stmt_waittill
@@ -478,7 +475,10 @@ expr_primitive
     | istring                           { $$.as_node = std::move($1); }
     | string                            { $$.as_node = std::move($1); }
     | vector                            { $$.as_node = std::move($1); }
-    | number                            { $$.as_node = std::move($1.as_node); }
+    | neg_float                         { $$.as_node = std::move($1); }
+    | neg_integer                       { $$.as_node = std::move($1); }
+    | float                             { $$.as_node = std::move($1); }
+    | integer                           { $$.as_node = std::move($1); }
     | false                             { $$.as_node = std::move($1); }
     | true                              { $$.as_node = std::move($1); }
     ;
@@ -578,19 +578,7 @@ name        : NAME        { $$ = std::make_unique<gsc::node_name>(@$, $1); };
 file        : FILE        { $$ = std::make_unique<gsc::node_file>(@$, $1); };
 istring     : ISTRING     { $$ = std::make_unique<gsc::node_istring>(@$, $1); };
 string      : STRING      { $$ = std::make_unique<gsc::node_string>(@$, $1); };
-
-vector
-    : LPAREN expr COMMA expr COMMA expr RPAREN
-        { $$ = std::make_unique<gsc::node_vector>(@$, std::move($2), std::move($4), std::move($6)); }
-    ;
-
-number
-    : neg_float           { $$.as_float   = std::move($1); }
-    | neg_integer         { $$.as_integer = std::move($1); }
-    | float               { $$.as_float   = std::move($1); }
-    | integer             { $$.as_integer  = std::move($1); }
-    ;
-
+vector      : LPAREN expr COMMA expr COMMA expr RPAREN { $$ = std::make_unique<gsc::node_vector>(@$, std::move($2), std::move($4), std::move($6)); };
 neg_float   : SUB FLOAT   %prec NEG  { $$ = std::make_unique<gsc::node_float>(@$, "-" + $2); };
 neg_integer : SUB INTEGER %prec NEG  { $$ = std::make_unique<gsc::node_integer>(@$, "-" + $2); };
 float       : FLOAT       { $$ = std::make_unique<gsc::node_float>(@$, $1); };
@@ -602,5 +590,5 @@ true        : TRUE        { $$ = std::make_unique<gsc::node_true>(@$); };
 
 void IW6::parser::error(const gsc::location& loc, const std::string& msg)
 {
-    throw gsc::error("[compiler] " + std::to_string(loc.begin.line) + ":" + std::to_string(loc.begin.column) + ": " + msg);
+    throw gsc::comp_error(loc, msg);
 }

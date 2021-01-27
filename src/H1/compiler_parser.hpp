@@ -489,98 +489,95 @@ namespace H1 {
       // object
       char dummy22[sizeof (gsc::node_ptr)];
 
-      // number
-      char dummy23[sizeof (gsc::number_ptr)];
-
       // parameters
-      char dummy24[sizeof (gsc::parameters_ptr)];
+      char dummy23[sizeof (gsc::parameters_ptr)];
 
       // program
-      char dummy25[sizeof (gsc::program_ptr)];
+      char dummy24[sizeof (gsc::program_ptr)];
 
       // self
-      char dummy26[sizeof (gsc::self_ptr)];
+      char dummy25[sizeof (gsc::self_ptr)];
 
       // stmt_assign
-      char dummy27[sizeof (gsc::stmt_assign_ptr)];
+      char dummy26[sizeof (gsc::stmt_assign_ptr)];
 
       // stmt_break
-      char dummy28[sizeof (gsc::stmt_break_ptr)];
+      char dummy27[sizeof (gsc::stmt_break_ptr)];
 
       // stmt_call
-      char dummy29[sizeof (gsc::stmt_call_ptr)];
+      char dummy28[sizeof (gsc::stmt_call_ptr)];
 
       // stmt_case
-      char dummy30[sizeof (gsc::stmt_case_ptr)];
+      char dummy29[sizeof (gsc::stmt_case_ptr)];
 
       // stmt_continue
-      char dummy31[sizeof (gsc::stmt_continue_ptr)];
+      char dummy30[sizeof (gsc::stmt_continue_ptr)];
 
       // stmt_default
-      char dummy32[sizeof (gsc::stmt_default_ptr)];
+      char dummy31[sizeof (gsc::stmt_default_ptr)];
 
       // stmt_endon
-      char dummy33[sizeof (gsc::stmt_endon_ptr)];
+      char dummy32[sizeof (gsc::stmt_endon_ptr)];
 
       // stmt_for
-      char dummy34[sizeof (gsc::stmt_for_ptr)];
+      char dummy33[sizeof (gsc::stmt_for_ptr)];
 
       // stmt_foreach
-      char dummy35[sizeof (gsc::stmt_foreach_ptr)];
+      char dummy34[sizeof (gsc::stmt_foreach_ptr)];
 
       // stmt_if
-      char dummy36[sizeof (gsc::stmt_if_ptr)];
+      char dummy35[sizeof (gsc::stmt_if_ptr)];
 
       // stmt_ifelse
-      char dummy37[sizeof (gsc::stmt_ifelse_ptr)];
+      char dummy36[sizeof (gsc::stmt_ifelse_ptr)];
 
       // stmt_notify
-      char dummy38[sizeof (gsc::stmt_notify_ptr)];
+      char dummy37[sizeof (gsc::stmt_notify_ptr)];
 
       // stmt
-      char dummy39[sizeof (gsc::stmt_ptr)];
+      char dummy38[sizeof (gsc::stmt_ptr)];
 
       // stmt_return
-      char dummy40[sizeof (gsc::stmt_return_ptr)];
+      char dummy39[sizeof (gsc::stmt_return_ptr)];
 
       // stmt_switch
-      char dummy41[sizeof (gsc::stmt_switch_ptr)];
+      char dummy40[sizeof (gsc::stmt_switch_ptr)];
 
       // stmt_wait
-      char dummy42[sizeof (gsc::stmt_wait_ptr)];
+      char dummy41[sizeof (gsc::stmt_wait_ptr)];
 
       // stmt_waittill
-      char dummy43[sizeof (gsc::stmt_waittill_ptr)];
+      char dummy42[sizeof (gsc::stmt_waittill_ptr)];
 
       // stmt_waittillframeend
-      char dummy44[sizeof (gsc::stmt_waittillframeend_ptr)];
+      char dummy43[sizeof (gsc::stmt_waittillframeend_ptr)];
 
       // stmt_waittillmatch
-      char dummy45[sizeof (gsc::stmt_waittillmatch_ptr)];
+      char dummy44[sizeof (gsc::stmt_waittillmatch_ptr)];
 
       // stmt_while
-      char dummy46[sizeof (gsc::stmt_while_ptr)];
+      char dummy45[sizeof (gsc::stmt_while_ptr)];
 
       // string
-      char dummy47[sizeof (gsc::string_ptr)];
+      char dummy46[sizeof (gsc::string_ptr)];
 
       // thisthread
-      char dummy48[sizeof (gsc::thisthread_ptr)];
+      char dummy47[sizeof (gsc::thisthread_ptr)];
 
       // thread
-      char dummy49[sizeof (gsc::thread_ptr)];
+      char dummy48[sizeof (gsc::thread_ptr)];
 
       // true
-      char dummy50[sizeof (gsc::true_ptr)];
+      char dummy49[sizeof (gsc::true_ptr)];
 
       // undefined
-      char dummy51[sizeof (gsc::undefined_ptr)];
+      char dummy50[sizeof (gsc::undefined_ptr)];
 
       // usingtree
-      char dummy52[sizeof (gsc::usingtree_ptr)];
+      char dummy51[sizeof (gsc::usingtree_ptr)];
 
       // vector
-      char dummy53[sizeof (gsc::vector_ptr)];
+      char dummy52[sizeof (gsc::vector_ptr)];
 
       // FILE
       // NAME
@@ -588,7 +585,7 @@ namespace H1 {
       // ISTRING
       // FLOAT
       // INTEGER
-      char dummy54[sizeof (std::string)];
+      char dummy53[sizeof (std::string)];
     };
 
     /// The size of the largest semantic type.
@@ -904,13 +901,12 @@ namespace H1 {
         S_istring = 153,                         // istring
         S_string = 154,                          // string
         S_vector = 155,                          // vector
-        S_number = 156,                          // number
-        S_neg_float = 157,                       // neg_float
-        S_neg_integer = 158,                     // neg_integer
-        S_float = 159,                           // float
-        S_integer = 160,                         // integer
-        S_false = 161,                           // false
-        S_true = 162                             // true
+        S_neg_float = 156,                       // neg_float
+        S_neg_integer = 157,                     // neg_integer
+        S_float = 158,                           // float
+        S_integer = 159,                         // integer
+        S_false = 160,                           // false
+        S_true = 161                             // true
       };
     };
 
@@ -1048,10 +1044,6 @@ namespace H1 {
       case symbol_kind::S_expr_size: // expr_size
       case symbol_kind::S_object: // object
         value.move< gsc::node_ptr > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_number: // number
-        value.move< gsc::number_ptr > (std::move (that.value));
         break;
 
       case symbol_kind::S_parameters: // parameters
@@ -1486,19 +1478,6 @@ namespace H1 {
       {}
 #else
       basic_symbol (typename Base::kind_type t, const gsc::node_ptr& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, gsc::number_ptr&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const gsc::number_ptr& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -2031,10 +2010,6 @@ switch (yykind)
       case symbol_kind::S_expr_size: // expr_size
       case symbol_kind::S_object: // object
         value.template destroy< gsc::node_ptr > ();
-        break;
-
-      case symbol_kind::S_number: // number
-        value.template destroy< gsc::number_ptr > ();
         break;
 
       case symbol_kind::S_parameters: // parameters
@@ -4065,8 +4040,8 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 2602,     ///< Last index in yytable_.
-      yynnts_ = 70,  ///< Number of nonterminal symbols.
+      yylast_ = 2722,     ///< Last index in yytable_.
+      yynnts_ = 69,  ///< Number of nonterminal symbols.
       yyfinal_ = 15 ///< Termination state number.
     };
 
@@ -4195,10 +4170,6 @@ switch (yykind)
       case symbol_kind::S_expr_size: // expr_size
       case symbol_kind::S_object: // object
         value.copy< gsc::node_ptr > (YY_MOVE (that.value));
-        break;
-
-      case symbol_kind::S_number: // number
-        value.copy< gsc::number_ptr > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_parameters: // parameters
@@ -4462,10 +4433,6 @@ switch (yykind)
         value.move< gsc::node_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_number: // number
-        value.move< gsc::number_ptr > (YY_MOVE (s.value));
-        break;
-
       case symbol_kind::S_parameters: // parameters
         value.move< gsc::parameters_ptr > (YY_MOVE (s.value));
         break;
@@ -4658,7 +4625,7 @@ switch (yykind)
 
 #line 13 "H1.parser.ypp"
 } // H1
-#line 4662 "./H1/compiler_parser.hpp"
+#line 4629 "./H1/compiler_parser.hpp"
 
 
 

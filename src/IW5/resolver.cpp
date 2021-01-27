@@ -2603,8 +2603,9 @@ const std::array<gsc::pair_16C, 587> file_list
     { 33386, "maps\\so_survival_mp_park_precache" },
 }};
 
-const std::array<gsc::pair_16C, 2021> token_list
+const std::array<gsc::pair_16C, 2026> token_list
 {{
+    { 1, "pl#" },
     { 56, "onDisconnect" },
     { 371, "getNextGun" },
     { 372, "addAttachments" },
@@ -3410,7 +3411,7 @@ const std::array<gsc::pair_16C, 2021> token_list
     { 2811, "skycolor" },
     { 2812, "skylight" },
     { 2813, "_color" },
-    { 2814, "ltorigin" },
+    { 2814, "ltOrigin" },
     { 2815, "gndlt" },
     { 2816, "sound_csv_include" },
     { 2817, "csv_include" },
@@ -3418,6 +3419,7 @@ const std::array<gsc::pair_16C, 2021> token_list
 //  { 2819, "" },
     { 2820, "maxbounces" },
     { 2821, "radiosityscale" },
+//  { 2822, "" },
     { 2823, "def" },
     { 2824, "exponent" },
     { 2825, "fov_inner" },
@@ -3426,6 +3428,12 @@ const std::array<gsc::pair_16C, 2021> token_list
     { 2828, "__smangles" },
     { 2829, "__smname" },
     { 2830, "__smid" },
+//  { 2831, "" },
+//  { 2832, "" },
+//  { 2833, "" },
+//  { 2834, "" },
+//  { 2835, "" },
+    { 2836, "contrastGain" }, // MAYBE    
 // ...
     { 2944, "isTeamSpeaking" }, // animscripts/battlechater_ai
 // ...
@@ -3597,6 +3605,9 @@ const std::array<gsc::pair_16C, 2021> token_list
 
     { 4095, "secondaryWeapon" },
     { 4538, "scr_sound" },
+
+    { 4630, "script_bombmode_original" },
+
     { 4782, "ch_getProgress" },
     { 4783, "ch_getState" },
     { 4784, "ch_setProgress" },
@@ -3798,6 +3809,9 @@ const std::array<gsc::pair_16C, 2021> token_list
     { 7478, "value" },
     { 7480, "mapCenter" },
     { 7567, "gameEnded" },
+
+    { 7712, "modelscale" },
+
     { 7765, "setModelFromArray" },
     { 7766, "precacheModelArray" },
     { 7767, "attachHead" },
@@ -3823,6 +3837,8 @@ const std::array<gsc::pair_16C, 2021> token_list
 // ...
     { 8106, "watchWeaponChange" },
     { 8745, "debugprint" },
+
+    { 8809, "export" },
 // ...
     { 10226, "endOnDeath" },
     { 10234, "dirtEffect" },
