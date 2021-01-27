@@ -13,15 +13,19 @@ std::unordered_map<std::uint16_t, std::string> function_map;
 std::unordered_map<std::uint16_t, std::string> method_map;
 std::unordered_map<std::uint16_t, std::string> file_map;
 std::unordered_map<std::uint16_t, std::string> token_map;
+std::unordered_map<std::string, std::uint8_t> opcode_map_rev;
+std::unordered_map<std::string, std::uint16_t> function_map_rev;
+std::unordered_map<std::string, std::uint16_t> method_map_rev;
+std::unordered_map<std::string, std::uint16_t> file_map_rev;
+std::unordered_map<std::string, std::uint16_t> token_map_rev;
 
 auto resolver::opcode_id(const std::string& name) -> std::uint8_t
 {
-    for (auto& opcode : opcode_map)
+    const auto itr = opcode_map_rev.find(name);
+
+    if (itr != opcode_map_rev.end())
     {
-        if (opcode.second == name)
-        {
-            return opcode.first;
-        }
+        return itr->second;
     }
 
     throw gsc::error(utils::string::va("Couldn't resolve opcode id for name '%s'!", name.data()));
@@ -43,12 +47,11 @@ auto resolver::opcode_name(std::uint8_t id) -> std::string
 
 auto resolver::function_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& func : function_map)
+    const auto itr = function_map_rev.find(name);
+
+    if (itr != function_map_rev.end())
     {
-        if (func.second == name)
-        {
-            return func.first;
-        }
+        return itr->second;
     }
 
     throw gsc::error(utils::string::va("Couldn't resolve builtin function id for name '%s'!", name.data()));
@@ -70,12 +73,11 @@ auto resolver::function_name(std::uint16_t id) -> std::string
 
 auto resolver::method_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& method : method_map)
+    const auto itr = method_map_rev.find(name);
+
+    if (itr != method_map_rev.end())
     {
-        if (method.second == name)
-        {
-            return method.first;
-        }
+        return itr->second;
     }
 
     throw gsc::error(utils::string::va("Couldn't resolve builtin method id for name '%s'!", name.data()));
@@ -97,12 +99,11 @@ auto resolver::method_name(std::uint16_t id) -> std::string
 
 auto resolver::file_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& file : file_map)
+    const auto itr = file_map_rev.find(name);
+
+    if (itr != file_map_rev.end())
     {
-        if (file.second == name)
-        {
-            return file.first;
-        }
+        return itr->second;
     }
 
     return 0;
@@ -123,12 +124,11 @@ auto resolver::file_name(std::uint16_t id) -> std::string
 
 auto resolver::token_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& token : token_map)
+    const auto itr = token_map_rev.find(name);
+
+    if (itr != token_map_rev.end())
     {
-        if (utils::string::to_lower(token.second) == name)
-        {
-            return token.first;
-        }
+        return itr->second;
     }
 
     return 0;
@@ -148,12 +148,11 @@ auto resolver::token_name(std::uint16_t id) -> std::string
 
 auto resolver::find_function(const std::string& name) -> bool
 {
-    for (auto& func : function_map)
+    const auto itr = function_map_rev.find(name);
+
+    if (itr != function_map_rev.end())
     {
-        if (func.second == name)
-        {
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -161,12 +160,11 @@ auto resolver::find_function(const std::string& name) -> bool
 
 auto resolver::find_method(const std::string& name) -> bool
 {
-    for (auto& method : method_map)
+    const auto itr = method_map_rev.find(name);
+
+    if (itr != method_map_rev.end())
     {
-        if (method.second == name)
-        {
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -2605,7 +2603,7 @@ const std::array<gsc::pair_16C, 587> file_list
     { 33386, "maps\\so_survival_mp_park_precache" },
 }};
 
-const std::array<gsc::pair_16C, 1823> token_list
+const std::array<gsc::pair_16C, 2021> token_list
 {{
     { 56, "onDisconnect" },
     { 371, "getNextGun" },
@@ -2636,8 +2634,7 @@ const std::array<gsc::pair_16C, 1823> token_list
     { 1664, "init" },
     { 1665, "precache" },
     { 1666, "spawner" },
-// entity fields
-    { 1667, "code_classname" },
+    { 1667, "code_classname" }, // entity fields
     { 1668, "classname" },
     { 1669, "origin" },
     { 1670, "model" },
@@ -2651,13 +2648,12 @@ const std::array<gsc::pair_16C, 1823> token_list
     { 1678, "birthtime" },
     { 1679, "script_linkname" },
     { 1680, "slidevelocity" },
-// client fields
-    { 1681, "name" },
+    { 1681, "name" },           // client fields
     { 1682, "sessionteam" },
     { 1683, "sessionstate" },
     { 1684, "maxHealth" },
 // ...
-
+    { 1705, "intensity" },
 // ...
     { 1725, "score" },
     { 1726, "deaths" },
@@ -3367,17 +3363,27 @@ const std::array<gsc::pair_16C, 1823> token_list
     { 2431, "elemType" },
     { 2432, "setPointBar" },
     { 2433, "bar" },
+    { 2434, "padding" },
     { 2435, "frac" },
     { 2436, "updateBar" },
     { 2437, "shader" },
+    { 2438, "hidebar" },
+    { 2439, "orig_alpha" },
     { 2440, "createFontString" },
     { 2441, "fontHeight" },
+    { 2442, "createServerClientFontString" },
+    { 2443, "createClientTimer" },
     { 2444, "createServerFontString" },
     { 2445, "createServerTimer" },
     { 2446, "createIcon" },
+    { 2447, "createClientIcon" },
+    { 2448, "createIcon_Hudelem" },
     { 2449, "createBar" },
     { 2450, "flashFrac" },
+    { 2451, "createClientProgressBar" },
+    { 2452, "createClientBar" },
     { 2453, "setFlashFrac" },
+    { 2454, "fade_over_time" },
     { 2455, "flashThread" },
     { 2456, "destroyElem" },
     { 2457, "setIconShader" },
@@ -3385,16 +3391,210 @@ const std::array<gsc::pair_16C, 1823> token_list
     { 2459, "setHeight" },
     { 2460, "setSize" },
     { 2461, "updateChildren" },
+    { 2462, "stance_carry_icon_enamble" },
+    { 2463, "stance_carry" },
     { 2464, "console" },
+// ...
+    { 2562, "gameskill" },
+    { 2574, "player_damage" },
+
     { 2577, "players" },
+// ...
     { 2623, "isPrimaryWeapon" },
+// ...
+    { 2700, "attacker" },
     { 2711, "A" },
     { 2738, "voice" },
-    { 2944, "isTeamSpeaking" },
+// ...
+    { 2810, "sunradiosity" },
+    { 2811, "skycolor" },
+    { 2812, "skylight" },
+    { 2813, "_color" },
+    { 2814, "ltorigin" },
+    { 2815, "gndlt" },
+    { 2816, "sound_csv_include" },
+    { 2817, "csv_include" },
+    { 2818, "precache_script" },
+//  { 2819, "" },
+    { 2820, "maxbounces" },
+    { 2821, "radiosityscale" },
+    { 2823, "def" },
+    { 2824, "exponent" },
+    { 2825, "fov_inner" },
+    { 2826, "fov_outer" },
+    { 2827, "__smorigin" },
+    { 2828, "__smangles" },
+    { 2829, "__smname" },
+    { 2830, "__smid" },
+// ...
+    { 2944, "isTeamSpeaking" }, // animscripts/battlechater_ai
+// ...
     { 3226, "primaryWeapon" },
+// ...
     { 3297, "isSniper" },
+// ...
+    { 3360, "lastCarExplosionTime" },
+    { 3361, "lastCarExplosionRange" },
+    { 3362, "lastCarExplosionDamageLocation" },
+    { 3363, "lastCarExplosionLocation" },
+    { 3460, "makeType" },
+    { 3463, "destructible_create" },
+    { 3464, "destructible_state" },
+    { 3465, "destructible_anim" },
+    { 3466, "destructible_fx" },
+    { 3467, "destructible_explode" },
+// ...
+    { 3511, "destructible_splash_damage_scaler" },
+    { 3512, "destructible_sound" },
+    { 3513, "destructible_part" },
+    { 3520, "destructible_loopfx" },
+    { 3521, "destructible_loopsound" },
+    { 3522, "destructible_healthdrain" },
+    { 3533, "destructible_physics" },
+    { 3538, "damage_not" },
+    { 3555, "destructible_lights_out" },
+    { 3558, "destructible_spotlight" },
+    { 3587, "destructible_car_alarm" },
+    { 3623, "random_dynamic_attachment" },
+    { 3640, "destructibleSpawnedEntsLimit" },
+    { 3641, "destructibleSpawnedEnts" },
+    { 3642, "currentCarAlarms" },
+    { 3643, "commonStartTime" },
+    { 3644, "fast_destructible_explode" },
+    { 3645, "warn_about_old_destructible" },
+    { 3646, "find_destructibles" },
+    { 3647, "setup_destructibles" },
+    { 3648, "modeldummyon" },
+    { 3649, "destructibleInfo" },
+    { 3650, "parts" },
+    { 3651, "destructible_parts" },
+    { 3652, "modeldummy" },
+    { 3653, "add_key_to_destructible" },
+    { 3654, "add_keypairs_to_destructible" },
+    { 3655, "add_array_to_destructible" },
+    { 3656, "destructible_info" },
+    { 3657, "precache_destructibles" },
+    { 3658, "add_destructible_fx" },
+    { 3659, "canDamageDestructible" },
+    { 3660, "destructibles" },
+    { 3661, "destructible_think" },
     { 3662, "damageOwner" },
+    { 3663, "gunner" },
+    { 3664, "is_shotgun_damage" },
+    { 3665, "enable_ai_shotgun_destructible_damage" },
+    { 3666, "getPartAndStateIndex" },
+    { 3667, "destructible_update_part" },
+    { 3668, "non_player_damage" },
+    { 3669, "waiting_for_queue" },
+    { 3670, "exploding" },
+    { 3671, "loopingSoundStopNotifies" },
+    { 3672, "damage_type" },
+    { 3673, "destructible_splash_rotatation" },
+    { 3674, "destructible_splash_damage" },
+    { 3675, "getAllActiveParts" },
+    { 3676, "setDistanceOnParts" },
+    { 3677, "getLowestPartDistance" },
+    { 3678, "isValidSoundCause" },
+    { 3679, "isAttackerValid" },
+    { 3680, "forceExploding" },
+    { 3681, "dontAllowExplode" },
+    { 3682, "damageIsFromPlayer" },
+    { 3683, "isAIfunc" },
+    { 3684, "isValidDamageCause" },
+    { 3685, "godmode" },
+    { 3686, "script_bulletshield" },
+    { 3687, "getDamageType" },
+    { 3688, "damage_mirror" },
+    { 3689, "add_damage_owner_recorder" },
+    { 3690, "car_damage_owner_recorder" },
+    { 3691, "loopfx_onTag" },
+    { 3692, "health_drain" },
+    { 3693, "destructible_badplace_radius_multiplier" },
+    { 3694, "destructible_health_drain_amount_multiplier" },
+    { 3695, "healthDrain" },
+    { 3696, "disable_destructible_bad_places" },
+    { 3697, "disableBadPlace" },
+    { 3698, "badplace_cylinder_func" },
+    { 3699, "badplace_remove" },
+    { 3700, "badplace_delete_func" },
+    { 3701, "physics_launch" },
+    { 3702, "physics_object_remove" },
+    { 3703, "explode" },
+    { 3704, "destructible_explosion_radius_multiplier" },
+    { 3705, "destructible_protection_func" },
+    { 3706, "cleanupVars" },
+    { 3707, "animsapplied" },
+    { 3708, "caralarm" },
+    { 3709, "destructible_cleans_up_more" },
+    { 3710, "script_noflip" },
+    { 3711, "car_alarm_org" },
+    { 3712, "set_disable_friendlyfire_value_delayed" },
+    { 3713, "friendlyFireDisabledForDestructible" },
+    { 3714, "connectTraverses" },
+    { 3715, "disconnectTraverses" },
+    { 3716, "get_traverse_disconnect_brush" },
+    { 3717, "script_destruct_collision" },
+    { 3718, "hideapart" },
+    { 3719, "showapart" },
+    { 3720, "disable_explosion" },
+    { 3721, "force_explosion" },
+    { 3722, "get_dummy" },
+    { 3723, "play_loop_sound_on_destructible" },
+    { 3724, "force_stop_sound" },
+    { 3725, "notifyDamageAfterFrame" },
+    { 3726, "play_sound" },
+    { 3727, "toString" },
+    { 3728, "do_car_alarm" },
+    { 3729, "lastCarAlarmTime" },
+    { 3730, "car_alarm_timeout" },
+    { 3731, "should_do_car_alarm" },
+    { 3732, "do_random_dynamic_attachment" },
+    { 3733, "get_closest_with_targetname" },
+    { 3734, "player_touching_post_clip" },
+    { 3735, "get_player_touching" },
+    { 3736, "is_so" },
+    { 3737, "destructible_handles_collision_brushes" },
+    { 3738, "collision_brush_pre_explosion" },
+    { 3739, "collision_brush_post_explosion" },
+    { 3740, "func_destructible_crush_player" },
+    { 3741, "debug_player_in_post_clip" },
+    { 3742, "destructible_get_my_breakable_light" },
+    { 3743, "breakable_light" },
+    { 3744, "break_nearest_light" },
+    { 3745, "debug_radiusdamage_circle" },
+    { 3746, "debug_circle_drawlines" },
+    { 3747, "debug_line" },
+    { 3748, "spotlight_tag_origin_cleanup" },
+    { 3749, "spotlight_fizzles_out" },
+    { 3750, "destructible_spotlight_think" },
+    { 3751, "is_valid_damagetype" },
+    { 3752, "destructible_sound_think" },
+    { 3753, "destructible_fx_think" },
+    { 3754, "destructible_animation_think" },
+    { 3755, "no_destructible_animation" },
+    { 3756, "clear_anims" },
+    { 3757, "init_destroyed_count" },
+    { 3758, "destroyedCount" },
+    { 3759, "destroyedCountTimeout" },
+    { 3760, "init_destroyed_count" },
+    { 3761, "add_to_destroyed_count" },
+    { 3762, "get_destroyed_count" },
+    { 3763, "get_max_destroyed_count" },
+    { 3764, "init_destructible_frame_queue" },
+    { 3765, "destructibleFrameQueue" },
+    { 3766, "add_destructible_to_frame_queue" },
+    { 3767, "entNum" },
+    { 3768, "destructible" },
+    { 3769, "totalDamage" },
+    { 3770, "nearDistance" },
+    { 3771, "fxCost" },
+    { 3772, "handle_destructible_frame_queue" },
+    { 3773, "sort_destructible_frame_queue" },
+    { 3774, "get_better_destructible" },
+    { 3775, "get_part_FX_cost_for_action_state" },
+// ...
     { 3791, "hatModel" },
+
     { 4095, "secondaryWeapon" },
     { 4538, "scr_sound" },
     { 4782, "ch_getProgress" },
@@ -3439,6 +3639,7 @@ const std::array<gsc::pair_16C, 1823> token_list
     { 4865, "isFlashbanged" },
     { 4866, "dispatchNotify" },
     { 4867, "registerScoreInfo" },
+// ...
     { 6695, "hud_damagefeedback" },
     { 6702, "updateDamageFeedback" },
     { 6797, "hidden" },
@@ -3471,6 +3672,7 @@ const std::array<gsc::pair_16C, 1823> token_list
     { 6930, "create_vision_set_fog" },
     { 6931, "transitionTime" },
     { 6973, "vision_set_fog_changes" },
+// ...
     { 7163, "watchGrenadeUsage" },
     { 7177, "beginGrenadeTracking" },
     { 7178, "grenade_earthQuake" },
@@ -3617,10 +3819,16 @@ const std::array<gsc::pair_16C, 1823> token_list
     { 7783, "initialize_character_group" },
     { 7784, "get_random_weapon" },
     { 7785, "setupMiniMap" },
+    { 7876, "script_accel" },
+// ...
     { 8106, "watchWeaponChange" },
     { 8745, "debugprint" },
+// ...
     { 10226, "endOnDeath" },
     { 10234, "dirtEffect" },
+    { 10338, "script_targetoffset_z" },
+    { 10396, "script_airspeed" },
+    { 11039, "animation" },
     { 11082, "strip_suffix" },
     { 11083, "updateBarScale" },
     { 11084, "rateOfChange" },
@@ -3910,6 +4118,7 @@ const std::array<gsc::pair_16C, 1823> token_list
     { 11829, "specialty" },
     { 11831, "giveBlindEyeAfterSpawn" },
     { 11832, "avoidKillstreakOnSpawnTimer" },
+    { 11848, "script_gameobjectname" },
     { 11855, "onPlayerDisconnect" },
     { 11878, "onDrop" },
     { 11879, "onPickup" },
@@ -3919,6 +4128,7 @@ const std::array<gsc::pair_16C, 1823> token_list
     { 11921, "onUse" },
     { 11922, "onCantUse" },
     { 11926, "onBeginUse" },
+    { 11996, "script_label" },
     { 12019, "giveKillstreak" },
     { 12020, "killstreakSplashNotify" },
     { 12026, "giveLoadout" },
@@ -4455,26 +4665,31 @@ struct __init__
         for(const auto& entry : opcode_list)
         {
             opcode_map.insert({ entry.key, entry.value });
+            opcode_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : function_list)
         {
             function_map.insert({ entry.key, entry.value });
+            function_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : method_list)
         {
             method_map.insert({ entry.key, entry.value });
+            method_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : file_list)
         {
             file_map.insert({ entry.key, entry.value });
+            file_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : token_list)
         {
             token_map.insert({ entry.key, entry.value });
+            token_map_rev.insert({ utils::string::to_lower(entry.value), entry.key });
         }
     }
 };
