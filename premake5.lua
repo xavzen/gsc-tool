@@ -23,6 +23,7 @@ workspace "gsc-tool"
     architecture "x86_64"
 
     filter "action:vs*"
+        buildoptions "/bigobj"
         buildoptions "/Zc:__cplusplus"
     filter{}
 
