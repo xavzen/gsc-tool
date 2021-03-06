@@ -14,15 +14,19 @@ std::unordered_map<std::uint16_t, std::string> function_map;
 std::unordered_map<std::uint16_t, std::string> method_map;
 std::unordered_map<std::uint16_t, std::string> file_map;
 std::unordered_map<std::uint16_t, std::string> token_map;
+std::unordered_map<std::string, std::uint8_t> opcode_map_rev;
+std::unordered_map<std::string, std::uint16_t> function_map_rev;
+std::unordered_map<std::string, std::uint16_t> method_map_rev;
+std::unordered_map<std::string, std::uint16_t> file_map_rev;
+std::unordered_map<std::string, std::uint16_t> token_map_rev;
 
 auto resolver::opcode_id(const std::string& name) -> std::uint8_t
 {
-    for (auto& opcode : opcode_map)
+    const auto itr = opcode_map_rev.find(name);
+
+    if (itr != opcode_map_rev.end())
     {
-        if (opcode.second == name)
-        {
-            return opcode.first;
-        }
+        return itr->second;
     }
 
     throw gsc::error(utils::string::va("Couldn't resolve opcode id for name '%s'!", name.data()));
@@ -42,12 +46,11 @@ auto resolver::opcode_name(std::uint8_t id) -> std::string
 
 auto resolver::function_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& func : function_map)
+    const auto itr = function_map_rev.find(name);
+
+    if (itr != function_map_rev.end())
     {
-        if (func.second == name)
-        {
-            return func.first;
-        }
+        return itr->second;
     }
 
     throw gsc::error(utils::string::va("Couldn't resolve builtin function id for name '%s'!", name.data()));
@@ -67,12 +70,11 @@ auto resolver::function_name(std::uint16_t id) -> std::string
 
 auto resolver::method_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& method : method_map)
+    const auto itr = method_map_rev.find(name);
+
+    if (itr != method_map_rev.end())
     {
-        if (method.second == name)
-        {
-            return method.first;
-        }
+        return itr->second;
     }
 
     throw gsc::error(utils::string::va("Couldn't resolve builtin method id for name '%s'!", name.data()));
@@ -92,12 +94,11 @@ auto resolver::method_name(std::uint16_t id) -> std::string
 
 auto resolver::file_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& file : file_map)
+    const auto itr = file_map_rev.find(name);
+
+    if (itr != file_map_rev.end())
     {
-        if (file.second == name)
-        {
-            return file.first;
-        }
+        return itr->second;
     }
 
     return 0;
@@ -117,12 +118,11 @@ auto resolver::file_name(std::uint16_t id) -> std::string
 
 auto resolver::token_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& token : token_map)
+    const auto itr = token_map_rev.find(name);
+
+    if (itr != token_map_rev.end())
     {
-        if (utils::string::to_lower(token.second) == name)
-        {
-            return token.first;
-        }
+        return itr->second;
     }
 
     return 0;
@@ -142,12 +142,11 @@ auto resolver::token_name(std::uint16_t id) -> std::string
 
 auto resolver::find_function(const std::string& name) -> bool
 {
-    for (auto& func : function_map)
+    const auto itr = function_map_rev.find(name);
+
+    if (itr != function_map_rev.end())
     {
-        if (func.second == name)
-        {
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -155,12 +154,11 @@ auto resolver::find_function(const std::string& name) -> bool
 
 auto resolver::find_method(const std::string& name) -> bool
 {
-    for (auto& method : method_map)
+    const auto itr = method_map_rev.find(name);
+
+    if (itr != method_map_rev.end())
     {
-        if (method.second == name)
-        {
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -2146,11 +2144,9 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x38C, "character\\character_venezuela_army_assault_a" },
     { 0x38D, "character\\character_venezuela_army_smg_a" },
     { 0x38E, "character\\character_venezuela_army_smg_a_head_d" },
-// codescripts
     { 0x38F, "codescripts\\character" },
     { 0x390, "codescripts\\delete" },
     { 0x391, "codescripts\\struct" },
-// common_scripts
     { 0x392, "common_scripts\\_artcommon" },
     { 0x393, "common_scripts\\_bcs_location_trigs" },
     { 0x394, "common_scripts\\_createfx" },
@@ -2165,7 +2161,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x39D, "common_scripts\\_sentry" },
     { 0x39E, "common_scripts\\_wind" },
     { 0x39F, "common_scripts\\utility" },
-// destructible_scripts
     { 0x3A0, "destructible_scripts\\destructible_civilian_sedan_iw6" },
     { 0x3A1, "destructible_scripts\\destructible_civilian_sedan_water_iw6" },
     { 0x3A2, "destructible_scripts\\destructible_van_water_iw6" },
@@ -2184,7 +2179,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x3AF, "destructible_scripts\\toy_tv_flatscreen_wallmount_02" },
     { 0x3B0, "destructible_scripts\\toy_tv_video_monitor" },
     { 0x3B1, "destructible_scripts\\toy_usa_gas_station_trash_bin_02" },
-// maps
     { 0x3B2, "maps\\_ambient" },
     { 0x3B3, "maps\\_anim" },
     { 0x3B4, "maps\\_animatedmodels" },
@@ -2350,7 +2344,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x454, "maps\\skyway_precache" },
     { 0x455, "maps\\youngblood_fx" },
     { 0x456, "maps\\youngblood_precache" },
-// vehicle_scripts
     { 0x457, "vehicle_scripts\\_a10_warthog" },
     { 0x458, "vehicle_scripts\\_apache" },
     { 0x459, "vehicle_scripts\\_apache_player" },
@@ -2412,7 +2405,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x491, "vehicle_scripts\\t90ms" },
     { 0x492, "vehicle_scripts\\tatra_t815" },
     { 0x493, "vehicle_scripts\\y_8_gunship" },
-// xmodelalias
     { 0x494, "xmodelalias\\alias_chemwar_russian_heads" },
     { 0x495, "xmodelalias\\alias_elite_pmc_heads" },
     { 0x496, "xmodelalias\\alias_fed_army_heads_a" },
@@ -2441,7 +2433,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x4AD, "xmodelalias\\alias_us_space_assault_heads" },
     { 0x4AE, "xmodelalias\\alias_us_space_int_heads" },
     { 0x4AF, "xmodelalias\\alias_venezuela_army_heads" },
-// maps/animated_models
     { 0x4B0, "maps\\animated_models\\accessories_windsock_wind_medium" },
     { 0x4B1, "maps\\animated_models\\com_roofvent2" },
     { 0x4B2, "maps\\animated_models\\com_roofvent3" },
@@ -2456,7 +2447,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x4BB, "maps\\animated_models\\tarp_tattered_thin_02" },
     { 0x4BC, "maps\\animated_models\\tattered_cloth_medium_01" },
     { 0x4BD, "maps\\animated_models\\tattered_cloth_small_02" },
-// maps/createart
     { 0x4BE, "maps\\createart\\black_ice_art" },
     { 0x4BF, "maps\\createart\\black_ice_fog" },
     { 0x4C0, "maps\\createart\\carrier_art" },
@@ -2528,7 +2518,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x502, "maps\\createart\\skyway_fog" },
     { 0x503, "maps\\createart\\youngblood_art" },
     { 0x504, "maps\\createart\\youngblood_fog" },
-// maps/createfx
     { 0x505, "maps\\createfx\\black_ice_fx" },
     { 0x506, "maps\\createfx\\black_ice_sound" },
     { 0x507, "maps\\createfx\\carrier_fx" },
@@ -2582,7 +2571,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x537, "maps\\createfx\\skyway_sound" },
     { 0x538, "maps\\createfx\\youngblood_fx" },
     { 0x539, "maps\\createfx\\youngblood_sound" },
-// maps/interactive_models
     { 0x53A, "maps\\interactive_models\\_birds" },
     { 0x53B, "maps\\interactive_models\\_fish" },
     { 0x53C, "maps\\interactive_models\\_interactive_utility" },
@@ -2596,7 +2584,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x544, "maps\\interactive_models\\parakeets" },
     { 0x545, "maps\\interactive_models\\pigeons" },
     { 0x546, "maps\\interactive_models\\vulture" },
-// maps/mp
     { 0x547, "maps\\mp\\_animatedmodels" },
     { 0x548, "maps\\mp\\_areas" },
     { 0x549, "maps\\mp\\_art" },
@@ -2664,7 +2651,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x587, "maps\\mp\\mp_warhawk_precache" },
     { 0x588, "maps\\mp\\mp_zebra_fx" },
     { 0x589, "maps\\mp\\mp_zebra_precache" },
-// maps/mp/alien
     { 0x58A, "maps\\mp\\alien\\_achievement" },
     { 0x58B, "maps\\mp\\alien\\_airdrop" },
     { 0x58C, "maps\\mp\\alien\\_alien_fx" },
@@ -2712,7 +2698,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x5B6, "maps\\mp\\alien\\_trap" },
     { 0x5B7, "maps\\mp\\alien\\_unlock" },
     { 0x5B8, "maps\\mp\\alien\\_unk1464" },
-// maps/mp/gametypes
     { 0x5B9, "maps\\mp\\gametypes\\_battlebuddy" },
     { 0x5BA, "maps\\mp\\gametypes\\_battlechatter_mp" },
     { 0x5BB, "maps\\mp\\gametypes\\_callbacksetup" },
@@ -2760,7 +2745,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x5E5, "maps\\mp\\gametypes\\_trophy_system" },
     { 0x5E6, "maps\\mp\\gametypes\\_tweakables" },
     { 0x5E7, "maps\\mp\\gametypes\\_weapons" },
-// maps/mp/killstreaks
     { 0x5E8, "maps\\mp\\killstreaks\\_a10" },
     { 0x5E9, "maps\\mp\\killstreaks\\_unk1513" },
     { 0x5EA, "maps\\mp\\killstreaks\\_aamissile" },
@@ -2819,7 +2803,6 @@ const std::array<gsc::pair_16C, 831> file_list
     { 0x61F, "maps\\mp\\killstreaks\\_uav" },
     { 0x620, "maps\\mp\\killstreaks\\_uplink" },
     { 0x621, "maps\\mp\\killstreaks\\_vanguard" },
-// maps/mp/perks
     { 0x622, "maps\\mp\\perks\\_abilities" },
     { 0x623, "maps\\mp\\perks\\_perkfunctions" },
     { 0x624, "maps\\mp\\perks\\_perks" },
@@ -16694,26 +16677,31 @@ struct __init__
         for(const auto& entry : opcode_list)
         {
             opcode_map.insert({ entry.key, entry.value });
+            opcode_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : function_list)
         {
             function_map.insert({ entry.key, entry.value });
+            function_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : method_list)
         {
             method_map.insert({ entry.key, entry.value });
+            method_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : file_list)
         {
             file_map.insert({ entry.key, entry.value });
+            file_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : token_list)
         {
             token_map.insert({ entry.key, entry.value });
+            token_map_rev.insert({ utils::string::to_lower(entry.value), entry.key });
         }
     }
 };

@@ -14,15 +14,19 @@ std::unordered_map<std::uint16_t, std::string> function_map;
 std::unordered_map<std::uint16_t, std::string> method_map;
 std::unordered_map<std::uint16_t, std::string> file_map;
 std::unordered_map<std::uint16_t, std::string> token_map;
+std::unordered_map<std::string, std::uint8_t> opcode_map_rev;
+std::unordered_map<std::string, std::uint16_t> function_map_rev;
+std::unordered_map<std::string, std::uint16_t> method_map_rev;
+std::unordered_map<std::string, std::uint16_t> file_map_rev;
+std::unordered_map<std::string, std::uint16_t> token_map_rev;
 
 auto resolver::opcode_id(const std::string& name) -> std::uint8_t
 {
-    for (auto& opcode : opcode_map)
+    const auto itr = opcode_map_rev.find(name);
+
+    if (itr != opcode_map_rev.end())
     {
-        if (opcode.second == name)
-        {
-            return opcode.first;
-        }
+        return itr->second;
     }
 
     throw gsc::error(utils::string::va("Couldn't resolve opcode id for name '%s'!", name.data()));
@@ -42,12 +46,11 @@ auto resolver::opcode_name(std::uint8_t id) -> std::string
 
 auto resolver::function_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& func : function_map)
+    const auto itr = function_map_rev.find(name);
+
+    if (itr != function_map_rev.end())
     {
-        if (func.second == name)
-        {
-            return func.first;
-        }
+        return itr->second;
     }
 
     throw gsc::error(utils::string::va("Couldn't resolve builtin function id for name '%s'!", name.data()));
@@ -67,12 +70,11 @@ auto resolver::function_name(std::uint16_t id) -> std::string
 
 auto resolver::method_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& method : method_map)
+    const auto itr = method_map_rev.find(name);
+
+    if (itr != method_map_rev.end())
     {
-        if (method.second == name)
-        {
-            return method.first;
-        }
+        return itr->second;
     }
 
     throw gsc::error(utils::string::va("Couldn't resolve builtin method id for name '%s'!", name.data()));
@@ -92,12 +94,11 @@ auto resolver::method_name(std::uint16_t id) -> std::string
 
 auto resolver::file_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& file : file_map)
+    const auto itr = file_map_rev.find(name);
+
+    if (itr != file_map_rev.end())
     {
-        if (file.second == name)
-        {
-            return file.first;
-        }
+        return itr->second;
     }
 
     return 0;
@@ -117,12 +118,11 @@ auto resolver::file_name(std::uint16_t id) -> std::string
 
 auto resolver::token_id(const std::string& name) -> std::uint16_t
 {
-    for (auto& token : token_map)
+    const auto itr = token_map_rev.find(name);
+
+    if (itr != token_map_rev.end())
     {
-        if (utils::string::to_lower(token.second) == name)
-        {
-            return token.first;
-        }
+        return itr->second;
     }
 
     return 0;
@@ -142,12 +142,11 @@ auto resolver::token_name(std::uint16_t id) -> std::string
 
 auto resolver::find_function(const std::string& name) -> bool
 {
-    for (auto& func : function_map)
+    const auto itr = function_map_rev.find(name);
+
+    if (itr != function_map_rev.end())
     {
-        if (func.second == name)
-        {
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -155,12 +154,11 @@ auto resolver::find_function(const std::string& name) -> bool
 
 auto resolver::find_method(const std::string& name) -> bool
 {
-    for (auto& method : method_map)
+    const auto itr = method_map_rev.find(name);
+
+    if (itr != method_map_rev.end())
     {
-        if (method.second == name)
-        {
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -355,26 +353,31 @@ struct __init__
         for(const auto& entry : opcode_list)
         {
             opcode_map.insert({ entry.key, entry.value });
+            opcode_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : function_list)
         {
             function_map.insert({ entry.key, entry.value });
+            function_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : method_list)
         {
             method_map.insert({ entry.key, entry.value });
+            method_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : file_list)
         {
             file_map.insert({ entry.key, entry.value });
+            file_map_rev.insert({ entry.value, entry.key });
         }
 
         for(const auto& entry : token_list)
         {
             token_map.insert({ entry.key, entry.value });
+            token_map_rev.insert({ utils::string::to_lower(entry.value), entry.key });
         }
     }
 };

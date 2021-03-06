@@ -2363,7 +2363,7 @@ const std::array<gsc::pair_16C, 587> file_list
 //  { 1229, "1229" },// maps/mp/gametypes/_hardpoints maybe
     { 1230, "maps/mp/killstreaks/_aamissile" },
     { 1231, "maps/mp/killstreaks/_aastrike" },
-    { 1232, "maps/mp/killstreaks/_ac130" },
+//    { 1232, "maps/mp/killstreaks/_ac130" }, // bad name!
 // ...
     { 1343, "xmodelalias/alias_gign_heads" },
     { 1344, "codescripts/delete" },
