@@ -295,7 +295,6 @@ void disassembler::dissasemble_instruction(const gsc::instruction_ptr& inst)
         break;
     default:
         throw disasm_error(utils::string::va("Unhandled opcode 0x%X at index '%04X'!", inst->opcode, inst->index));
-        break;
     }
 }
 
@@ -504,10 +503,8 @@ auto disassembler::resolve_function(const std::string& index) -> std::string
 
         throw disasm_error(utils::string::va("Couldn't resolve function name at index '0x%04X'!", idx));
     }
-    else
-    {
-        throw disasm_error(utils::string::va("\"%s\" is not valid function address!", index.data()));
-    }
+
+    throw disasm_error(utils::string::va("\"%s\" is not valid function address!", index.data()));
 }
 
 void disassembler::print_function(const gsc::function_ptr& func)

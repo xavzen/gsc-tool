@@ -505,10 +505,8 @@ auto disassembler::resolve_function(const std::string& index) -> std::string
 
         throw gsc::disasm_error(utils::string::va("Couldn't resolve function name at index '0x%04X'!", idx));
     }
-    else
-    {
-        throw gsc::disasm_error(utils::string::va("\"%s\" is not valid function address!", index.data()));
-    }
+
+    throw gsc::disasm_error(utils::string::va("\"%s\" is not valid function address!", index.data()));
 }
 
 void disassembler::print_function(const gsc::function_ptr& func)

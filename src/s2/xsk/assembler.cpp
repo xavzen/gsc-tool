@@ -82,7 +82,6 @@ void assembler::assemble(const std::string& file, std::vector<std::uint8_t>& dat
                 }
 
                 throw gsc::asm_error("invalid instruction inside endswitch \""s + line + "\"!");
-                return;
             }
             else
             {
@@ -115,7 +114,7 @@ void assembler::assemble(const std::string& file, std::vector<gsc::function_ptr>
     filename_ = file;
     functions_ = std::move(functions);
 
-    script_->write<std::uint8_t>(0x34);
+    script_->write<std::uint8_t>(static_cast<std::uint8_t>(opcode::OP_End));
     stack_->write<std::uint32_t>(0x69773630);
 
     for (const auto& func : functions_)
@@ -281,7 +280,7 @@ void assembler::assemble_instruction(const gsc::instruction_ptr& inst)
     case opcode::OP_EvalLocalVariableObjectCached:
     case opcode::OP_EvalLocalArrayCached:
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
-        script_->write<std::uint8_t>(static_cast<std::uint8_t>(std::stol(inst->data[0])));
+        script_->write<std::uint8_t>(static_cast<std::uint8_t>(std::stoi(inst->data[0])));
         break;
     case opcode::OP_EvalSelfFieldVariable:
     case opcode::OP_SetLevelFieldVariableField:
@@ -304,7 +303,7 @@ void assembler::assemble_instruction(const gsc::instruction_ptr& inst)
     case opcode::OP_ScriptMethodThreadCallPointer:
     case opcode::OP_ScriptMethodChildThreadCallPointer:
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
-        script_->write<std::uint8_t>(static_cast<std::uint8_t>(std::stol(inst->data[0])));
+        script_->write<std::uint8_t>(static_cast<std::uint8_t>(std::stoi(inst->data[0])));
         break;
     case opcode::OP_GetLocalFunction:
     case opcode::OP_ScriptLocalFunctionCall2:
