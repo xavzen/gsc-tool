@@ -170,7 +170,6 @@ enum class opcode : std::uint8_t
     OP_inequality = 0x97,
     OP_ScriptLocalFunctionCall = 0x98,
     OP_bit_ex_or = 0x99,
-// new opcodes
     OP_NOP = 0x9A,
     OP_abort = 0x9B,
     OP_object = 0x9C,

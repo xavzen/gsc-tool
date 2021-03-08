@@ -57,7 +57,6 @@ auto opcode_size(std::uint8_t id) -> std::uint32_t
     case opcode::OP_DecTop:
     case opcode::OP_CastBool:
     case opcode::OP_EvalArrayRef:
-    case opcode::OP_SetNewLocalVariableFieldCached0:
     case opcode::OP_GetZero:
     case opcode::OP_wait:
     case opcode::OP_waittill:
@@ -110,6 +109,7 @@ auto opcode_size(std::uint8_t id) -> std::uint32_t
     case opcode::OP_EvalLocalVariableObjectCached:
     case opcode::OP_GetNegByte:
     case opcode::OP_SafeCreateVariableFieldCached:
+    case opcode::OP_SetNewLocalVariableFieldCached0:
     case opcode::OP_GetAnimTree:
     case opcode::OP_EvalLocalArrayCached:
     case opcode::OP_ScriptMethodThreadCallPointer:
@@ -120,12 +120,12 @@ auto opcode_size(std::uint8_t id) -> std::uint32_t
     case opcode::OP_EvalLocalArrayRefCached:
     case opcode::OP_CallBuiltinPointer:
     case opcode::OP_prof_end:
-    case opcode::OP_FormalParams: // -- 2 not fixed size?
+    case opcode::OP_FormalParams:
     case opcode::OP_EvalNewLocalArrayRefCached0_Precompiled:
     case opcode::OP_SetNewLocalVariableFieldCached0_Precompiled:
     case opcode::OP_CreateLocalVariable_Precompiled:
     case opcode::OP_SafeCreateVariableFieldCached_Precompiled:
-    case opcode::OP_FormalParams_Precompiled: // -- 2 not fixed size?
+    case opcode::OP_FormalParams_Precompiled:
         return 2;
     case opcode::OP_waittillmatch:
     case opcode::OP_JumpOnTrue:

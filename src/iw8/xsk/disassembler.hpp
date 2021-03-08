@@ -30,6 +30,7 @@ private:
     void disassemble_far_call(const gsc::instruction_ptr& inst, bool thread);
     void disassemble_jump(const gsc::instruction_ptr& inst, bool expr, bool back);
     void disassemble_field_variable(const gsc::instruction_ptr& inst);
+    void disassemble_formal_params(const gsc::instruction_ptr& inst);
     void disassemble_switch(const gsc::instruction_ptr& inst);
     void disassemble_end_switch(const gsc::instruction_ptr& inst);
     auto disassemble_offset() -> std::int32_t;

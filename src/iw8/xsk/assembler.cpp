@@ -147,75 +147,88 @@ void assembler::assemble_instruction(const gsc::instruction_ptr& inst)
 {
     switch (opcode(inst->opcode))
     {
-    case opcode::OP_Return:
-    case opcode::OP_BoolNot:
-    case opcode::OP_CastBool:
-    case opcode::OP_inequality:
-    case opcode::OP_GetThisthread:
-    case opcode::OP_ClearLocalVariableFieldCached0:
-    case opcode::OP_checkclearparams:
     case opcode::OP_CastFieldObject:
-    case opcode::OP_End:
-    case opcode::OP_size:
-    case opcode::OP_EmptyArray:
-    case opcode::OP_bit_and:
-    case opcode::OP_less_equal:
-    case opcode::OP_voidCodepos:
-    case opcode::OP_ClearVariableField:
-    case opcode::OP_divide:
-    case opcode::OP_GetSelf:
-    case opcode::OP_SetLocalVariableFieldCached0:
     case opcode::OP_plus:
-    case opcode::OP_BoolComplement:
-    case opcode::OP_ScriptMethodCallPointer:
-    case opcode::OP_inc:
-    case opcode::OP_clearparams:
-    case opcode::OP_EvalLocalVariableRefCached0:
-    case opcode::OP_ScriptFunctionCallPointer:
-    case opcode::OP_endon:
-    case opcode::OP_greater_equal:
-    case opcode::OP_GetSelfObject:
-    case opcode::OP_SetVariableField:
-    case opcode::OP_EvalLocalArrayRefCached0:
-    case opcode::OP_less:
     case opcode::OP_GetGameRef:
-    case opcode::OP_waittillFrameEnd:
-    case opcode::OP_SafeSetVariableFieldCached0:
-    case opcode::OP_GetLevel:
-    case opcode::OP_notify:
-    case opcode::OP_DecTop:
-    case opcode::OP_shift_left:
+    case opcode::OP_GetThisthread:
     case opcode::OP_greater:
+    case opcode::OP_shift_right:
+    case opcode::OP_dec:
+    case opcode::OP_bit_or:
+    case opcode::OP_equality:
+    case opcode::OP_ClearLocalVariableFieldCached0:
+    case opcode::OP_notify:
+    case opcode::OP_PreScriptCall:
+    case opcode::OP_GetUndefined:
+    case opcode::OP_SetLocalVariableFieldCached0:
+    case opcode::OP_GetLevel:
+    case opcode::OP_size:
+    case opcode::OP_AddArray:
+    case opcode::OP_endon:
+    case opcode::OP_shift_left:
+    case opcode::OP_EvalLocalArrayRefCached0:
+    case opcode::OP_Return:
+    case opcode::OP_SafeSetVariableFieldCached0:
+    case opcode::OP_GetSelfObject:
+    case opcode::OP_GetGame:
+    case opcode::OP_EvalArray:
+    case opcode::OP_GetSelf:
+    case opcode::OP_End:
+    case opcode::OP_less_equal:
     case opcode::OP_EvalLocalVariableCached0:
     case opcode::OP_EvalLocalVariableCached1:
     case opcode::OP_EvalLocalVariableCached2:
     case opcode::OP_EvalLocalVariableCached3:
     case opcode::OP_EvalLocalVariableCached4:
     case opcode::OP_EvalLocalVariableCached5:
+    case opcode::OP_ScriptMethodCallPointer:
+    case opcode::OP_checkclearparams:
+    case opcode::OP_waittillmatch2:
+    case opcode::OP_minus:
+    case opcode::OP_greater_equal:
+    case opcode::OP_vector:
+    case opcode::OP_ClearArray:
+    case opcode::OP_DecTop:
+    case opcode::OP_CastBool:
+    case opcode::OP_EvalArrayRef:
     case opcode::OP_GetZero:
     case opcode::OP_wait:
-    case opcode::OP_minus:
-    case opcode::OP_EvalNewLocalVariableRefCached0:
-    case opcode::OP_multiply:
-    case opcode::OP_mod:
-    case opcode::OP_GetGame:
     case opcode::OP_waittill:
-    case opcode::OP_dec:
-    case opcode::OP_PreScriptCall:
-    case opcode::OP_GetAnim:
-    case opcode::OP_GetUndefined:
     case opcode::OP_GetAnimObject:
+    case opcode::OP_mod:
+    case opcode::OP_clearparams:
+    case opcode::OP_ScriptFunctionCallPointer:
+    case opcode::OP_EmptyArray:
+    case opcode::OP_ClearVariableField:
+    case opcode::OP_EvalNewLocalVariableRefCached0:
+    case opcode::OP_BoolComplement:
+    case opcode::OP_less:
+    case opcode::OP_BoolNot:
+    case opcode::OP_waittillFrameEnd:
+    case opcode::OP_waitframe:
     case opcode::OP_GetLevelObject:
+    case opcode::OP_inc:
+    case opcode::OP_GetAnim:
+    case opcode::OP_SetVariableField:
+    case opcode::OP_divide:
+    case opcode::OP_multiply:
+    case opcode::OP_EvalLocalVariableRefCached0:
+    case opcode::OP_bit_and:
+    case opcode::OP_voidCodepos:
+    case opcode::OP_inequality:
     case opcode::OP_bit_ex_or:
-    case opcode::OP_equality:
-    case opcode::OP_ClearArray:
-    case opcode::OP_EvalArrayRef:
-    case opcode::OP_EvalArray:
-    case opcode::OP_vector:
-    case opcode::OP_bit_or:
-    case opcode::OP_AddArray:
-    case opcode::OP_waittillmatch2:
-    case opcode::OP_shift_right:
+    case opcode::OP_NOP:
+    case opcode::OP_abort:
+    case opcode::OP_object:
+    case opcode::OP_thread_object:
+    case opcode::OP_EvalLocalVariable:
+    case opcode::OP_EvalLocalVariableRef:
+    case opcode::OP_breakpoint:
+    case opcode::OP_assignmentBreakpoint:
+    case opcode::OP_manualAndAssignmentBreakpoint:
+    case opcode::OP_BoolNotAfterAnd:
+    case opcode::OP_IsDefined:
+    case opcode::OP_IsTrue:
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
         break;
     case opcode::OP_GetByte:
@@ -375,6 +388,48 @@ void assembler::assemble_instruction(const gsc::instruction_ptr& inst)
     case opcode::OP_endswitch:
         this->assemble_end_switch(inst);
         break;
+    case opcode::OP_prof_begin:
+        script_->write<std::uint32_t>(0); // TODO: skipped data
+        script_->write<std::uint8_t>(0);
+        break;
+    case opcode::OP_prof_end:
+        script_->write<std::uint8_t>(0); // TODO: skipped data
+        break;
+    case opcode::OP_EvalNewLocalArrayRefCached0_Precompiled:
+    case opcode::OP_SetNewLocalVariableFieldCached0_Precompiled:
+    case opcode::OP_CreateLocalVariable_Precompiled:
+    case opcode::OP_SafeCreateVariableFieldCached_Precompiled:
+        script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
+        script_->write<std::uint8_t>(static_cast<std::uint8_t>(std::stoi(inst->data[0])));
+        break;
+    case opcode::OP_FormalParams:
+    case opcode::OP_FormalParams_Precompiled:
+        this->assemble_formal_params(inst);
+        break;
+    case opcode::OP_NativeGetLocalFunction:
+    case opcode::OP_NativeLocalFunctionCall:
+    case opcode::OP_NativeLocalFunctionCall2:
+    case opcode::OP_NativeLocalMethodCall:
+        this->assemble_local_call(inst, false);
+        break;
+    case opcode::OP_NativeGetFarFunction:
+    case opcode::OP_NativeFarFunctionCall:
+    case opcode::OP_NativeFarFunctionCall2:
+    case opcode::OP_NativeFarMethodCall:
+        this->assemble_far_call(inst, false);
+        break;
+    case opcode::OP_NativeLocalFunctionThreadCall:
+    case opcode::OP_NativeLocalMethodThreadCall:
+    case opcode::OP_NativeLocalFunctionChildThreadCall:
+    case opcode::OP_NativeLocalMethodChildThreadCall:
+        this->assemble_local_call(inst, true);
+        break;
+    case opcode::OP_NativeFarFunctionThreadCall:
+    case opcode::OP_NativeFarMethodThreadCall:
+    case opcode::OP_NativeFarFunctionChildThreadCall:
+    case opcode::OP_NativeFarMethodChildThreadCall:
+        this->assemble_far_call(inst, true);
+        break;
     default:
         throw gsc::asm_error(utils::string::va("Unhandled opcode 0x%X at index '%04X'!", inst->opcode, inst->index));
     }
@@ -450,6 +505,60 @@ void assembler::assemble_far_call(const gsc::instruction_ptr& inst, bool thread)
     if (func_id == 0) stack_->write_c_string(thread ? inst->data[2] : inst->data[1]);
 }
 
+void assembler::assemble_jump(const gsc::instruction_ptr& inst, bool expr, bool back)
+{
+    script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
+
+    std::int32_t addr = this->resolve_label(inst->data[0]);
+
+    if (expr)
+    {
+        script_->write<std::int16_t>(addr - inst->index - 3);
+    }
+    else if (back)
+    {
+        script_->write<std::int16_t>((inst->index + 3) - addr);
+    }
+    else
+    {
+        script_->write<std::int32_t>(addr - inst->index - 5);
+    }
+}
+
+void assembler::assemble_field_variable(const gsc::instruction_ptr& inst)
+{
+    script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
+
+    std::uint32_t field_id = 0;
+
+    if (inst->data[0].substr(0, 3) == "_ID")
+    {
+        field_id = std::stoul(inst->data[0].substr(3));
+    }
+    else
+    {
+        field_id = resolver::token_id(inst->data[0]);
+
+        if (field_id == 0)
+        {
+            field_id = 0xFFFF;
+        }
+    }
+
+    script_->write<std::uint32_t>(field_id);
+
+    if (field_id > 0xE2C0)
+    {
+        stack_->write<std::uint32_t>(0);
+        stack_->write_c_string(inst->data[0]);
+    }
+}
+
+void assembler::assemble_formal_params(const gsc::instruction_ptr& inst)
+{
+    // TODO:
+}
+
 void assembler::assemble_switch(const gsc::instruction_ptr& inst)
 {
     script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
@@ -512,55 +621,6 @@ void assembler::assemble_end_switch(const gsc::instruction_ptr& inst)
 
             internal_index += 3;
         }
-    }
-}
-
-void assembler::assemble_field_variable(const gsc::instruction_ptr& inst)
-{
-    script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
-
-    std::uint32_t field_id = 0;
-
-    if (inst->data[0].substr(0, 3) == "_ID")
-    {
-        field_id = std::stoul(inst->data[0].substr(3));
-    }
-    else
-    {
-        field_id = resolver::token_id(inst->data[0]);
-
-        if (field_id == 0)
-        {
-            field_id = 0xFFFF;
-        }
-    }
-
-    script_->write<std::uint32_t>(field_id);
-
-    if (field_id > 0x13FCC)
-    {
-        stack_->write<std::uint32_t>(0);
-        stack_->write_c_string(inst->data[0]);
-    }
-}
-
-void assembler::assemble_jump(const gsc::instruction_ptr& inst, bool expr, bool back)
-{
-    script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
-
-    std::int32_t addr = this->resolve_label(inst->data[0]);
-
-    if (expr)
-    {
-        script_->write<std::int16_t>(addr - inst->index - 3);
-    }
-    else if (back)
-    {
-        script_->write<std::int16_t>((inst->index + 3) - addr);
-    }
-    else
-    {
-        script_->write<std::int32_t>(addr - inst->index - 5);
     }
 }
 

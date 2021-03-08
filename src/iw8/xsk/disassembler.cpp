@@ -85,75 +85,88 @@ void disassembler::dissasemble_instruction(const gsc::instruction_ptr& inst)
 {
     switch (opcode(inst->opcode))
     {
-    case opcode::OP_Return:
-    case opcode::OP_BoolNot:
-    case opcode::OP_CastBool:
-    case opcode::OP_inequality:
-    case opcode::OP_GetThisthread:
-    case opcode::OP_ClearLocalVariableFieldCached0:
-    case opcode::OP_checkclearparams:
     case opcode::OP_CastFieldObject:
-    case opcode::OP_End:
-    case opcode::OP_size:
-    case opcode::OP_EmptyArray:
-    case opcode::OP_bit_and:
-    case opcode::OP_less_equal:
-    case opcode::OP_voidCodepos:
-    case opcode::OP_ClearVariableField:
-    case opcode::OP_divide:
-    case opcode::OP_GetSelf:
-    case opcode::OP_SetLocalVariableFieldCached0:
     case opcode::OP_plus:
-    case opcode::OP_BoolComplement:
-    case opcode::OP_ScriptMethodCallPointer:
-    case opcode::OP_inc:
-    case opcode::OP_clearparams:
-    case opcode::OP_EvalLocalVariableRefCached0:
-    case opcode::OP_ScriptFunctionCallPointer:
-    case opcode::OP_endon:
-    case opcode::OP_greater_equal:
-    case opcode::OP_GetSelfObject:
-    case opcode::OP_SetVariableField:
-    case opcode::OP_EvalLocalArrayRefCached0:
-    case opcode::OP_less:
     case opcode::OP_GetGameRef:
-    case opcode::OP_waittillFrameEnd:
-    case opcode::OP_SafeSetVariableFieldCached0:
-    case opcode::OP_GetLevel:
-    case opcode::OP_notify:
-    case opcode::OP_DecTop:
-    case opcode::OP_shift_left:
+    case opcode::OP_GetThisthread:
     case opcode::OP_greater:
+    case opcode::OP_shift_right:
+    case opcode::OP_dec:
+    case opcode::OP_bit_or:
+    case opcode::OP_equality:
+    case opcode::OP_ClearLocalVariableFieldCached0:
+    case opcode::OP_notify:
+    case opcode::OP_PreScriptCall:
+    case opcode::OP_GetUndefined:
+    case opcode::OP_SetLocalVariableFieldCached0:
+    case opcode::OP_GetLevel:
+    case opcode::OP_size:
+    case opcode::OP_AddArray:
+    case opcode::OP_endon:
+    case opcode::OP_shift_left:
+    case opcode::OP_EvalLocalArrayRefCached0:
+    case opcode::OP_Return:
+    case opcode::OP_SafeSetVariableFieldCached0:
+    case opcode::OP_GetSelfObject:
+    case opcode::OP_GetGame:
+    case opcode::OP_EvalArray:
+    case opcode::OP_GetSelf:
+    case opcode::OP_End:
+    case opcode::OP_less_equal:
     case opcode::OP_EvalLocalVariableCached0:
     case opcode::OP_EvalLocalVariableCached1:
     case opcode::OP_EvalLocalVariableCached2:
     case opcode::OP_EvalLocalVariableCached3:
     case opcode::OP_EvalLocalVariableCached4:
     case opcode::OP_EvalLocalVariableCached5:
+    case opcode::OP_ScriptMethodCallPointer:
+    case opcode::OP_checkclearparams:
+    case opcode::OP_waittillmatch2:
+    case opcode::OP_minus:
+    case opcode::OP_greater_equal:
+    case opcode::OP_vector:
+    case opcode::OP_ClearArray:
+    case opcode::OP_DecTop:
+    case opcode::OP_CastBool:
+    case opcode::OP_EvalArrayRef:
     case opcode::OP_GetZero:
     case opcode::OP_wait:
-    case opcode::OP_minus:
-    case opcode::OP_EvalNewLocalVariableRefCached0:
-    case opcode::OP_multiply:
-    case opcode::OP_mod:
-    case opcode::OP_GetGame:
     case opcode::OP_waittill:
-    case opcode::OP_dec:
-    case opcode::OP_PreScriptCall:
-    case opcode::OP_GetAnim:
-    case opcode::OP_GetUndefined:
     case opcode::OP_GetAnimObject:
+    case opcode::OP_mod:
+    case opcode::OP_clearparams:
+    case opcode::OP_ScriptFunctionCallPointer:
+    case opcode::OP_EmptyArray:
+    case opcode::OP_ClearVariableField:
+    case opcode::OP_EvalNewLocalVariableRefCached0:
+    case opcode::OP_BoolComplement:
+    case opcode::OP_less:
+    case opcode::OP_BoolNot:
+    case opcode::OP_waittillFrameEnd:
+    case opcode::OP_waitframe:
     case opcode::OP_GetLevelObject:
+    case opcode::OP_inc:
+    case opcode::OP_GetAnim:
+    case opcode::OP_SetVariableField:
+    case opcode::OP_divide:
+    case opcode::OP_multiply:
+    case opcode::OP_EvalLocalVariableRefCached0:
+    case opcode::OP_bit_and:
+    case opcode::OP_voidCodepos:
+    case opcode::OP_inequality:
     case opcode::OP_bit_ex_or:
-    case opcode::OP_equality:
-    case opcode::OP_ClearArray:
-    case opcode::OP_EvalArrayRef:
-    case opcode::OP_EvalArray:
-    case opcode::OP_vector:
-    case opcode::OP_bit_or:
-    case opcode::OP_AddArray:
-    case opcode::OP_waittillmatch2:
-    case opcode::OP_shift_right:
+    case opcode::OP_NOP:
+    case opcode::OP_abort:
+    case opcode::OP_object:
+    case opcode::OP_thread_object:
+    case opcode::OP_EvalLocalVariable:
+    case opcode::OP_EvalLocalVariableRef:
+    case opcode::OP_breakpoint:
+    case opcode::OP_assignmentBreakpoint:
+    case opcode::OP_manualAndAssignmentBreakpoint:
+    case opcode::OP_BoolNotAfterAnd:
+    case opcode::OP_IsDefined:
+    case opcode::OP_IsTrue:
         break;
     case opcode::OP_GetByte:
     case opcode::OP_GetNegByte:
@@ -295,6 +308,46 @@ void disassembler::dissasemble_instruction(const gsc::instruction_ptr& inst)
     case opcode::OP_endswitch:
         this->disassemble_end_switch(inst);
         break;
+    case opcode::OP_prof_begin:
+        script_->seek(5); // TODO: skipped data
+        break;
+    case opcode::OP_prof_end:
+        script_->seek(1); // TODO: skipped data
+        break;
+    case opcode::OP_EvalNewLocalArrayRefCached0_Precompiled:
+    case opcode::OP_SetNewLocalVariableFieldCached0_Precompiled:
+    case opcode::OP_CreateLocalVariable_Precompiled:
+    case opcode::OP_SafeCreateVariableFieldCached_Precompiled:
+        inst->data.push_back(utils::string::va("%i", script_->read<std::uint8_t>()));
+        break;
+    case opcode::OP_FormalParams:
+    case opcode::OP_FormalParams_Precompiled:
+        this->disassemble_formal_params(inst);
+        break;
+    case opcode::OP_NativeGetLocalFunction:
+    case opcode::OP_NativeLocalFunctionCall:
+    case opcode::OP_NativeLocalFunctionCall2:
+    case opcode::OP_NativeLocalMethodCall:
+        this->disassemble_local_call(inst, false);
+        break;
+    case opcode::OP_NativeGetFarFunction:
+    case opcode::OP_NativeFarFunctionCall:
+    case opcode::OP_NativeFarFunctionCall2:
+    case opcode::OP_NativeFarMethodCall:
+        this->disassemble_far_call(inst, false);
+        break;
+    case opcode::OP_NativeLocalFunctionThreadCall:
+    case opcode::OP_NativeLocalMethodThreadCall:
+    case opcode::OP_NativeLocalFunctionChildThreadCall:
+    case opcode::OP_NativeLocalMethodChildThreadCall:
+        this->disassemble_local_call(inst, true);
+        break;
+    case opcode::OP_NativeFarFunctionThreadCall:
+    case opcode::OP_NativeFarMethodThreadCall:
+    case opcode::OP_NativeFarFunctionChildThreadCall:
+    case opcode::OP_NativeFarMethodChildThreadCall:
+        this->disassemble_far_call(inst, true);
+        break;
     default:
         throw gsc::disasm_error(utils::string::va("Unhandled opcode 0x%X at index '%04X'!", inst->opcode, inst->index));
     }
@@ -379,7 +432,7 @@ void disassembler::disassemble_field_variable(const gsc::instruction_ptr& inst)
     std::uint32_t field_id = script_->read<std::uint32_t>();
     std::string field_name;
 
-    if(field_id > 0x13FCC)
+    if(field_id > 0xE2C0)
     {   
         auto temp = stack_->read<std::uint32_t>();
         field_name = temp == 0 ? stack_->read_c_string() : std::to_string(temp);
@@ -390,6 +443,20 @@ void disassembler::disassemble_field_variable(const gsc::instruction_ptr& inst)
     }
 
     inst->data.push_back(field_name != "" ? field_name : utils::string::va("_ID%i", field_id));
+}
+
+void disassembler::disassemble_formal_params(const gsc::instruction_ptr& inst)
+{
+    auto size = script_->read<std::uint8_t>();
+
+    inst->data.push_back(utils::string::va("%i", size));
+
+    if(size > 0)
+    {
+        script_->seek(size);
+    }
+
+    // TODO: skipped data
 }
 
 void disassembler::disassemble_switch(const gsc::instruction_ptr& inst)
@@ -414,7 +481,7 @@ void disassembler::disassemble_end_switch(const gsc::instruction_ptr& inst)
         {
             std::uint32_t case_label = script_->read<std::uint32_t>();
 
-            if (case_label < 0x40000 && case_label > 0)
+            if (case_label < 0x80000 && case_label > 0)
             {
                 inst->data.push_back("case");
                 inst->data.push_back(utils::string::quote(stack_->read_c_string(), false));

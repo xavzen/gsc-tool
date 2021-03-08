@@ -28,10 +28,11 @@ private:
     void assemble_builtin_call(const gsc::instruction_ptr& inst, bool method, bool arg_num);
     void assemble_local_call(const gsc::instruction_ptr& inst, bool thread);
     void assemble_far_call(const gsc::instruction_ptr& inst, bool thread);
+    void assemble_jump(const gsc::instruction_ptr& inst, bool expr, bool back);
+    void assemble_field_variable(const gsc::instruction_ptr& inst);
+    void assemble_formal_params(const gsc::instruction_ptr& inst);
     void assemble_switch(const gsc::instruction_ptr& inst);
     void assemble_end_switch(const gsc::instruction_ptr& inst);
-    void assemble_field_variable(const gsc::instruction_ptr& inst);
-    void assemble_jump(const gsc::instruction_ptr& inst, bool expr, bool back);
     void assemble_offset(std::int32_t offset);
     auto resolve_function(const std::string& name) -> std::uint32_t;
     auto resolve_label(const std::string& name) -> std::uint32_t;
