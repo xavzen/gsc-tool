@@ -593,7 +593,7 @@ void assembler::assemble_end_switch(const gsc::instruction_ptr& inst)
         {
             if (utils::string::is_number(inst->data[1 + (3 * i) + 1]))
             {
-                script_->write<uint32_t>((std::stol(inst->data[0]) & 0xFFFFFF) + 0x800000);
+                script_->write<uint32_t>((std::stol(inst->data[1 + (3 * i) + 1]) & 0xFFFFFF) + 0x800000);
             }
             else
             {
