@@ -1565,7 +1565,7 @@ const std::array<gsc::pair_16C, 780> method_list
     { 0x830C, "setgametypestring" },
 }};
 
-const std::array<gsc::pair_16C, 587> file_list
+const std::array<gsc::pair_16C, 586> file_list
 {{
 
 // "character/character_mp_ally_juggernaut"
