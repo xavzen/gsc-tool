@@ -1674,7 +1674,7 @@ case 95:
 /* rule 95 can match eol */
 YY_RULE_SETUP
 #line 143 "lexer.lpp"
-{ throw iw5::parser::syntax_error(loc, "bad token: \'" + std::string(yytext) + "\'"); }
+{ throw iw5::parser::syntax_error(loc, "bad token: '" + std::string(yytext) + "'"); }
 	YY_BREAK
 case 96:
 YY_RULE_SETUP

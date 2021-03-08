@@ -497,12 +497,12 @@ namespace xsk { namespace gsc { namespace iw6 {
       // self
       char dummy24[sizeof (self_ptr)];
 
-      // FILE
-      // NAME
-      // STRING
-      // ISTRING
-      // FLOAT
-      // INTEGER
+      // "file path"
+      // "identifier"
+      // "string literal"
+      // "localized string"
+      // "float"
+      // "int"
       char dummy25[sizeof (std::string)];
 
       // stmt_assign
@@ -640,96 +640,97 @@ namespace xsk { namespace gsc { namespace iw6 {
     IW6EOF = 0,                    // "end of file"
     IW6error = 1,                  // error
     IW6UNDEF = 2,                  // "invalid token"
-    INCLUDE = 3,                   // INCLUDE
-    USINGTREE = 4,                 // USINGTREE
-    ANIMTREE = 5,                  // ANIMTREE
-    ENDON = 6,                     // ENDON
-    NOTIFY = 7,                    // NOTIFY
-    WAIT = 8,                      // WAIT
-    WAITTILL = 9,                  // WAITTILL
-    WAITTILLMATCH = 10,            // WAITTILLMATCH
-    WAITTILLFRAMEEND = 11,         // WAITTILLFRAMEEND
-    IF = 12,                       // IF
-    ELSE = 13,                     // ELSE
-    WHILE = 14,                    // WHILE
-    FOR = 15,                      // FOR
-    FOREACH = 16,                  // FOREACH
-    IN = 17,                       // IN
-    SWITCH = 18,                   // SWITCH
-    CASE = 19,                     // CASE
-    DEFAULT = 20,                  // DEFAULT
-    BREAK = 21,                    // BREAK
-    CONTINUE = 22,                 // CONTINUE
-    RETURN = 23,                   // RETURN
-    THREAD = 24,                   // THREAD
-    CHILDTHREAD = 25,              // CHILDTHREAD
-    THISTHREAD = 26,               // THISTHREAD
-    CALL = 27,                     // CALL
-    TRUE = 28,                     // TRUE
-    FALSE = 29,                    // FALSE
-    UNDEFINED = 30,                // UNDEFINED
-    SIZE = 31,                     // SIZE
-    GAME = 32,                     // GAME
-    SELF = 33,                     // SELF
-    ANIM = 34,                     // ANIM
-    LEVEL = 35,                    // LEVEL
-    LPAREN = 36,                   // LPAREN
-    RPAREN = 37,                   // RPAREN
-    LBRACE = 38,                   // LBRACE
-    RBRACE = 39,                   // RBRACE
-    LBRACKET = 40,                 // LBRACKET
-    RBRACKET = 41,                 // RBRACKET
-    COMMA = 42,                    // COMMA
-    DOT = 43,                      // DOT
-    DOUBLECOLON = 44,              // DOUBLECOLON
-    COLON = 45,                    // COLON
-    SEMICOLON = 46,                // SEMICOLON
-    INCREMENT = 47,                // INCREMENT
-    DECREMENT = 48,                // DECREMENT
-    MOD = 49,                      // MOD
-    LSHIFT = 50,                   // LSHIFT
-    RSHIFT = 51,                   // RSHIFT
-    OR = 52,                       // OR
-    AND = 53,                      // AND
-    EQUALITY = 54,                 // EQUALITY
-    INEQUALITY = 55,               // INEQUALITY
-    LESS_EQUAL = 56,               // LESS_EQUAL
-    GREATER_EQUAL = 57,            // GREATER_EQUAL
-    LESS = 58,                     // LESS
-    GREATER = 59,                  // GREATER
-    NOT = 60,                      // NOT
-    COMPLEMENT = 61,               // COMPLEMENT
-    ASSIGN_RSHIFT = 62,            // ASSIGN_RSHIFT
-    ASSIGN = 63,                   // ASSIGN
-    ASSIGN_ADD = 64,               // ASSIGN_ADD
-    ASSIGN_SUB = 65,               // ASSIGN_SUB
-    ASSIGN_MULT = 66,              // ASSIGN_MULT
-    ASSIGN_DIV = 67,               // ASSIGN_DIV
-    ASSIGN_MOD = 68,               // ASSIGN_MOD
-    ASSIGN_BITWISE_OR = 69,        // ASSIGN_BITWISE_OR
-    ASSIGN_BITWISE_AND = 70,       // ASSIGN_BITWISE_AND
-    ASSIGN_BITWISE_EXOR = 71,      // ASSIGN_BITWISE_EXOR
-    ASSIGN_LSHIFT = 72,            // ASSIGN_LSHIFT
-    BITWISE_OR = 73,               // BITWISE_OR
-    BITWISE_AND = 74,              // BITWISE_AND
-    BITWISE_EXOR = 75,             // BITWISE_EXOR
-    ADD = 76,                      // ADD
-    SUB = 77,                      // SUB
-    MULT = 78,                     // MULT
-    DIV = 79,                      // DIV
-    FILE = 80,                     // FILE
-    NAME = 81,                     // NAME
-    STRING = 82,                   // STRING
-    ISTRING = 83,                  // ISTRING
-    FLOAT = 84,                    // FLOAT
-    INTEGER = 85,                  // INTEGER
-    THEN = 86,                     // THEN
-    NEG = 87,                      // NEG
-    ANIMREF = 88,                  // ANIMREF
-    PREINC = 89,                   // PREINC
-    PREDEC = 90,                   // PREDEC
-    POSTINC = 91,                  // POSTINC
-    POSTDEC = 92                   // POSTDEC
+    INCLUDE = 3,                   // "#include"
+    USINGTREE = 4,                 // "#using_animtree"
+    ANIMTREE = 5,                  // "#animtree"
+    ENDON = 6,                     // "endon"
+    NOTIFY = 7,                    // "notify"
+    WAIT = 8,                      // "wait"
+    WAITTILL = 9,                  // "waittill"
+    WAITTILLMATCH = 10,            // "waittillmatch"
+    WAITTILLFRAMEEND = 11,         // "waittillframeend"
+    IF = 12,                       // "if"
+    ELSE = 13,                     // "else"
+    WHILE = 14,                    // "while"
+    FOR = 15,                      // "for"
+    FOREACH = 16,                  // "foreach"
+    IN = 17,                       // "in"
+    SWITCH = 18,                   // "switch"
+    CASE = 19,                     // "case"
+    DEFAULT = 20,                  // "default"
+    BREAK = 21,                    // "break"
+    CONTINUE = 22,                 // "continue"
+    RETURN = 23,                   // "return"
+    THREAD = 24,                   // "thread"
+    CHILDTHREAD = 25,              // "childthread"
+    THISTHREAD = 26,               // "thisthread"
+    CALL = 27,                     // "call"
+    TRUE = 28,                     // "true"
+    FALSE = 29,                    // "false"
+    UNDEFINED = 30,                // "undefined"
+    SIZE = 31,                     // "size"
+    GAME = 32,                     // "game"
+    SELF = 33,                     // "self"
+    ANIM = 34,                     // "anim"
+    LEVEL = 35,                    // "level"
+    LPAREN = 36,                   // "("
+    RPAREN = 37,                   // ")"
+    LBRACE = 38,                   // "{"
+    RBRACE = 39,                   // "}"
+    LBRACKET = 40,                 // "["
+    RBRACKET = 41,                 // "]"
+    COMMA = 42,                    // ","
+    DOT = 43,                      // "."
+    DOUBLECOLON = 44,              // "::"
+    COLON = 45,                    // ":"
+    SEMICOLON = 46,                // ";"
+    INCREMENT = 47,                // "++"
+    DECREMENT = 48,                // "--"
+    LSHIFT = 49,                   // "<<"
+    RSHIFT = 50,                   // ">>"
+    OR = 51,                       // "||"
+    AND = 52,                      // "&&"
+    EQUALITY = 53,                 // "=="
+    INEQUALITY = 54,               // "!="
+    LESS_EQUAL = 55,               // "<="
+    GREATER_EQUAL = 56,            // ">="
+    LESS = 57,                     // "<"
+    GREATER = 58,                  // ">"
+    NOT = 59,                      // "!"
+    COMPLEMENT = 60,               // "~"
+    ASSIGN = 61,                   // "="
+    ASSIGN_ADD = 62,               // "+="
+    ASSIGN_SUB = 63,               // "-="
+    ASSIGN_MULT = 64,              // "*="
+    ASSIGN_DIV = 65,               // "/="
+    ASSIGN_MOD = 66,               // "%="
+    ASSIGN_BITWISE_OR = 67,        // "|="
+    ASSIGN_BITWISE_AND = 68,       // "&="
+    ASSIGN_BITWISE_EXOR = 69,      // "^="
+    ASSIGN_RSHIFT = 70,            // ">>="
+    ASSIGN_LSHIFT = 71,            // "<<="
+    BITWISE_OR = 72,               // "|"
+    BITWISE_AND = 73,              // "&"
+    BITWISE_EXOR = 74,             // "^"
+    ADD = 75,                      // "+"
+    SUB = 76,                      // "-"
+    MULT = 77,                     // "*"
+    DIV = 78,                      // "/"
+    MOD = 79,                      // "%"
+    FILE = 80,                     // "file path"
+    NAME = 81,                     // "identifier"
+    STRING = 82,                   // "string literal"
+    ISTRING = 83,                  // "localized string"
+    FLOAT = 84,                    // "float"
+    INTEGER = 85,                  // "int"
+    ADD_ARRAY = 86,                // ADD_ARRAY
+    THEN = 87,                     // THEN
+    NEG = 88,                      // NEG
+    ANIMREF = 89,                  // ANIMREF
+    PREINC = 90,                   // PREINC
+    PREDEC = 91,                   // PREDEC
+    POSTINC = 92,                  // POSTINC
+    POSTDEC = 93                   // POSTDEC
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -746,173 +747,174 @@ namespace xsk { namespace gsc { namespace iw6 {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 93, ///< Number of tokens.
+        YYNTOKENS = 94, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // "end of file"
         S_YYerror = 1,                           // error
         S_YYUNDEF = 2,                           // "invalid token"
-        S_INCLUDE = 3,                           // INCLUDE
-        S_USINGTREE = 4,                         // USINGTREE
-        S_ANIMTREE = 5,                          // ANIMTREE
-        S_ENDON = 6,                             // ENDON
-        S_NOTIFY = 7,                            // NOTIFY
-        S_WAIT = 8,                              // WAIT
-        S_WAITTILL = 9,                          // WAITTILL
-        S_WAITTILLMATCH = 10,                    // WAITTILLMATCH
-        S_WAITTILLFRAMEEND = 11,                 // WAITTILLFRAMEEND
-        S_IF = 12,                               // IF
-        S_ELSE = 13,                             // ELSE
-        S_WHILE = 14,                            // WHILE
-        S_FOR = 15,                              // FOR
-        S_FOREACH = 16,                          // FOREACH
-        S_IN = 17,                               // IN
-        S_SWITCH = 18,                           // SWITCH
-        S_CASE = 19,                             // CASE
-        S_DEFAULT = 20,                          // DEFAULT
-        S_BREAK = 21,                            // BREAK
-        S_CONTINUE = 22,                         // CONTINUE
-        S_RETURN = 23,                           // RETURN
-        S_THREAD = 24,                           // THREAD
-        S_CHILDTHREAD = 25,                      // CHILDTHREAD
-        S_THISTHREAD = 26,                       // THISTHREAD
-        S_CALL = 27,                             // CALL
-        S_TRUE = 28,                             // TRUE
-        S_FALSE = 29,                            // FALSE
-        S_UNDEFINED = 30,                        // UNDEFINED
-        S_SIZE = 31,                             // SIZE
-        S_GAME = 32,                             // GAME
-        S_SELF = 33,                             // SELF
-        S_ANIM = 34,                             // ANIM
-        S_LEVEL = 35,                            // LEVEL
-        S_LPAREN = 36,                           // LPAREN
-        S_RPAREN = 37,                           // RPAREN
-        S_LBRACE = 38,                           // LBRACE
-        S_RBRACE = 39,                           // RBRACE
-        S_LBRACKET = 40,                         // LBRACKET
-        S_RBRACKET = 41,                         // RBRACKET
-        S_COMMA = 42,                            // COMMA
-        S_DOT = 43,                              // DOT
-        S_DOUBLECOLON = 44,                      // DOUBLECOLON
-        S_COLON = 45,                            // COLON
-        S_SEMICOLON = 46,                        // SEMICOLON
-        S_INCREMENT = 47,                        // INCREMENT
-        S_DECREMENT = 48,                        // DECREMENT
-        S_MOD = 49,                              // MOD
-        S_LSHIFT = 50,                           // LSHIFT
-        S_RSHIFT = 51,                           // RSHIFT
-        S_OR = 52,                               // OR
-        S_AND = 53,                              // AND
-        S_EQUALITY = 54,                         // EQUALITY
-        S_INEQUALITY = 55,                       // INEQUALITY
-        S_LESS_EQUAL = 56,                       // LESS_EQUAL
-        S_GREATER_EQUAL = 57,                    // GREATER_EQUAL
-        S_LESS = 58,                             // LESS
-        S_GREATER = 59,                          // GREATER
-        S_NOT = 60,                              // NOT
-        S_COMPLEMENT = 61,                       // COMPLEMENT
-        S_ASSIGN_RSHIFT = 62,                    // ASSIGN_RSHIFT
-        S_ASSIGN = 63,                           // ASSIGN
-        S_ASSIGN_ADD = 64,                       // ASSIGN_ADD
-        S_ASSIGN_SUB = 65,                       // ASSIGN_SUB
-        S_ASSIGN_MULT = 66,                      // ASSIGN_MULT
-        S_ASSIGN_DIV = 67,                       // ASSIGN_DIV
-        S_ASSIGN_MOD = 68,                       // ASSIGN_MOD
-        S_ASSIGN_BITWISE_OR = 69,                // ASSIGN_BITWISE_OR
-        S_ASSIGN_BITWISE_AND = 70,               // ASSIGN_BITWISE_AND
-        S_ASSIGN_BITWISE_EXOR = 71,              // ASSIGN_BITWISE_EXOR
-        S_ASSIGN_LSHIFT = 72,                    // ASSIGN_LSHIFT
-        S_BITWISE_OR = 73,                       // BITWISE_OR
-        S_BITWISE_AND = 74,                      // BITWISE_AND
-        S_BITWISE_EXOR = 75,                     // BITWISE_EXOR
-        S_ADD = 76,                              // ADD
-        S_SUB = 77,                              // SUB
-        S_MULT = 78,                             // MULT
-        S_DIV = 79,                              // DIV
-        S_FILE = 80,                             // FILE
-        S_NAME = 81,                             // NAME
-        S_STRING = 82,                           // STRING
-        S_ISTRING = 83,                          // ISTRING
-        S_FLOAT = 84,                            // FLOAT
-        S_INTEGER = 85,                          // INTEGER
-        S_THEN = 86,                             // THEN
-        S_NEG = 87,                              // NEG
-        S_ANIMREF = 88,                          // ANIMREF
-        S_PREINC = 89,                           // PREINC
-        S_PREDEC = 90,                           // PREDEC
-        S_POSTINC = 91,                          // POSTINC
-        S_POSTDEC = 92,                          // POSTDEC
-        S_YYACCEPT = 93,                         // $accept
-        S_root = 94,                             // root
-        S_program = 95,                          // program
-        S_include = 96,                          // include
-        S_define = 97,                           // define
-        S_usingtree = 98,                        // usingtree
-        S_constant = 99,                         // constant
-        S_thread = 100,                          // thread
-        S_parameters = 101,                      // parameters
-        S_stmt = 102,                            // stmt
-        S_stmt_block = 103,                      // stmt_block
-        S_stmt_list = 104,                       // stmt_list
-        S_stmt_call = 105,                       // stmt_call
-        S_stmt_assign = 106,                     // stmt_assign
-        S_stmt_endon = 107,                      // stmt_endon
-        S_stmt_notify = 108,                     // stmt_notify
-        S_stmt_wait = 109,                       // stmt_wait
-        S_stmt_waittill = 110,                   // stmt_waittill
-        S_stmt_waittillmatch = 111,              // stmt_waittillmatch
-        S_stmt_waittillframeend = 112,           // stmt_waittillframeend
-        S_stmt_if = 113,                         // stmt_if
-        S_stmt_ifelse = 114,                     // stmt_ifelse
-        S_stmt_while = 115,                      // stmt_while
-        S_stmt_for = 116,                        // stmt_for
-        S_stmt_foreach = 117,                    // stmt_foreach
-        S_stmt_switch = 118,                     // stmt_switch
-        S_stmt_case = 119,                       // stmt_case
-        S_stmt_default = 120,                    // stmt_default
-        S_stmt_break = 121,                      // stmt_break
-        S_stmt_continue = 122,                   // stmt_continue
-        S_stmt_return = 123,                     // stmt_return
-        S_for_stmt = 124,                        // for_stmt
-        S_for_expr = 125,                        // for_expr
-        S_expr = 126,                            // expr
-        S_expr_assign = 127,                     // expr_assign
-        S_expr_compare = 128,                    // expr_compare
-        S_expr_binary = 129,                     // expr_binary
-        S_expr_primitive = 130,                  // expr_primitive
-        S_expr_call = 131,                       // expr_call
-        S_expr_call_thread = 132,                // expr_call_thread
-        S_expr_call_childthread = 133,           // expr_call_childthread
-        S_expr_call_function = 134,              // expr_call_function
-        S_expr_call_pointer = 135,               // expr_call_pointer
-        S_expr_arguments = 136,                  // expr_arguments
-        S_expr_arguments_filled = 137,           // expr_arguments_filled
-        S_expr_arguments_empty = 138,            // expr_arguments_empty
-        S_expr_function = 139,                   // expr_function
-        S_expr_add_array = 140,                  // expr_add_array
-        S_expr_array = 141,                      // expr_array
-        S_expr_field = 142,                      // expr_field
-        S_expr_size = 143,                       // expr_size
-        S_object = 144,                          // object
-        S_thisthread = 145,                      // thisthread
-        S_empty_array = 146,                     // empty_array
-        S_undefined = 147,                       // undefined
-        S_game = 148,                            // game
-        S_self = 149,                            // self
-        S_anim = 150,                            // anim
-        S_level = 151,                           // level
-        S_animation = 152,                       // animation
-        S_animtree = 153,                        // animtree
-        S_name = 154,                            // name
-        S_file = 155,                            // file
-        S_istring = 156,                         // istring
-        S_string = 157,                          // string
-        S_vector = 158,                          // vector
-        S_neg_float = 159,                       // neg_float
-        S_neg_integer = 160,                     // neg_integer
-        S_float = 161,                           // float
-        S_integer = 162,                         // integer
-        S_false = 163,                           // false
-        S_true = 164                             // true
+        S_INCLUDE = 3,                           // "#include"
+        S_USINGTREE = 4,                         // "#using_animtree"
+        S_ANIMTREE = 5,                          // "#animtree"
+        S_ENDON = 6,                             // "endon"
+        S_NOTIFY = 7,                            // "notify"
+        S_WAIT = 8,                              // "wait"
+        S_WAITTILL = 9,                          // "waittill"
+        S_WAITTILLMATCH = 10,                    // "waittillmatch"
+        S_WAITTILLFRAMEEND = 11,                 // "waittillframeend"
+        S_IF = 12,                               // "if"
+        S_ELSE = 13,                             // "else"
+        S_WHILE = 14,                            // "while"
+        S_FOR = 15,                              // "for"
+        S_FOREACH = 16,                          // "foreach"
+        S_IN = 17,                               // "in"
+        S_SWITCH = 18,                           // "switch"
+        S_CASE = 19,                             // "case"
+        S_DEFAULT = 20,                          // "default"
+        S_BREAK = 21,                            // "break"
+        S_CONTINUE = 22,                         // "continue"
+        S_RETURN = 23,                           // "return"
+        S_THREAD = 24,                           // "thread"
+        S_CHILDTHREAD = 25,                      // "childthread"
+        S_THISTHREAD = 26,                       // "thisthread"
+        S_CALL = 27,                             // "call"
+        S_TRUE = 28,                             // "true"
+        S_FALSE = 29,                            // "false"
+        S_UNDEFINED = 30,                        // "undefined"
+        S_SIZE = 31,                             // "size"
+        S_GAME = 32,                             // "game"
+        S_SELF = 33,                             // "self"
+        S_ANIM = 34,                             // "anim"
+        S_LEVEL = 35,                            // "level"
+        S_LPAREN = 36,                           // "("
+        S_RPAREN = 37,                           // ")"
+        S_LBRACE = 38,                           // "{"
+        S_RBRACE = 39,                           // "}"
+        S_LBRACKET = 40,                         // "["
+        S_RBRACKET = 41,                         // "]"
+        S_COMMA = 42,                            // ","
+        S_DOT = 43,                              // "."
+        S_DOUBLECOLON = 44,                      // "::"
+        S_COLON = 45,                            // ":"
+        S_SEMICOLON = 46,                        // ";"
+        S_INCREMENT = 47,                        // "++"
+        S_DECREMENT = 48,                        // "--"
+        S_LSHIFT = 49,                           // "<<"
+        S_RSHIFT = 50,                           // ">>"
+        S_OR = 51,                               // "||"
+        S_AND = 52,                              // "&&"
+        S_EQUALITY = 53,                         // "=="
+        S_INEQUALITY = 54,                       // "!="
+        S_LESS_EQUAL = 55,                       // "<="
+        S_GREATER_EQUAL = 56,                    // ">="
+        S_LESS = 57,                             // "<"
+        S_GREATER = 58,                          // ">"
+        S_NOT = 59,                              // "!"
+        S_COMPLEMENT = 60,                       // "~"
+        S_ASSIGN = 61,                           // "="
+        S_ASSIGN_ADD = 62,                       // "+="
+        S_ASSIGN_SUB = 63,                       // "-="
+        S_ASSIGN_MULT = 64,                      // "*="
+        S_ASSIGN_DIV = 65,                       // "/="
+        S_ASSIGN_MOD = 66,                       // "%="
+        S_ASSIGN_BITWISE_OR = 67,                // "|="
+        S_ASSIGN_BITWISE_AND = 68,               // "&="
+        S_ASSIGN_BITWISE_EXOR = 69,              // "^="
+        S_ASSIGN_RSHIFT = 70,                    // ">>="
+        S_ASSIGN_LSHIFT = 71,                    // "<<="
+        S_BITWISE_OR = 72,                       // "|"
+        S_BITWISE_AND = 73,                      // "&"
+        S_BITWISE_EXOR = 74,                     // "^"
+        S_ADD = 75,                              // "+"
+        S_SUB = 76,                              // "-"
+        S_MULT = 77,                             // "*"
+        S_DIV = 78,                              // "/"
+        S_MOD = 79,                              // "%"
+        S_FILE = 80,                             // "file path"
+        S_NAME = 81,                             // "identifier"
+        S_STRING = 82,                           // "string literal"
+        S_ISTRING = 83,                          // "localized string"
+        S_FLOAT = 84,                            // "float"
+        S_INTEGER = 85,                          // "int"
+        S_ADD_ARRAY = 86,                        // ADD_ARRAY
+        S_THEN = 87,                             // THEN
+        S_NEG = 88,                              // NEG
+        S_ANIMREF = 89,                          // ANIMREF
+        S_PREINC = 90,                           // PREINC
+        S_PREDEC = 91,                           // PREDEC
+        S_POSTINC = 92,                          // POSTINC
+        S_POSTDEC = 93,                          // POSTDEC
+        S_YYACCEPT = 94,                         // $accept
+        S_root = 95,                             // root
+        S_program = 96,                          // program
+        S_include = 97,                          // include
+        S_define = 98,                           // define
+        S_usingtree = 99,                        // usingtree
+        S_constant = 100,                        // constant
+        S_thread = 101,                          // thread
+        S_parameters = 102,                      // parameters
+        S_stmt = 103,                            // stmt
+        S_stmt_block = 104,                      // stmt_block
+        S_stmt_list = 105,                       // stmt_list
+        S_stmt_call = 106,                       // stmt_call
+        S_stmt_assign = 107,                     // stmt_assign
+        S_stmt_endon = 108,                      // stmt_endon
+        S_stmt_notify = 109,                     // stmt_notify
+        S_stmt_wait = 110,                       // stmt_wait
+        S_stmt_waittill = 111,                   // stmt_waittill
+        S_stmt_waittillmatch = 112,              // stmt_waittillmatch
+        S_stmt_waittillframeend = 113,           // stmt_waittillframeend
+        S_stmt_if = 114,                         // stmt_if
+        S_stmt_ifelse = 115,                     // stmt_ifelse
+        S_stmt_while = 116,                      // stmt_while
+        S_stmt_for = 117,                        // stmt_for
+        S_stmt_foreach = 118,                    // stmt_foreach
+        S_stmt_switch = 119,                     // stmt_switch
+        S_stmt_case = 120,                       // stmt_case
+        S_stmt_default = 121,                    // stmt_default
+        S_stmt_break = 122,                      // stmt_break
+        S_stmt_continue = 123,                   // stmt_continue
+        S_stmt_return = 124,                     // stmt_return
+        S_for_stmt = 125,                        // for_stmt
+        S_for_expr = 126,                        // for_expr
+        S_expr = 127,                            // expr
+        S_expr_assign = 128,                     // expr_assign
+        S_expr_compare = 129,                    // expr_compare
+        S_expr_binary = 130,                     // expr_binary
+        S_expr_primitive = 131,                  // expr_primitive
+        S_expr_call = 132,                       // expr_call
+        S_expr_call_thread = 133,                // expr_call_thread
+        S_expr_call_childthread = 134,           // expr_call_childthread
+        S_expr_call_function = 135,              // expr_call_function
+        S_expr_call_pointer = 136,               // expr_call_pointer
+        S_expr_arguments = 137,                  // expr_arguments
+        S_expr_arguments_filled = 138,           // expr_arguments_filled
+        S_expr_arguments_empty = 139,            // expr_arguments_empty
+        S_expr_function = 140,                   // expr_function
+        S_expr_add_array = 141,                  // expr_add_array
+        S_expr_array = 142,                      // expr_array
+        S_expr_field = 143,                      // expr_field
+        S_expr_size = 144,                       // expr_size
+        S_object = 145,                          // object
+        S_thisthread = 146,                      // thisthread
+        S_empty_array = 147,                     // empty_array
+        S_undefined = 148,                       // undefined
+        S_game = 149,                            // game
+        S_self = 150,                            // self
+        S_anim = 151,                            // anim
+        S_level = 152,                           // level
+        S_animation = 153,                       // animation
+        S_animtree = 154,                        // animtree
+        S_name = 155,                            // name
+        S_file = 156,                            // file
+        S_istring = 157,                         // istring
+        S_string = 158,                          // string
+        S_vector = 159,                          // vector
+        S_neg_float = 160,                       // neg_float
+        S_neg_integer = 161,                     // neg_integer
+        S_float = 162,                           // float
+        S_integer = 163,                         // integer
+        S_false = 164,                           // false
+        S_true = 165                             // true
       };
     };
 
@@ -1062,12 +1064,12 @@ namespace xsk { namespace gsc { namespace iw6 {
         value.move< self_ptr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_FILE: // FILE
-      case symbol_kind::S_NAME: // NAME
-      case symbol_kind::S_STRING: // STRING
-      case symbol_kind::S_ISTRING: // ISTRING
-      case symbol_kind::S_FLOAT: // FLOAT
-      case symbol_kind::S_INTEGER: // INTEGER
+      case symbol_kind::S_FILE: // "file path"
+      case symbol_kind::S_NAME: // "identifier"
+      case symbol_kind::S_STRING: // "string literal"
+      case symbol_kind::S_ISTRING: // "localized string"
+      case symbol_kind::S_FLOAT: // "float"
+      case symbol_kind::S_INTEGER: // "int"
         value.move< std::string > (std::move (that.value));
         break;
 
@@ -2084,12 +2086,12 @@ switch (yykind)
         value.template destroy< self_ptr > ();
         break;
 
-      case symbol_kind::S_FILE: // FILE
-      case symbol_kind::S_NAME: // NAME
-      case symbol_kind::S_STRING: // STRING
-      case symbol_kind::S_ISTRING: // ISTRING
-      case symbol_kind::S_FLOAT: // FLOAT
-      case symbol_kind::S_INTEGER: // INTEGER
+      case symbol_kind::S_FILE: // "file path"
+      case symbol_kind::S_NAME: // "identifier"
+      case symbol_kind::S_STRING: // "string literal"
+      case symbol_kind::S_ISTRING: // "localized string"
+      case symbol_kind::S_FLOAT: // "float"
+      case symbol_kind::S_INTEGER: // "int"
         value.template destroy< std::string > ();
         break;
 
@@ -2301,8 +2303,8 @@ switch (yykind)
 #endif
       {
         IW6_ASSERT (tok == token::IW6EOF
-                   || (token::IW6error <= tok && tok <= token::DIV)
-                   || (token::THEN <= tok && tok <= token::POSTDEC));
+                   || (token::IW6error <= tok && tok <= token::MOD)
+                   || (token::ADD_ARRAY <= tok && tok <= token::POSTDEC));
       }
 #if 201103L <= YY_CPLUSPLUS
       symbol_type (int tok, std::string v, location_type l)
@@ -3100,21 +3102,6 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_MOD (location_type l)
-      {
-        return symbol_type (token::MOD, std::move (l));
-      }
-#else
-      static
-      symbol_type
-      make_MOD (const location_type& l)
-      {
-        return symbol_type (token::MOD, l);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
       make_LSHIFT (location_type l)
       {
         return symbol_type (token::LSHIFT, std::move (l));
@@ -3295,21 +3282,6 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_ASSIGN_RSHIFT (location_type l)
-      {
-        return symbol_type (token::ASSIGN_RSHIFT, std::move (l));
-      }
-#else
-      static
-      symbol_type
-      make_ASSIGN_RSHIFT (const location_type& l)
-      {
-        return symbol_type (token::ASSIGN_RSHIFT, l);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
       make_ASSIGN (location_type l)
       {
         return symbol_type (token::ASSIGN, std::move (l));
@@ -3445,6 +3417,21 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_ASSIGN_RSHIFT (location_type l)
+      {
+        return symbol_type (token::ASSIGN_RSHIFT, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_ASSIGN_RSHIFT (const location_type& l)
+      {
+        return symbol_type (token::ASSIGN_RSHIFT, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_ASSIGN_LSHIFT (location_type l)
       {
         return symbol_type (token::ASSIGN_LSHIFT, std::move (l));
@@ -3565,6 +3552,21 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_MOD (location_type l)
+      {
+        return symbol_type (token::MOD, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_MOD (const location_type& l)
+      {
+        return symbol_type (token::MOD, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_FILE (std::string v, location_type l)
       {
         return symbol_type (token::FILE, std::move (v), std::move (l));
@@ -3650,6 +3652,21 @@ switch (yykind)
       make_INTEGER (const std::string& v, const location_type& l)
       {
         return symbol_type (token::INTEGER, v, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_ADD_ARRAY (location_type l)
+      {
+        return symbol_type (token::ADD_ARRAY, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_ADD_ARRAY (const location_type& l)
+      {
+        return symbol_type (token::ADD_ARRAY, l);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -4101,7 +4118,7 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 1610,     ///< Last index in yytable_.
+      yylast_ = 1580,     ///< Last index in yytable_.
       yynnts_ = 72,  ///< Number of nonterminal symbols.
       yyfinal_ = 15 ///< Termination state number.
     };
@@ -4243,12 +4260,12 @@ switch (yykind)
         value.copy< self_ptr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_FILE: // FILE
-      case symbol_kind::S_NAME: // NAME
-      case symbol_kind::S_STRING: // STRING
-      case symbol_kind::S_ISTRING: // ISTRING
-      case symbol_kind::S_FLOAT: // FLOAT
-      case symbol_kind::S_INTEGER: // INTEGER
+      case symbol_kind::S_FILE: // "file path"
+      case symbol_kind::S_NAME: // "identifier"
+      case symbol_kind::S_STRING: // "string literal"
+      case symbol_kind::S_ISTRING: // "localized string"
+      case symbol_kind::S_FLOAT: // "float"
+      case symbol_kind::S_INTEGER: // "int"
         value.copy< std::string > (YY_MOVE (that.value));
         break;
 
@@ -4507,12 +4524,12 @@ switch (yykind)
         value.move< self_ptr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_FILE: // FILE
-      case symbol_kind::S_NAME: // NAME
-      case symbol_kind::S_STRING: // STRING
-      case symbol_kind::S_ISTRING: // ISTRING
-      case symbol_kind::S_FLOAT: // FLOAT
-      case symbol_kind::S_INTEGER: // INTEGER
+      case symbol_kind::S_FILE: // "file path"
+      case symbol_kind::S_NAME: // "identifier"
+      case symbol_kind::S_STRING: // "string literal"
+      case symbol_kind::S_ISTRING: // "localized string"
+      case symbol_kind::S_FLOAT: // "float"
+      case symbol_kind::S_INTEGER: // "int"
         value.move< std::string > (YY_MOVE (s.value));
         break;
 
@@ -4692,7 +4709,7 @@ switch (yykind)
 
 #line 13 "parser.ypp"
 } } } // xsk::gsc::iw6
-#line 4696 "parser.hpp"
+#line 4713 "parser.hpp"
 
 
 

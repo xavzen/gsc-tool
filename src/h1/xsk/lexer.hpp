@@ -4,6 +4,7 @@
 
 #line 5 "lexer.hpp"
 #include "stdafx.hpp"
+#include "h1.hpp"
 #include "parser.hpp"
 using namespace xsk::gsc;
 

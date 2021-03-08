@@ -6,7 +6,7 @@
 
 %option outfile="lexer.cpp"
 %option header-file="lexer.hpp"
-%option prefix = "iw7_"
+%option prefix="iw7_"
 %option reentrant
 %option noyywrap batch nounput noinput
 %option never-interactive

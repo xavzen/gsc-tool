@@ -4,6 +4,7 @@
 // that can be found in the LICENSE file.
 
 #include "stdafx.hpp"
+#include "h1.hpp"
 #include "parser.hpp"
 #include "lexer.hpp"
 

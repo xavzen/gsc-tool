@@ -39,25 +39,96 @@ typedef void *yyscan_t;
 %code top
 {
 #include "stdafx.hpp"
-#include "h2.hpp"
 #include "parser.hpp"
 #include "lexer.hpp"
 using namespace xsk::gsc;
 xsk::gsc::h2::parser::symbol_type H2lex(yyscan_t yyscanner, xsk::gsc::location& loc);
 }
 
-%token INCLUDE USINGTREE ANIMTREE ENDON NOTIFY WAIT WAITTILL WAITFRAME
-%token WAITTILLMATCH WAITTILLFRAMEEND IF ELSE WHILE FOR FOREACH IN
-%token SWITCH CASE DEFAULT BREAK CONTINUE RETURN THREAD CHILDTHREAD
-%token THISTHREAD CALL TRUE FALSE UNDEFINED SIZE GAME SELF ANIM LEVEL
-%token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET
-%token COMMA DOT DOUBLECOLON COLON SEMICOLON INCREMENT DECREMENT
-%token MOD LSHIFT RSHIFT OR AND EQUALITY INEQUALITY LESS_EQUAL
-%token GREATER_EQUAL LESS GREATER NOT COMPLEMENT ASSIGN_RSHIFT
-%token ASSIGN ASSIGN_ADD ASSIGN_SUB ASSIGN_MULT ASSIGN_DIV ASSIGN_MOD
-%token ASSIGN_BITWISE_OR ASSIGN_BITWISE_AND ASSIGN_BITWISE_EXOR ASSIGN_LSHIFT
-%token BITWISE_OR BITWISE_AND BITWISE_EXOR ADD SUB MULT DIV
-%token <std::string> FILE NAME STRING ISTRING FLOAT INTEGER
+%token INCLUDE "#include"
+%token USINGTREE "#using_animtree"
+%token ANIMTREE "#animtree"
+%token ENDON "endon"
+%token NOTIFY "notify"
+%token WAIT "wait"
+%token WAITTILL "waittill"
+%token WAITTILLMATCH "waittillmatch"
+%token WAITTILLFRAMEEND "waittillframeend"
+%token WAITFRAME "waitframe"
+%token IF "if"
+%token ELSE "else"
+%token WHILE "while"
+%token FOR "for"
+%token FOREACH "foreach"
+%token IN "in"
+%token SWITCH "switch"
+%token CASE "case"
+%token DEFAULT "default"
+%token BREAK "break"
+%token CONTINUE "continue"
+%token RETURN "return"
+%token THREAD "thread"
+%token CHILDTHREAD "childthread"
+%token THISTHREAD "thisthread"
+%token CALL "call"
+%token TRUE "true"
+%token FALSE "false"
+%token UNDEFINED "undefined"
+%token SIZE "size"
+%token GAME "game"
+%token SELF "self"
+%token ANIM "anim"
+%token LEVEL "level"
+%token LPAREN "("
+%token RPAREN ")"
+%token LBRACE "{"
+%token RBRACE "}"
+%token LBRACKET "["
+%token RBRACKET "]"
+%token COMMA ","
+%token DOT "."
+%token DOUBLECOLON "::"
+%token COLON ":"
+%token SEMICOLON ";"
+%token INCREMENT "++"
+%token DECREMENT "--"
+%token LSHIFT "<<"
+%token RSHIFT ">>"
+%token OR "||"
+%token AND "&&"
+%token EQUALITY "=="
+%token INEQUALITY "!="
+%token LESS_EQUAL "<="
+%token GREATER_EQUAL ">="
+%token LESS "<"
+%token GREATER ">"
+%token NOT "!"
+%token COMPLEMENT "~"
+%token ASSIGN "="
+%token ASSIGN_ADD "+="
+%token ASSIGN_SUB "-="
+%token ASSIGN_MULT "*="
+%token ASSIGN_DIV "/="
+%token ASSIGN_MOD "%="
+%token ASSIGN_BITWISE_OR "|="
+%token ASSIGN_BITWISE_AND "&="
+%token ASSIGN_BITWISE_EXOR "^="
+%token ASSIGN_RSHIFT ">>="
+%token ASSIGN_LSHIFT "<<="
+%token BITWISE_OR "|"
+%token BITWISE_AND "&"
+%token BITWISE_EXOR "^"
+%token ADD "+"
+%token SUB "-"
+%token MULT "*"
+%token DIV "/"
+%token MOD "%"
+%token <std::string> FILE "file path"
+%token <std::string> NAME "identifier"
+%token <std::string> STRING "string literal"
+%token <std::string> ISTRING "localized string"
+%token <std::string> FLOAT "float"
+%token <std::string> INTEGER "int"
 
 %type <program_ptr>                program
 %type <include_ptr>                include
@@ -67,28 +138,28 @@ xsk::gsc::h2::parser::symbol_type H2lex(yyscan_t yyscanner, xsk::gsc::location& 
 %type <thread_ptr>                 thread
 %type <parameters_ptr>             parameters
 %type <stmt_ptr>                   stmt
-%type <stmt_return_ptr>            stmt_return
-%type <stmt_continue_ptr>          stmt_continue
-%type <stmt_break_ptr>             stmt_break
-%type <stmt_default_ptr>           stmt_default
-%type <stmt_case_ptr>              stmt_case
-%type <stmt_switch_ptr>            stmt_switch
-%type <stmt_foreach_ptr>           stmt_foreach
-%type <stmt_for_ptr>               stmt_for
-%type <stmt_while_ptr>             stmt_while
-%type <stmt_ifelse_ptr>            stmt_ifelse
-%type <stmt_if_ptr>                stmt_if
-%type <stmt_waitframe_ptr>         stmt_waitframe
-%type <stmt_waittillframeend_ptr>  stmt_waittillframeend
-%type <stmt_waittillmatch_ptr>     stmt_waittillmatch
-%type <stmt_waittill_ptr>          stmt_waittill
-%type <stmt_wait_ptr>              stmt_wait
-%type <stmt_notify_ptr>            stmt_notify
-%type <stmt_endon_ptr>             stmt_endon
-%type <stmt_assign_ptr>            stmt_assign
-%type <stmt_call_ptr>              stmt_call
-%type <stmt_list_ptr>              stmt_list
 %type <stmt_list_ptr>              stmt_block
+%type <stmt_list_ptr>              stmt_list
+%type <stmt_call_ptr>              stmt_call
+%type <stmt_assign_ptr>            stmt_assign
+%type <stmt_endon_ptr>             stmt_endon
+%type <stmt_notify_ptr>            stmt_notify
+%type <stmt_wait_ptr>              stmt_wait
+%type <stmt_waittill_ptr>          stmt_waittill
+%type <stmt_waittillmatch_ptr>     stmt_waittillmatch
+%type <stmt_waittillframeend_ptr>  stmt_waittillframeend
+%type <stmt_waitframe_ptr>         stmt_waitframe
+%type <stmt_if_ptr>                stmt_if
+%type <stmt_ifelse_ptr>            stmt_ifelse
+%type <stmt_while_ptr>             stmt_while
+%type <stmt_for_ptr>               stmt_for
+%type <stmt_foreach_ptr>           stmt_foreach
+%type <stmt_switch_ptr>            stmt_switch
+%type <stmt_case_ptr>              stmt_case
+%type <stmt_default_ptr>           stmt_default
+%type <stmt_break_ptr>             stmt_break
+%type <stmt_continue_ptr>          stmt_continue
+%type <stmt_return_ptr>            stmt_return
 %type <expr_ptr>                   for_stmt
 %type <expr_ptr>                   for_expr
 %type <expr_assign_ptr>            expr_assign
@@ -131,6 +202,8 @@ xsk::gsc::h2::parser::symbol_type H2lex(yyscan_t yyscanner, xsk::gsc::location& 
 %type <false_ptr>                  false
 %type <true_ptr>                   true
 
+%nonassoc ADD_ARRAY
+%nonassoc RBRACKET
 %nonassoc THEN
 %nonassoc ELSE
 %nonassoc INCREMENT DECREMENT
@@ -493,7 +566,7 @@ expr_arguments
 expr_arguments_filled
     : expr_arguments COMMA expr
         { $$ = std::move($1); $$->list.push_back(std::move($3)); }
-    | expr
+    | expr %prec ADD_ARRAY
         { $$ = std::make_unique<node_expr_arguments>(@$); $$->list.push_back(std::move($1)); }
     ;
 
