@@ -602,7 +602,7 @@ void disassembler::print_instruction(const gsc::instruction_ptr& inst)
     switch (opcode(inst->opcode))
     {
     case opcode::OP_endswitch:
-        output_->write_string(utils::string::va("%s", resolver::opcode_name(inst->opcode).data()));
+        output_->write_string(utils::string::va("\t\t%s", resolver::opcode_name(inst->opcode).data()));
         output_->write_string(utils::string::va(" %s\n", inst->data[0].data()));
         {
             std::uint32_t totalcase = std::stoul(inst->data[0]);
@@ -611,12 +611,12 @@ void disassembler::print_instruction(const gsc::instruction_ptr& inst)
             {
                 if (inst->data[1 + index] == "case")
                 {
-                    output_->write_string(utils::string::va("%s %s %s", inst->data[1 + index].data(), inst->data[1 + index + 1].data(), inst->data[1 + index + 2].data()));
+                    output_->write_string(utils::string::va("\t\t\t%s %s %s", inst->data[1 + index].data(), inst->data[1 + index + 1].data(), inst->data[1 + index + 2].data()));
                     index += 3;
                 }
                 else if (inst->data[1 + index] == "default")
                 {
-                    output_->write_string(utils::string::va("%s %s", inst->data[1 + index].data(), inst->data[1 + index + 1].data()));
+                    output_->write_string(utils::string::va("\t\t\t%s %s", inst->data[1 + index].data(), inst->data[1 + index + 1].data()));
                     index += 2;
                 }
                 if (casenum != totalcase - 1)
@@ -627,7 +627,7 @@ void disassembler::print_instruction(const gsc::instruction_ptr& inst)
         }
         break;
     default:
-        output_->write_string(utils::string::va("%s", resolver::opcode_name(inst->opcode).data()));
+        output_->write_string(utils::string::va("\t\t%s", resolver::opcode_name(inst->opcode).data()));
         for (auto& d : inst->data)
         {
             output_->write_string(utils::string::va(" %s", d.data()));
