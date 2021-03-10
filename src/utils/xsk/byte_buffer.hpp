@@ -29,14 +29,39 @@ public:
     }
 
     template <typename T>
-    auto write(T data) -> T*
+    void write(T data)
     {
         T* mem = reinterpret_cast<T*>(data_.data() + pos_);
-        memcpy(mem, &data, sizeof(T));
+        std::memcpy(mem, &data, sizeof(T));
+        pos_ += sizeof(T);
+    }
+
+    template <typename T>
+    auto read_endian() -> T
+    {
+        std::array<std::uint8_t, sizeof(T)> mem;
+
+        for(auto i = 0; i < sizeof(T); i++)
+        {
+            mem[i] = reinterpret_cast<std::uint8_t*>(data_.data() + pos_)[sizeof(T) - 1 - i];
+        }
 
         pos_ += sizeof(T);
 
-        return mem;
+        return *reinterpret_cast<T*>(mem.data());
+    }
+
+    template <typename T>
+    void write_endian(T data)
+    {
+        auto* mem = data_.data() + pos_;
+
+        for(auto i = 0; i < sizeof(T); i++)
+        {
+            mem[i] = reinterpret_cast<std::uint8_t*>(&data)[sizeof(T) - 1 - i];
+        }
+
+        pos_ += sizeof(T);
     }
 
     void clear();
