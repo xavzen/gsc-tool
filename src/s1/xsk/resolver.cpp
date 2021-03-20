@@ -324,40 +324,40 @@ const std::array<gsc::pair_8C, 154> opcode_list
 
 const std::array<gsc::pair_16C, 735> function_list
 {{
-    { 0x001, "_func_001" }, // SP 0x140247170, MP 0x140310780
-    { 0x002, "_func_002" }, // SP 0x14024E330, MP 0x140316CE0
-    { 0x003, "_func_003" }, // SP 0x140243780, MP 0x14030DA50
-    { 0x004, "_func_004" }, // SP 0x140261330
-    { 0x005, "_func_005" }, // SP 0x140259990
-    { 0x006, "_func_006" }, // SP 0x14025D6D0
-    { 0x007, "_func_007" }, // SP 0x14025D3F0
-    { 0x008, "_func_008" }, // SP 0x14025D410
-    { 0x009, "_func_009" }, // SP 0x14025D5E0
-    { 0x00A, "_func_00A" }, // SP 0x14025D430
-    { 0x00B, "_func_00B" }, // SP 0x14025D2F0
-    { 0x00C, "_func_00C" }, // SP 0x140259A70
-    { 0x00D, "_func_00D" }, // SP 0x140259B00
-    { 0x00E, "_func_00E" }, // SP 0x140259C80
-    { 0x00F, "_func_00F" }, // MP 0x14030DFB0
-    { 0x010, "_func_010" }, // SP 0x140245530, MP 0x14030E120
-    { 0x011, "_func_011" }, // MP 0x14030E4B0
-    { 0x012, "_func_012" }, // MP 0x14030F430
-    { 0x013, "_func_013" }, // MP 0x14030F540
-    { 0x014, "_func_014" }, // MP 0x14030F620
-    { 0x015, "_func_015" }, // MP 0x14030F700
-    { 0x016, "_func_016" }, // MP 0x14030F840
-    { 0x017, "_func_017" }, // MP 0x14030F850
-    { 0x018, "_func_018" }, // SP 0x140246CA0, MP 0x1403103B0
-    { 0x019, "_func_019" }, // SP 0x140247040, MP 0x140310730
-    { 0x01A, "_func_01A" }, // SP 0x140246570, MP 0x14030F860
-    { 0x01B, "_func_01B" }, // SP 0x14025FE20
-    { 0x01C, "_func_01C" }, // SP 0x14025FE50
-    { 0x01D, "_func_01D" }, // SP 0x14025FF80
-    { 0x01E, "_func_01E" }, // SP 0x140260140
-    { 0x01F, "_func_01F" }, // SP 0x140251670, MP 0x14031C130
-    { 0x020, "_func_020" }, // SP 0x140251860, MP 0x14031C700
-    { 0x021, "_func_021" }, // SP 0x140251C70, MP 0x14031CC00
-    { 0x022, "_func_022" }, // SP 0x140252680, MP 0x14031D660
+    { 0x001, "precacheturret" },
+    { 0x002, "getweaponarray" },
+    { 0x003, "createprintchannel" },
+    { 0x004, "updategamerprofileall" },
+    { 0x005, "clearlocalizedstrings" },
+    { 0x006, "setphysicsgravitydir" },
+    { 0x007, "gettimescale" },
+    { 0x008, "settimescale" },
+    { 0x009, "setslowmotionview" },
+    { 0x00A, "teleportscene" },
+    { 0x00B, "forcesharedammo" },
+    { 0x00C, "refreshhudcompass" },
+    { 0x00D, "refreshhudammocounter" },
+    { 0x00E, "notifyoncommand" },
+    { 0x00F, "setprintchannel" },
+    { 0x010, "print" },
+    { 0x011, "println" },
+    { 0x012, "print3d" },
+    { 0x013, "line" },
+    { 0x014, "box" },
+    { 0x015, "orientedbox" },
+    { 0x016, "sphere" },
+    { 0x017, "cylinder" },
+    { 0x018, "spawnturret" },
+    { 0x019, "canspawnturret" },
+    { 0x01A, "assert" },
+    { 0x01B, "pausecinematicingame" },
+    { 0x01C, "drawcompassfriendlies" },
+    { 0x01D, "bulletspread" },
+    { 0x01E, "bullettracer" },
+    { 0x01F, "badplace_delete" },
+    { 0x020, "badplace_cylinder" },
+    { 0x021, "badplace_arc" },
+    { 0x022, "badplace_brush" },
     { 0x023, "_func_023" }, // SP 0x140261020
     { 0x024, "_func_024" }, // SP 0x14027EA80
     { 0x025, "_func_025" }, // SP 0x14027EB20
@@ -367,45 +367,45 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x029, "_func_029" }, // empty
     { 0x02A, "_func_02A" }, // empty
     { 0x02B, "_func_02B" }, // empty
-    { 0x02C, "_func_02C" }, // SP 0x1402612E0
-    { 0x02D, "_func_02D" }, // MP 0x14030F9E0
-    { 0x02E, "_func_02E" }, // SP 0x14021FDB0, MP 0x14030FA00
-    { 0x02F, "_func_02F" }, // SP 0x140246850, MP 0x14030FB80
-    { 0x030, "_func_030" }, // SP 0x140246BC0, MP 0x14030FF60
-    { 0x031, "_func_031" }, // SP 0x140246D80, MP 0x140310150
-    { 0x032, "_func_032" }, // SP 0x140248940, MP 0x140311AE0
-    { 0x033, "_func_033" }, // SP 0x140248AF0, MP 0x140311E00
-    { 0x034, "_func_034" }, // SP 0x140249230, MP 0x140312420
-    { 0x035, "_func_035" }, // MP 0x140312D00
-    { 0x036, "_func_036" }, // SP 0x140249C40, MP 0x140313390
-    { 0x037, "_func_037" }, // SP 0x1402495E0, MP 0x140313290
-    { 0x038, "_func_038" }, // MP 0x140313660
-    { 0x039, "_func_039" }, // SP 0x14024A0B0, MP 0x140313940
-    { 0x03A, "_func_03A" }, // SP 0x14024A570, MP 0x140313BD0
-    { 0x03B, "_func_03B" }, // SP 0x14024A860, MP 0x140314130
-    { 0x03C, "_func_03C" }, // SP 0x14024B2A0, MP 0x140314720
-    { 0x03D, "_func_03D" }, // SP 0x14024B970, MP 0x140315270
-    { 0x03E, "_func_03E" }, // SP 0x14024B9A0, MP 0x1403152A0
+    { 0x02C, "updategamerprofile" },
+    { 0x02D, "assertex" },
+    { 0x02E, "assertmsg" },
+    { 0x02F, "isdefined" },
+    { 0x030, "isvalidmissile" },
+    { 0x031, "isstring" },
+    { 0x032, "setomnvar" },
+    { 0x033, "getomnvar" },
+    { 0x034, "setdvar" },
+    { 0x035, "setdynamicdvar" },
+    { 0x036, "setdvarifuninitialized" },
+    { 0x037, "setdevdvar" },
+    { 0x038, "setdevdvarifuninitialized" },
+    { 0x039, "getdvar" },
+    { 0x03A, "getdvarint" },
+    { 0x03B, "getdvarfloat" },
+    { 0x03C, "getdvarvector" },
+    { 0x03D, "gettime" },
+    { 0x03E, "gettimeutc" },
     { 0x03F, "_func_03F" }, // SP 0x14024B9C0, MP 0x1403156A0
-    { 0x040, "_func_040" }, // SP 0x14024BC50, MP 0x140315730
-    { 0x041, "_func_041" }, // SP 0x14024C070, MP 0x140315820
-    { 0x042, "_func_042" }, // SP 0x140260490
-    { 0x043, "_func_043" }, // SP 0x1402604D0
-    { 0x044, "_func_044" }, // SP 0x140260550
-    { 0x045, "_func_045" }, // SP 0x1402606B0, MP 0x14032FAE0
-    { 0x046, "_func_046" }, // SP 0x140260740, MP 0x14032FB70
-    { 0x047, "_func_047" }, // SP 0x140260770
-    { 0x048, "_func_048" }, // SP 0x1402607A0
-    { 0x049, "_func_049" }, // SP 0x1402609A0
-    { 0x04A, "_func_04A" }, // SP 0x140260A90
-    { 0x04B, "_func_04B" }, // SP 0x140260CF0
-    { 0x04C, "_func_04C" }, // SP 0x140260EC0
-    { 0x04D, "_func_04D" }, // SP 0x140260EF0
-    { 0x04E, "_func_04E" }, // SP 0x140260F10
-    { 0x04F, "_func_04F" }, // SP 0x140260F30
-    { 0x050, "_func_050" }, // SP 0x140260F50
-    { 0x051, "_func_051" }, // SP 0x140261000
-    { 0x052, "_func_052" }, // SP 0x140259780
+    { 0x040, "getentbynum" },
+    { 0x041, "getweaponmodel" },
+    { 0x042, "getculldist" },
+    { 0x043, "sethalfresparticles" },
+    { 0x044, "getmapsunlight" },
+    { 0x045, "setsunlight" },
+    { 0x046, "resetsunlight" },
+    { 0x047, "getmapsundirection" },
+    { 0x048, "getmapsunangles" },
+    { 0x049, "setsundirection" },
+    { 0x04A, "lerpsundirection" },
+    { 0x04B, "lerpsunangles" },
+    { 0x04C, "resetsundirection" },
+    { 0x04D, "enableforcedsunshadows" },
+    { 0x04E, "enableforcednosunshadows" },
+    { 0x04F, "disableforcedsunshadows" },
+    { 0x050, "enableouterspacemodellighting" },
+    { 0x051, "disableouterspacemodellighting" },
+    { 0x052, "remapstage" },
     { 0x053, "_func_053" }, // SP 0x14025F6B0
     { 0x054, "_func_054" }, // SP 0x14025F800
     { 0x055, "_func_055" }, // SP 0x14025F830
@@ -416,24 +416,24 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x05A, "_func_05A" }, // SP 0x14025FC00
     { 0x05B, "_func_05B" }, // SP 0x14025FC80
     { 0x05C, "_func_05C" }, // SP 0x14025FE00
-    { 0x05D, "_func_05D" }, // SP 0x14024CAA0, MP 0x140315B20
-    { 0x05E, "_func_05E" }, // SP 0x14024CC60, MP 0x140315E80
-    { 0x05F, "_func_05F" }, // SP 0x14024CEE0, MP 0x140316190
-    { 0x060, "_func_060" }, // SP 0x14024D4D0, MP 0x140316820
-    { 0x061, "_func_061" }, // SP 0x14024E0C0, MP 0x140316F80
-    { 0x062, "_func_062" }, // SP 0x14024E250, MP 0x1403171E0
-    { 0x063, "_func_063" }, // SP 0x14024FA30, MP 0x140319150
-    { 0x064, "_func_064" }, // SP 0x14024FBB0, MP 0x140319300
-    { 0x065, "_func_065" }, // SP 0x140250110, MP 0x140319460
-    { 0x066, "_func_066" }, // SP 0x140246950, MP 0x140310050
-    { 0x067, "_func_067" }, // empty
-    { 0x068, "_func_068" }, // SP 0x1403F5F50, MP 0x140314710
-    { 0x069, "_func_069" }, // SP 0x1402487A0, MP 0x14030FDC0
-    { 0x06A, "_func_06A" }, // SP 0x14026D410
-    { 0x06B, "_func_06B" }, // SP 0x14026CF80
-    { 0x06C, "_func_06C" }, // SP 0x14026D0E0
-    { 0x06D, "_func_06D" }, // SP 0x14020DEF0, MP 0x14032DD70
-    { 0x06E, "_func_06E" }, // SP 0x14020DE00, MP 0x14032DEC0
+    { 0x05D, "getweapondisplayname" },
+    { 0x05E, "getweaponbasename" },
+    { 0x05F, "getweaponattachments" },
+    { 0x060, "getweaponattachmentdisplaynames" },
+    { 0x061, "getweaponcamoname" },
+    { 0x062, "getweaponreticlename" },
+    { 0x063, "getanimlength" },
+    { 0x064, "animhasnotetrack" },
+    { 0x065, "getnotetracktimes" },
+    { 0x066, "spawn" },
+    { 0x067, "spawnloopsound" },
+    { 0x068, "spawnloopingsound" },
+    { 0x069, "bullettrace" },
+    { 0x06A, "target_setmaxsize" },
+    { 0x06B, "target_setcolor" },
+    { 0x06C, "target_setdelay" },
+    { 0x06D, "getstartorigin" },
+    { 0x06E, "getstartangles" },
     { 0x06F, "_func_06F" }, // SP 0x14020DCB0
     { 0x070, "_func_070" }, // SP 0x14025FCB0
     { 0x071, "_func_071" }, // SP 0x140243B90, MP 0x1403104D0
@@ -462,14 +462,14 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x088, "_func_088" }, // SP 0x14025E270
     { 0x089, "_func_089" }, // SP 0x14025FE70
     { 0x08A, "_func_08A" }, // SP 0x140260370
-    { 0x08B, "_func_08B" }, // SP 0x140249090, MP 0x1403102B0
-    { 0x08C, "_func_08C" }, // SP 0x140249380, MP 0x140310620
-    { 0x08D, "_func_08D" }, // SP 0x140249830, MP 0x140310A40
-    { 0x08E, "_func_08E" }, // SP 0x140249E50, MP 0x140310ED0
-    { 0x08F, "_func_08F" }, // SP 0x14024B130, MP 0x140313060
-    { 0x090, "_func_090" }, // SP 0x14024EE70, MP 0x140316BE0
-    { 0x091, "_func_091" }, // SP 0x14024F5B0, MP 0x140317040
-    { 0x092, "_func_092" }, // SP 0x140250580, MP 0x140317D00
+    { 0x08B, "bullettracepassed" },
+    { 0x08C, "sighttracepassed" },
+    { 0x08D, "physicstrace" },
+    { 0x08E, "playerphysicstrace" },
+    { 0x08F, "getgroundposition" },
+    { 0x090, "getmovedelta" },
+    { 0x091, "getangledelta" },
+    { 0x092, "getnorthyaw" },
     { 0x093, "_func_093" }, // SP 0x14025C1F0
     { 0x094, "_func_094" }, // SP 0x14025C2F0
     { 0x095, "_func_095" }, // SP 0x14025E330
@@ -496,40 +496,40 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x0AA, "_func_0AA" }, // SP 0x14026C9F0
     { 0x0AB, "_func_0AB" }, // SP 0x14026C8F0
     { 0x0AC, "_func_0AC" }, // SP 0x14026D520
-    { 0x0AD, "_func_0AD" }, // SP 0x140250680, MP 0x140317FB0
-    { 0x0AE, "_func_0AE" }, // SP 0x1402441F0, MP 0x14030EF90
-    { 0x0AF, "_func_0AF" }, // SP 0x14024B6C0, MP 0x1403135E0
-    { 0x0B0, "_func_0B0" }, // SP 0x14024B820, MP 0x140313630
-    { 0x0B1, "_func_0B1" }, // SP 0x14024B920, MP 0x1403138E0
-    { 0x0B2, "_func_0B2" }, // SP 0x14024BA60, MP 0x1403139A0
-    { 0x0B3, "_func_0B3" }, // SP 0x14024BDB0, MP 0x140313A10
-    { 0x0B4, "_func_0B4" }, // SP 0x14024BED0, MP 0x140313B40
-    { 0x0B5, "_func_0B5" }, // SP 0x14024C010, MP 0x140313B70
-    { 0x0B6, "_func_0B6" }, // SP 0x14024C1D0, MP 0x140313CB0
-    { 0x0B7, "_func_0B7" }, // SP 0x14024C6C0, MP 0x140313E00
-    { 0x0B8, "_func_0B8" }, // SP 0x14024CA10, MP 0x140314360
-    { 0x0B9, "_func_0B9" }, // SP 0x14024CBB0, MP 0x140314470
-    { 0x0BA, "_func_0BA" }, // SP 0x14024CCF0, MP 0x140314630
-    { 0x0BB, "_func_0BB" }, // SP 0x14024CEB0, MP 0x140314900
-    { 0x0BC, "_func_0BC" }, // SP 0x14024CFB0, MP 0x140314930
-    { 0x0BD, "_func_0BD" }, // SP 0x140269170
-    { 0x0BE, "_func_0BE" }, // SP 0x1402692A0
-    { 0x0BF, "_func_0BF" }, // SP 0x140269340
-    { 0x0C0, "_func_0C0" }, // SP 0x14027E310, MP 0x1402D2150
-    { 0x0C1, "_func_0C1" }, // SP 0x14027E420, MP 0x1402D2260
-    { 0x0C2, "_func_0C2" }, // SP 0x14027E0A0, MP 0x1402D1EF0
-    { 0x0C3, "_func_0C3" }, // SP 0x14027E530, MP 0x1402D2410
-    { 0x0C4, "_func_0C4" }, // SP 0x14027E540, MP 0x1402D2420
-    { 0x0C5, "_func_0C5" }, // SP 0x14027E120, MP 0x1402D1F70
-    { 0x0C6, "_func_0C6" }, // empty
-    { 0x0C7, "_func_0C7" }, // empty
-    { 0x0C8, "_func_0C8" }, // SP 0x14041A3F0
-    { 0x0C9, "_func_0C9" }, // SP 0x14041A4D0
-    { 0x0CA, "_func_0CA" }, // SP 0x14041A3A0
-    { 0x0CB, "_func_0CB" }, // SP 0x14023EAC0, MP 0x140321900
-    { 0x0CC, "_func_0CC" }, // SP 0x140259DF0, MP 0x14032F900
-    { 0x0CD, "_func_0CD" }, // SP 0x1402475B0, MP 0x1403107B0
-    { 0x0CE, "_func_0CE" }, // SP 0x140246DF0, MP 0x140310170
+    { 0x0AD, "setnorthyaw" },
+    { 0x0AE, "setslowmotion" },
+    { 0x0AF, "randomint" },
+    { 0x0B0, "randomfloat" },
+    { 0x0B1, "randomintrange" },
+    { 0x0B2, "randomfloatrange" },
+    { 0x0B3, "sin" },
+    { 0x0B4, "cos" },
+    { 0x0B5, "tan" },
+    { 0x0B6, "asin" },
+    { 0x0B7, "acos" },
+    { 0x0B8, "atan" },
+    { 0x0B9, "int" },
+    { 0x0BA, "float" },
+    { 0x0BB, "abs" },
+    { 0x0BC, "min" }, // check!
+    { 0x0BD, "objective_additionalcurrent" },
+    { 0x0BE, "objective_ring" },
+    { 0x0BF, "objective_setpointertextoverride" },
+    { 0x0C0, "getnode" },
+    { 0x0C1, "getnodearray" },
+    { 0x0C2, "getallnodes" },
+    { 0x0C3, "getnodesinradius" },
+    { 0x0C4, "getnodesinradiussorted" },
+    { 0x0C5, "getclosestnodeinsight" },
+    { 0x0C6, "getreflectionlocs" },
+    { 0x0C7, "getreflectionreferencelocs" },
+    { 0x0C8, "getvehicletracksegment" },
+    { 0x0C9, "getvehicletracksegmentarray" },
+    { 0x0CA, "getallvehicletracksegments" },
+    { 0x0CB, "isarray" },
+    { 0x0CC, "isai" },
+    { 0x0CD, "getindexforluincstring" },
+    { 0x0CE, "issentient" },
     { 0x0CF, "_func_0CF" }, // SP 0x140259F30
     { 0x0D0, "_func_0D0" }, // SP 0x14025A0E0
     { 0x0D1, "_func_0D1" }, // SP 0x14025A170
@@ -545,145 +545,145 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x0DB, "_func_0DB" }, // SP 0x14025BF20
     { 0x0DC, "_func_0DC" }, // empty
     { 0x0DD, "_func_0DD" }, // SP 0x14025C0E0
-    { 0x0DE, "_func_0DE" }, // SP 0x14024D0A0, MP 0x140314970
-    { 0x0DF, "_func_0DF" }, // SP 0x14024D0E0, MP 0x1403149C0
-    { 0x0E0, "_func_0E0" }, // SP 0x14024D140, MP 0x1403149E0
-    { 0x0E1, "_func_0E1" }, // SP 0x14024D2D0, MP 0x140314A60
-    { 0x0E2, "_func_0E2" }, // SP 0x14024D2F0, MP 0x140314C10
-    { 0x0E3, "_func_0E3" }, // SP 0x14024D330, MP 0x140314C50
-    { 0x0E4, "_func_0E4" }, // SP 0x14024D400, MP 0x140315280
-    { 0x0E5, "_func_0E5" }, // SP 0x14024D5D0, MP 0x1403156C0
-    { 0x0E6, "_func_0E6" }, // SP 0x14024D6C0, MP 0x140315770
-    { 0x0E7, "_func_0E7" }, // SP 0x14024D740, MP 0x1403157D0
-    { 0x0E8, "_func_0E8" }, // SP 0x14024F8C0, MP 0x140316A70
-    { 0x0E9, "_func_0E9" }, // SP 0x14024FEE0, MP 0x140316E00
-    { 0x0EA, "_func_0EA" }, // SP 0x140250610, MP 0x1403173C0
-    { 0x0EB, "_func_0EB" }, // SP 0x1402507F0, MP 0x140317540
-    { 0x0EC, "_func_0EC" }, // SP 0x140250B60, MP 0x140317820
-    { 0x0ED, "_func_0ED" }, // SP 0x140250C80, MP 0x140317A40
-    { 0x0EE, "_func_0EE" }, // SP 0x140250CF0, MP 0x140317AB0
-    { 0x0EF, "_func_0EF" }, // SP 0x140250F30, MP 0x140317B10
-    { 0x0F0, "_func_0F0" }, // SP 0x140251020, MP 0x140317CC0
-    { 0x0F1, "_func_0F1" }, // SP 0x1402510E0, MP 0x140317D40
-    { 0x0F2, "_func_0F2" }, // SP 0x140251350, MP 0x140318090
-    { 0x0F3, "_func_0F3" }, // SP 0x140251460, MP 0x1403181C0
-    { 0x0F4, "_func_0F4" }, // SP 0x140252170, MP 0x140318CC0
-    { 0x0F5, "_func_0F5" }, // SP 0x140260330, MP 0x14032F6F0
-    { 0x0F6, "_func_0F6" }, // SP 0x140260340, MP 0x14032F760
-    { 0x0F7, "_func_0F7" }, // MP 0x14032D060
-    { 0x0F8, "_func_0F8" }, // MP 0x14032E270
-    { 0x0F9, "_func_0F9" }, // MP 0x140327D60
-    { 0x0FA, "_func_0FA" }, // MP 0x14032E3C0
-    { 0x0FB, "_func_0FB" }, // SP 0x14025A1A0, MP 0x14032E440
-    { 0x0FC, "_func_0FC" }, // SP 0x14025A390, MP 0x14032E5B0
-    { 0x0FD, "_func_0FD" }, // SP 0x14024BB30
-    { 0x0FE, "_func_0FE" }, // SP 0x14024D7D0
-    { 0x0FF, "_func_0FF" }, // SP 0x14024DB70
-    { 0x100, "_func_100" }, // MP 0x1403E29A0
-    { 0x101, "_func_101" }, // MP 0x1403E29B0
-    { 0x102, "_func_102" }, // SP 0x14024FE80
-    { 0x103, "_func_103" }, // SP 0x140289E70, MP 0x140043C40
-    { 0x104, "_func_104" }, // SP 0x140289EA0, MP 0x140043C70
-    { 0x105, "_func_105" }, // SP 0x140289EE0, MP 0x140043CB0
-    { 0x106, "_func_106" }, // SP 0x140289F40, MP 0x140043D10
-    { 0x107, "_func_107" }, // SP 0x140289FC0, MP 0x140043D90
-    { 0x108, "_func_108" }, // SP 0x14028A010, MP 0x140043DE0
-    { 0x109, "_func_109" }, // SP 0x14028A1C0, MP 0x140043670
-    { 0x10A, "_func_10A" }, // SP 0x140268D10
-    { 0x10B, "_func_10B" }, // SP 0x140268FB0
-    { 0x10C, "_func_10C" }, // SP 0x140268FC0
-    { 0x10D, "_func_10D" }, // SP 0x140268FD0
-    { 0x10E, "_func_10E" }, // SP 0x140269100
-    { 0x10F, "_func_10F" }, // SP 0x140269160
-    { 0x110, "_func_110" }, // SP 0x140251540, MP 0x1403182C0
-    { 0x111, "_func_111" }, // SP 0x140251820, MP 0x140318520
-    { 0x112, "_func_112" }, // SP 0x140251A20, MP 0x140318A50
-    { 0x113, "_func_113" }, // SP 0x140251AB0, MP 0x140318BC0
-    { 0x114, "_func_114" }, // SP 0x1402524B0, MP 0x1403191B0
-    { 0x115, "_func_115" }, // SP 0x1402525E0, MP 0x1403192C0
-    { 0x116, "_func_116" }, // SP 0x140252830, MP 0x140319420
-    { 0x117, "_func_117" }, // SP 0x140252A40, MP 0x1403194B0
-    { 0x118, "_func_118" }, // SP 0x140252C20, MP 0x140319920
-    { 0x119, "_func_119" }, // SP 0x140252E70, MP 0x140319A30
-    { 0x11A, "_func_11A" }, // SP 0x14023E5C0, MP 0x14031B440
-    { 0x11B, "_func_11B" }, // SP 0x14023E740, MP 0x14031B750
-    { 0x11C, "_func_11C" }, // SP 0x14023F7C0, MP 0x14031CA00
-    { 0x11D, "_func_11D" }, // SP 0x14023FA00, MP 0x14031CB60
-    { 0x11E, "_func_11E" }, // SP 0x14023FB70, MP 0x14031CF30
-    { 0x11F, "_func_11F" }, // SP 0x14023FE90, MP 0x14031D580
-    { 0x120, "_func_120" }, // SP 0x1402401C0, MP 0x14031DB70
-    { 0x121, "_func_121" }, // SP 0x1402407A0, MP 0x14031E600
-    { 0x122, "_func_122" }, // SP 0x140249980, MP 0x140310B50
-    { 0x123, "_func_123" }, // MP 0x14032CE30
-    { 0x124, "_func_124" }, // MP 0x14032CE40
-    { 0x125, "_func_125" }, // MP 0x14032CE50
-    { 0x126, "_func_126" }, // MP 0x14032CF30
-    { 0x127, "_func_127" }, // MP 0x14032CF40
-    { 0x128, "_func_128" }, // MP 0x14032CFA0
-    { 0x129, "_func_129" }, // MP 0x14032D000
-    { 0x12A, "_func_12A" }, // MP 0x140328710
-    { 0x12B, "_func_12B" }, // MP 0x14032C060
-    { 0x12C, "_func_12C" }, // MP 0x140329330
-    { 0x12D, "_func_12D" }, // MP 0x1403293E0
-    { 0x12E, "_func_12E" }, // MP 0x140329BF0
-    { 0x12F, "_func_12F" }, // MP 0x14032C0C0
-    { 0x130, "_func_130" }, // MP 0x140329CF0
-    { 0x131, "_func_131" }, // MP 0x140329AA0
-    { 0x132, "_func_132" }, // MP 0x140329C20
-    { 0x133, "_func_133" }, // MP 0x140329290
-    { 0x134, "_func_134" }, // MP 0x14032C170
-    { 0x135, "_func_135" }, // MP 0x14032C5F0
-    { 0x136, "_func_136" }, // MP 0x14032C6A0
-    { 0x137, "_func_137" }, // MP 0x14032C6D0
-    { 0x138, "_func_138" }, // MP 0x14032C6F0
-    { 0x139, "_func_139" }, // MP 0x14032C220
-    { 0x13A, "_func_13A" }, // MP 0x14032C280
-    { 0x13B, "_func_13B" }, // MP 0x14032ED40
-    { 0x13C, "_func_13C" }, // SP 0x1402612D0, MP 0x140328570
-    { 0x13D, "_func_13D" }, // MP 0x14032CA80
-    { 0x13E, "_func_13E" }, // MP 0x14032CAC0
-    { 0x13F, "_func_13F" }, // SP 0x140260300, MP 0x14032F5A0
-    { 0x140, "_func_140" }, // SP 0x140260310, MP 0x14032F610
-    { 0x141, "_func_141" }, // SP 0x140260320, MP 0x14032F680
-    { 0x142, "_func_142" }, // SP 0x14024A8E0, MP 0x140312570
-    { 0x143, "_func_143" }, // SP 0x140240F30, MP 0x14031F360
-    { 0x144, "_func_144" }, // SP 0x1402412C0, MP 0x14031F940
-    { 0x145, "_func_145" }, // SP 0x140248BA0, MP 0x1403101D0
-    { 0x146, "_func_146" }, // SP 0x140249050, MP 0x140310270
-    { 0x147, "_func_147" }, // SP 0x1402494D0, MP 0x140310750
-    { 0x148, "_func_148" }, // SP 0x1402495B0, MP 0x140310810
-    { 0x149, "_func_149" }, // SP 0x1402496D0, MP 0x1403108F0
-    { 0x14A, "_func_14A" }, // SP 0x1402411E0, MP 0x14031F840
-    { 0x14B, "_func_14B" }, // SP 0x140249140, MP 0x140310490
-    { 0x14C, "_func_14C" }, // SP 0x140250E80, MP 0x140318760
-    { 0x14D, "_func_14D" }, // SP 0x140251E90, MP 0x140319700
-    { 0x14E, "_func_14E" }, // SP 0x140253060, MP 0x14031ADC0
-    { 0x14F, "_func_14F" }, // SP 0x14023E390, MP 0x14031C610
-    { 0x150, "_func_150" }, // SP 0x14023EA00, MP 0x14031D8B0
-    { 0x151, "_func_151" }, // SP 0x140425190, MP 0x140331F90
-    { 0x152, "_func_152" }, // SP 0x1404253B0, MP 0x1403327A0
-    { 0x153, "_func_153" }, // SP 0x140425500, MP 0x140332D00
-    { 0x154, "_func_154" }, // SP 0x140253460, MP 0x14031B210
-    { 0x155, "_func_155" }, // SP 0x140425340, MP 0x1403326A0
-    { 0x156, "_func_156" }, // SP 0x1402544C0, MP 0x14031BE80
-    { 0x157, "_func_157" }, // MP 0x14032FC40
-    { 0x158, "_func_158" }, // MP 0x14032FD40
-    { 0x159, "_func_159" }, // MP 0x14032FDE0
-    { 0x15A, "_func_15A" }, // MP 0x14032FFE0
-    { 0x15B, "_func_15B" }, // MP 0x140330050
-    { 0x15C, "_func_15C" }, // MP 0x140327C20
-    { 0x15D, "_func_15D" }, // MP 0x140327D10
-    { 0x15E, "_func_15E" }, // MP 0x140327EB0
-    { 0x15F, "_func_15F" }, // MP 0x140328070
-    { 0x160, "_func_160" }, // MP 0x14032D370
-    { 0x161, "_func_161" }, // MP 0x14032D380
-    { 0x162, "_func_162" }, // MP 0x14032D390
-    { 0x163, "_func_163" }, // MP 0x14032D5B0
-    { 0x164, "_func_164" }, // MP 0x14032D6B0
-    { 0x165, "_func_165" }, // MP 0x14032E030
-    { 0x166, "_func_166" }, // SP 0x140249350, MP 0x1403105F0
-    { 0x167, "_func_167" }, // MP 0x14032F0A0
-    { 0x168, "_func_168" }, // MP 0x14032F260
+    { 0x0DE, "max" }, // check!
+    { 0x0DF, "floor" },
+    { 0x0E0, "ceil" },
+    { 0x0E1, "exp" },
+    { 0x0E2, "log" },
+    { 0x0E3, "sqrt" },
+    { 0x0E4, "squared" },
+    { 0x0E5, "clamp" },
+    { 0x0E6, "angleclamp" },
+    { 0x0E7, "angleclamp180" },
+    { 0x0E8, "vectorfromlinetopoint" },
+    { 0x0E9, "pointonsegmentnearesttopoint" },
+    { 0x0EA, "distance" },
+    { 0x0EB, "distance2d" },
+    { 0x0EC, "distancesquared" },
+    { 0x0ED, "length" },
+    { 0x0EE, "length2d" },
+    { 0x0EF, "lengthsquared" },
+    { 0x0F0, "length2dsquared" },
+    { 0x0F1, "closer" },
+    { 0x0F2, "vectordot" },
+    { 0x0F3, "vectorcross" },
+    { 0x0F4, "axistoangles" },
+    { 0x0F5, "visionsetthermal" },
+    { 0x0F6, "visionsetpain" },
+    { 0x0F7, "endlobby" },
+    { 0x0F8, "setac130ambience" },
+    { 0x0F9, "getmapcustom" },
+    { 0x0FA, "spawnsighttrace" },
+    { 0x0FB, "incrementcounter" },
+    { 0x0FC, "getcountertotal" },
+    { 0x0FD, "getlevelticks" },
+    { 0x0FE, "perlinnoise2d" },
+    { 0x0FF, "calcrockingangles" },
+    { 0x100, "reconevent" },
+    { 0x101, "reconspatialevent" },
+    { 0x102, "setsunflareposition" },
+    { 0x103, "createthreatbiasgroup" },
+    { 0x104, "threatbiasgroupexists" },
+    { 0x105, "getthreatbias" },
+    { 0x106, "setthreatbias" },
+    { 0x107, "setthreatbiasagainstall" },
+    { 0x108, "setignoremegroup" },
+    { 0x109, "isenemyteam" },
+    { 0x10A, "objective_additionalentity" },
+    { 0x10B, "objective_state_nomessage" },
+    { 0x10C, "objective_string" },
+    { 0x10D, "objective_string_nomessage" },
+    { 0x10E, "objective_additionalposition" },
+    { 0x10F, "objective_current_nomessage" },
+    { 0x110, "vectornormalize" },
+    { 0x111, "vectortoangles" },
+    { 0x112, "vectortoyaw" },
+    { 0x113, "vectorlerp" },
+    { 0x114, "anglestoup" },
+    { 0x115, "anglestoright" },
+    { 0x116, "anglestoforward" },
+    { 0x117, "anglesdelta" },
+    { 0x118, "combineangles" },
+    { 0x119, "transformmove" },
+    { 0x11A, "rotatevector" },
+    { 0x11B, "rotatepointaroundvector" },
+    { 0x11C, "issubstr" },
+    { 0x11D, "isendstr" },
+    { 0x11E, "getsubstr" },
+    { 0x11F, "tolower" },
+    { 0x120, "strtok" },
+    { 0x121, "stricmp" },
+    { 0x122, "ambientplay" },
+    { 0x123, "getuavstrengthmax" },
+    { 0x124, "getuavstrengthlevelneutral" },
+    { 0x125, "getuavstrengthlevelshowenemyfastsweep" },
+    { 0x126, "getuavstrengthlevelshowenemydirectional" },
+    { 0x127, "blockteamradar" },
+    { 0x128, "unblockteamradar" },
+    { 0x129, "isteamradarblocked" },
+    { 0x12A, "getassignedteam" },
+    { 0x12B, "setmatchdata" },
+    { 0x12C, "getmatchdata" },
+    { 0x12D, "sendmatchdata" },
+    { 0x12E, "clearmatchdata" },
+    { 0x12F, "setmatchdatadef" },
+    { 0x130, "setmatchclientip" },
+    { 0x131, "setmatchdataid" },
+    { 0x132, "setclientmatchdata" },
+    { 0x133, "getclientmatchdata" },
+    { 0x134, "setclientmatchdatadef" },
+    { 0x135, "sendclientmatchdata" },
+    { 0x136, "getbuildversion" },
+    { 0x137, "getbuildnumber" },
+    { 0x138, "getsystemtime" },
+    { 0x139, "getmatchrulesdata" },
+    { 0x13A, "isusingmatchrulesdata" },
+    { 0x13B, "kick" },
+    { 0x13C, "issplitscreen" },
+    { 0x13D, "setmapcenter" },
+    { 0x13E, "setgameendtime" },
+    { 0x13F, "visionsetnaked" },
+    { 0x140, "visionsetnight" },
+    { 0x141, "visionsetmissilecam" },
+    { 0x142, "ambientstop" },
+    { 0x143, "precachemodel" },
+    { 0x144, "precacheshellshock" },
+    { 0x145, "precacheitem" },
+    { 0x146, "precacheshader" },
+    { 0x147, "precachestring" },
+    { 0x148, "precachemenu" },
+    { 0x149, "precacherumble" },
+    { 0x14A, "precachelocationselector" },
+    { 0x14B, "precacheleaderboards" },
+    { 0x14C, "loadfx" },
+    { 0x14D, "playfx" },
+    { 0x14E, "playfxontag" },
+    { 0x14F, "stopfxontag" },
+    { 0x150, "killfxontag" },
+    { 0x151, "playloopedfx" },
+    { 0x152, "spawnfx" },
+    { 0x153, "triggerfx" },
+    { 0x154, "playfxontagforclients" },
+    { 0x155, "setwinningteam" },
+    { 0x156, "announcement" },
+    { 0x157, "clientannouncement" },
+    { 0x158, "setteammode" },
+    { 0x159, "getteamscore" },
+    { 0x15A, "setteamscore" },
+    { 0x15B, "setclientnamemode" },
+    { 0x15C, "updateclientnames" },
+    { 0x15D, "getteamplayersalive" },
+    { 0x15E, "logprint" },
+    { 0x15F, "worldentnumber" },
+    { 0x160, "obituary" },
+    { 0x161, "positionwouldtelefrag" },
+    { 0x162, "canspawn" },
+    { 0x163, "getstarttime" },
+    { 0x164, "precachestatusicon" },
+    { 0x165, "precacheheadicon" },
+    { 0x166, "precacheminimapicon" },
+    { 0x167, "precachempanim" },
+    { 0x168, "map_restart" },
     { 0x169, "_func_169" }, // MP 0x14032E320
     { 0x16A, "_func_16A" }, // MP 0x14032E490
     { 0x16B, "_func_16B" }, // MP 0x14032E4E0
@@ -701,51 +701,51 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x177, "_func_177" }, // MP 0x14032CCE0
     { 0x178, "_func_178" }, // MP 0x14032CDC0
     { 0x179, "_func_179" }, // MP 0x14032CE20
-    { 0x17A, "_func_17A" }, // SP 0x14023F0F0, MP 0x14031EC00
-    { 0x17B, "_func_17B" }, // SP 0x14023FCC0, MP 0x140320200
-    { 0x17C, "_func_17C" }, // SP 0x14023F5B0, MP 0x14031F1E0
-    { 0x17D, "_func_17D" }, // SP 0x14023F860, MP 0x14031F9B0
-    { 0x17E, "_func_17E" }, // SP 0x1402427E0, MP 0x14030B480
-    { 0x17F, "_func_17F" }, // SP 0x140242930, MP 0x14030B650
-    { 0x180, "_func_180" }, // SP 0x140242FD0, MP 0x14030BD70
-    { 0x181, "_func_181" }, // SP 0x140243060, MP 0x14030C0A0
-    { 0x182, "_func_182" }, // SP 0x140243100, MP 0x14030C1F0
-    { 0x183, "_func_183" }, // SP 0x140243590, MP 0x14030C4E0
-    { 0x184, "_func_184" }, // SP 0x14024C150, MP 0x140313C50
-    { 0x185, "_func_185" }, // SP 0x14024D090, MP 0x1403149B0
-    { 0x186, "_func_186" }, // SP 0x14024E040, MP 0x140315B00
-    { 0x187, "_func_187" }, // SP 0x14024D1C0, MP 0x140314B00
-    { 0x188, "_func_188" }, // SP 0x140245290, MP 0x14030E130
-    { 0x189, "_func_189" }, // SP 0x140243790, MP 0x14030C5B0
-    { 0x18A, "_func_18A" }, // SP 0x140268E90, MP 0x140337540
-    { 0x18B, "_func_18B" }, // MP 0x1403375A0
-    { 0x18C, "_func_18C" }, // MP 0x1403376C0
-    { 0x18D, "_func_18D" }, // MP 0x140337760
-    { 0x18E, "_func_18E" }, // MP 0x1403377C0
-    { 0x18F, "_func_18F" }, // MP 0x140337860
-    { 0x190, "_func_190" }, // MP 0x140337960
-    { 0x191, "_func_191" }, // MP 0x1403379A0
-    { 0x192, "_func_192" }, // MP 0x140337A10
-    { 0x193, "_func_193" }, // MP 0x140337A50
-    { 0x194, "_func_194" }, // SP 0x140259A10, MP 0x14032EDC0
-    { 0x195, "_func_195" }, // SP 0x140259AA0, MP 0x14032EE30
-    { 0x196, "_func_196" }, // MP 0x14032F7D0
-    { 0x197, "_func_197" }, // SP 0x14026AC30, MP 0x1403389F0
-    { 0x198, "_func_198" }, // SP 0x14026ACA0, MP 0x140338AC0
-    { 0x199, "_func_199" }, // MP 0x140338F70
-    { 0x19A, "_func_19A" }, // MP 0x14032F0D0
-    { 0x19B, "_func_19B" }, // SP 0x14031B460, MP 0x1403F7C90
-    { 0x19C, "_func_19C" }, // MP 0x14032F380
-    { 0x19D, "_func_19D" }, // SP 0x140259C20, MP 0x14032EEA0
-    { 0x19E, "_func_19E" }, // SP 0x140259D00, MP 0x14032F050
-    { 0x19F, "_func_19F" }, // SP 0x140233740, MP 0x140302E40
-    { 0x1A0, "_func_1A0" }, // SP 0x140233750, MP 0x140302E50
-    { 0x1A1, "_func_1A1" }, // SP 0x140233A10, MP 0x140303100
-    { 0x1A2, "_func_1A2" }, // SP 0x140233A20, MP 0x140303110
-    { 0x1A3, "_func_1A3" }, // SP 0x140233A30, MP 0x140303120
-    { 0x1A4, "_func_1A4" }, // MP 0x140327C70
-    { 0x1A5, "_func_1A5" }, // SP 0x14021FDC0, MP 0x1402F05C0
-    { 0x1A6, "_func_1A6" }, // SP 0x14021FD60, MP 0x1402F0560
+    { 0x17A, "physicsexplosionsphere" },
+    { 0x17B, "physicsexplosioncylinder" },
+    { 0x17C, "physicsjolt" },
+    { 0x17D, "physicsjitter" },
+    { 0x17E, "setexpfog" },
+    { 0x17F, "setexpfogext" },
+    { 0x180, "setexpfogdvarsonly" },
+    { 0x181, "setexpfogextdvarsonly" },
+    { 0x182, "setatmosfog" },
+    { 0x183, "setatmosfogdvarsonly" },
+    { 0x184, "isexplosivedamagemod" },
+    { 0x185, "radiusdamage" },
+    { 0x186, "setplayerignoreradiusdamage" },
+    { 0x187, "glassradiusdamage" },
+    { 0x188, "earthquake" },
+    { 0x189, "getnumparts" },
+    { 0x18A, "objective_onentity" },
+    { 0x18B, "objective_onentitywithrotation" },
+    { 0x18C, "objective_team" },
+    { 0x18D, "objective_player" },
+    { 0x18E, "objective_playerteam" },
+    { 0x18F, "objective_playerenemyteam" },
+    { 0x190, "objective_playermask_hidefromall" },
+    { 0x191, "objective_playermask_hidefrom" },
+    { 0x192, "objective_playermask_showtoall" },
+    { 0x193, "objective_playermask_showto" },
+    { 0x194, "iprintln" },
+    { 0x195, "iprintlnbold" },
+    { 0x196, "logstring" },
+    { 0x197, "getent" },
+    { 0x198, "getentarray" },
+    { 0x199, "getspawnarray" },
+    { 0x19A, "spawnplane" },
+    { 0x19B, "spawnstruct" },
+    { 0x19C, "spawnhelicopter" },
+    { 0x19D, "isalive" },
+    { 0x19E, "isspawner" },
+    { 0x19F, "missile_createattractorent" },
+    { 0x1A0, "missile_createattractororigin" },
+    { 0x1A1, "missile_createrepulsorent" },
+    { 0x1A2, "missile_createrepulsororigin" },
+    { 0x1A3, "missile_deleteattractor" },
+    { 0x1A4, "playsoundatpos" },
+    { 0x1A5, "newhudelem" },
+    { 0x1A6, "newclienthudelem" },
     { 0x1A7, "_func_1A7" }, // MP 0x1402F05F0
     { 0x1A8, "_func_1A8" }, // SP 0x14031CC90, MP 0x1403F93E0
     { 0x1A9, "_func_1A9" }, // SP 0x140259DA0, MP 0x14032F850
@@ -817,8 +817,8 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x1EB, "_func_1EB" }, // SP 0x140418440, MP 0x14052CBE0
     { 0x1EC, "_func_1EC" }, // SP 0x1404184A0, MP 0x14052CC40
     { 0x1ED, "_func_1ED" }, // SP 0x140418170, MP 0x14052C8B0
-    { 0x1EE, "_func_1EE" }, // SP 0x14024D490, MP 0x140315660
-    { 0x1EF, "_func_1EF" }, // SP 0x14024CB70, MP 0x140314390
+    { 0x1EE, "pow" },
+    { 0x1EF, "angleclamp360" }, // SP 0x14024CB70, MP 0x140314390
     { 0x1F0, "_func_1F0" }, // MP 0x140432F70
     { 0x1F1, "_func_1F1" }, // MP 0x140432CB0
     { 0x1F2, "_func_1F2" }, // MP 0x1404335B0
@@ -849,7 +849,7 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x20B, "_func_20B" }, // empty
     { 0x20C, "_func_20C" }, // MP 0x1402D3310
     { 0x20D, "_func_20D" }, // MP 0x1402D1E20
-    { 0x20E, "_func_20E" }, // MP 0x14031D9E0
+    { 0x20E, "badplace_global" }, // MP 0x14031D9E0
     { 0x20F, "_func_20F" }, // MP 0x14032E640
     { 0x210, "_func_210" }, // SP 0x14027E220, MP 0x1402D2060
     { 0x211, "_func_211" }, // SP 0x140250D30, MP 0x14031B3C0
