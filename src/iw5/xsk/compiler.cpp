@@ -1458,7 +1458,7 @@ void compiler::emit_vector(const gsc::context_ptr& ctx, const gsc::vector_ptr& v
 
     if(!expr)
     {
-         emit_opcode(ctx, opcode::OP_GetVector, data);
+        emit_opcode(ctx, opcode::OP_GetVector, data);
     }
     else
     {
