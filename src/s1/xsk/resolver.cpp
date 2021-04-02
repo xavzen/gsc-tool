@@ -685,7 +685,7 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x167, "precachempanim" },
     { 0x168, "map_restart" },
     { 0x169, "_func_169" }, // MP 0x14032E320
-    { 0x16A, "_func_16A" }, // MP 0x14032E490
+    { 0x16A, "exitlevel" },
     { 0x16B, "_func_16B" }, // MP 0x14032E4E0
     { 0x16C, "_func_16C" }, // MP 0x14032EA90
     { 0x16D, "_func_16D" }, // MP 0x140328560
@@ -762,7 +762,7 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x1B4, "_func_1B4" }, // SP 0x1402454B0, MP 0x14030C3F0
     { 0x1B5, "_func_1B5" }, // SP 0x14024BD70, MP 0x1403148C0
     { 0x1B6, "_func_1B6" }, // SP 0x14024C730, MP 0x1403152C0
-    { 0x1B7, "_func_1B7" }, // SP 0x140245C00, MP 0x14030EBA0
+    { 0x1B7, "tablelookup" },
     { 0x1B8, "_func_1B8" }, // SP 0x140246A50, MP 0x14030FCE0
     { 0x1B9, "_func_1B9" }, // SP 0x140245E10, MP 0x14030F130
     { 0x1BA, "_func_1BA" }, // SP 0x140246C10, MP 0x14030FFB0
@@ -828,7 +828,7 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x1F6, "_func_1F6" }, // MP 0x140432CE0
     { 0x1F7, "_func_1F7" }, // MP 0x140433680
     { 0x1F8, "_func_1F8" }, // MP 0x1404332F0
-    { 0x1F9, "_func_1F9" }, // MP 0x1404338E0
+    { 0x1F9, "isbot" },
     { 0x1FA, "_func_1FA" }, // MP 0x14032BE60
     { 0x1FB, "_func_1FB" }, // MP 0x140406E40
     { 0x1FC, "_func_1FC" }, // MP 0x140432CD0
@@ -969,7 +969,7 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x283, "_func_283" }, // SP 0x14023EC00, MP 0x14031BAE0
     { 0x284, "_func_284" }, // SP 0x14023F300, MP 0x14031C2B0
     { 0x285, "_func_285" }, // MP 0x140043610
-    { 0x286, "_func_286" }, // MP 0x14032E7A0
+    { 0x286, "istestclient" },
     { 0x287, "_func_287" }, // MP 0x1402D2850
     { 0x288, "_func_288" }, // MP 0x14032F0C0
     { 0x289, "_func_289" }, // SP 0x1402471A0, MP 0x140311FF0
@@ -1239,7 +1239,7 @@ const std::array<gsc::pair_16C, 1389> method_list
     { 0x80AD, "_meth_80AD" }, // SP 0x1402421E0, MP 0x140320FB0
     { 0x80AE, "_meth_80AE" }, // SP 0x140242250, MP 0x1403210A0
     { 0x80AF, "_meth_80AF" }, // SP 0x140242AE0, MP 0x1403216E0
-    { 0x80B0, "_meth_80B0" }, // SP 0x140246F60, MP 0x14030E8F0
+    { 0x80B0, "delete" },
     { 0x80B1, "_meth_80B1" }, // SP 0x140245F70, MP 0x14030F8D0
     { 0x80B2, "_meth_80B2" }, // SP 0x140242F40, MP 0x140320CF0
     { 0x80B3, "_meth_80B3" }, // SP 0x140243250, MP 0x1403211B0
@@ -1705,7 +1705,7 @@ const std::array<gsc::pair_16C, 1389> method_list
     { 0x827F, "_meth_827F" }, // SP 0x1404158C0, MP 0x140529CE0
     { 0x8280, "_meth_8280" }, // SP 0x140415B60, MP 0x140529E70
     { 0x8281, "_meth_8281" }, // SP 0x140415C60, MP 0x140529F00
-    { 0x8282, "_meth_8282" }, // MP 0x140529F80
+    { 0x8282, "vehicle_finishdamage" },
     { 0x8283, "_meth_8283" }, // SP 0x140415CE0, MP 0x14052A1D0
     { 0x8284, "_meth_8284" }, // SP 0x140415D50, MP 0x14052A240
     { 0x8285, "_meth_8285" }, // SP 0x140415EE0, MP 0x14052A3D0
@@ -2237,7 +2237,7 @@ const std::array<gsc::pair_16C, 1389> method_list
     { 0x8493, "_meth_8493" }, // SP 0x140219490
     { 0x8494, "_meth_8494" }, // SP 0x140252620, MP 0x14031C840
     { 0x8495, "_meth_8495" }, // MP 0x140329C80
-    { 0x8496, "_meth_8496" }, // MP 0x14032A100
+    { 0x8496, "finishentitydamage" },
     { 0x8497, "_meth_8497" }, // SP 0x140261570
     { 0x8498, "_meth_8498" }, // SP 0x140261690
     { 0x8499, "_meth_8499" }, // SP 0x14021A310
@@ -2454,14 +2454,53 @@ const std::array<gsc::pair_16C, 1389> method_list
     { 0x856C, "_meth_856C" }, // MP 0x140333710
 }};
 
-const std::array<gsc::pair_16C, 1> file_list
+const std::array<gsc::pair_16C, 13> file_list
 {{
-    { 0, "DUMMY" },
+    { 0x053D, "codescripts/delete" },
+    { 0x053E, "codescripts/struct" },
+    { 0x0540, "maps/mp/gametypes/_callbacksetup" },
+    { 0xA4E5, "codescripts/character" },
+    { 42214, "common_scripts/_artcommon" },
+    { 42215, "common_scripts/_bcs_location_trigs" },
+    { 42216, "common_scripts/_createfx" },
+    { 42217, "common_scripts/_createfxmenu" },
+    { 42218, "common_scripts/_destructible" },
+    { 42219, "common_scripts/_dynamic_world" },
+    { 42735, "maps/createart/mp_vlobby_room_art" },
+    { 42736, "maps/createart/mp_vlobby_room_fog" },
+    { 42737, "maps/createart/mp_vlobby_room_fog_hdr" },
+    
 }};
 
-const std::array<gsc::pair_16C, 1> token_list
+const std::array<gsc::pair_16C, 25> token_list
 {{
-    { 0, "DUMMY" },
+    { 180, "CodeCallback_BulletHitEntity" },
+    { 181, "CodeCallback_CodeEndGame" },
+    { 182, "CodeCallback_EntityDamage" },
+    { 183, "CodeCallback_EntityOutOfWorld" },
+    { 185, "CodeCallback_HostMigration" },
+    { 187, "CodeCallback_PartyMembers" },
+    { 188, "CodeCallback_PlayerConnect" },
+    { 189, "CodeCallback_PlayerDamage" },
+    { 190, "CodeCallback_PlayerDisconnect" },
+    { 191, "CodeCallback_PlayerGrenadeSuicide" },
+    { 192, "CodeCallback_PlayerKilled" },
+    { 193, "CodeCallback_PlayerLastStand" },
+    { 194, "CodeCallback_PlayerMigrated" },
+    { 195, "CodeCallback_StartGameType" },
+    { 196, "CodeCallback_VehicleDamage" },
+    { 221, "CreateStruct" },
+    { 522, "InitStructs" },
+    { 619, "main" },
+
+    { 1727, "AbortLevel" },
+    { 6662, "callbackVoid" },
+
+    { 8192, "CodeCallback_GiveKillstreak" },
+    { 32577, "SetDefaultCallbacks" },
+    { 33531, "SetupCallbacks" },
+    { 33542, "SetupDamageFlags" },
+    { 36698, "struct" },
 }};
 
 struct __init__
