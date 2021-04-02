@@ -447,12 +447,9 @@ void disassembler::disassemble_end_switch(const gsc::instruction_ptr& inst)
 
 auto disassembler::disassemble_offset() -> std::int32_t
 {
-    std::vector<std::uint8_t> bytes;
+    std::array<std::uint8_t, 4> bytes = {};
 
-    bytes.resize(4);
-    std::fill(bytes.begin(), bytes.end(), 0);
-
-    for (int i = 0; i < 3; i++)
+    for (auto i = 0; i < 3; i++)
     {
         bytes[i] = script_->read<std::uint8_t>();
     }

@@ -626,12 +626,10 @@ void assembler::assemble_end_switch(const gsc::instruction_ptr& inst)
 
 void assembler::assemble_offset(std::int32_t offset)
 {
+    std::array<std::uint8_t, 4> bytes = {};
+
     offset = (offset << 10) >> 8;
 
-    std::vector<std::uint8_t> bytes;
-    bytes.resize(4);
-
-    std::fill(bytes.begin(), bytes.end(), 0);
     *reinterpret_cast<std::int32_t*>(bytes.data()) = offset;
 
     script_->write<std::uint8_t>(bytes[0]);
