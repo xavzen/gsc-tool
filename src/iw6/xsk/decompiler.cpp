@@ -2001,6 +2001,10 @@ void decompiler::decompile_search_ifelse(const gsc::stmt_list_ptr& block)
                 {
                     decompile_if(block, index, end); // reference to func end after the if
                 }
+                else if(blocks_.size() > 1 && !blocks_.back().is_last)
+                {
+                    decompile_if(block, index, end); // IW6 _bots::think, fake last ifelse
+                }
                 else
                 {
                     decompile_last_ifelse(block, index, end); // special case
