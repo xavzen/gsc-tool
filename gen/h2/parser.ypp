@@ -367,6 +367,8 @@ stmt_waittillframeend
 stmt_waitframe
     : WAITFRAME SEMICOLON
         { $$ = std::make_unique<node_stmt_waitframe>(@$); }
+    | WAITFRAME LPAREN RPAREN SEMICOLON
+        { $$ = std::make_unique<node_stmt_waitframe>(@$); }
     ;
 
 stmt_if
