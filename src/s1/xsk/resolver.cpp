@@ -760,7 +760,7 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x1B2, "_func_1B2" }, // SP 0x140244310, MP 0x14030B900
     { 0x1B3, "_func_1B3" }, // SP 0x1402451C0, MP 0x14030C220
     { 0x1B4, "_func_1B4" }, // SP 0x1402454B0, MP 0x14030C3F0
-    { 0x1B5, "_func_1B5" }, // SP 0x14024BD70, MP 0x1403148C0
+    { 0x1B5, "getnextarraykey" }, // SP 0x14024BD70, MP 0x1403148C0
     { 0x1B6, "_func_1B6" }, // SP 0x14024C730, MP 0x1403152C0
     { 0x1B7, "tablelookup" },
     { 0x1B8, "_func_1B8" }, // SP 0x140246A50, MP 0x14030FCE0
@@ -786,8 +786,8 @@ const std::array<gsc::pair_16C, 735> function_list
     { 0x1CC, "_func_1CC" }, // MP 0x1403141A0
     { 0x1CD, "_func_1CD" }, // SP 0x14024AEF0, MP 0x1403141B0
     { 0x1CE, "_func_1CE" }, // SP 0x14024B370, MP 0x1403145A0
-    { 0x1CF, "_func_1CF" }, // SP 0x14024BA30, MP 0x1403147E0
-    { 0x1D0, "_func_1D0" }, // SP 0x14024BC20, MP 0x140314810
+    { 0x1CF, "getarraykeys" }, // SP 0x14024BA30, MP 0x1403147E0
+    { 0x1D0, "getfirstarraykey" }, // SP 0x14024BC20, MP 0x140314810
     { 0x1D1, "_func_1D1" }, // SP 0x140243340, MP 0x14030D890
     { 0x1D2, "_func_1D2" }, // SP 0x1402435C0, MP 0x14030DB50
     { 0x1D3, "_func_1D3" }, // SP 0x1402437D0, MP 0x14030E3B0
