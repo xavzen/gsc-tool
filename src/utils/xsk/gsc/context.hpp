@@ -158,6 +158,12 @@ struct context
         }
         return -1;
     }
+
+    void transfer_decompiler(const context_ptr& child)
+    {
+        this->transfer(child);
+        child->local_vars_public_count = child->local_vars_create_count;
+    }
 };
 
 } // namespace xsk::gsc

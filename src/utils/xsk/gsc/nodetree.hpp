@@ -109,6 +109,10 @@ enum class node_t
     asm_endswitch,
     asm_prescriptcall,
     asm_voidcodepos,
+    asm_create,
+    asm_access,
+    asm_remove,
+    asm_clear,
 };
 
 struct node;
@@ -209,6 +213,10 @@ struct node_asm_jump_false_expr;
 struct node_asm_jump_true_expr;
 struct node_asm_switch;
 struct node_asm_endswitch;
+struct node_asm_create;
+struct node_asm_access;
+struct node_asm_remove;
+struct node_asm_clear;
 
 using node_ptr = std::unique_ptr<node>;
 using true_ptr = std::unique_ptr<node_true>;
@@ -308,6 +316,10 @@ using asm_jump_false_expr_ptr = std::unique_ptr<node_asm_jump_false_expr>;
 using asm_jump_true_expr_ptr = std::unique_ptr<node_asm_jump_true_expr>;
 using asm_switch_ptr = std::unique_ptr<node_asm_switch>;
 using asm_endswitch_ptr = std::unique_ptr<node_asm_endswitch>;
+using asm_create_ptr = std::unique_ptr<node_asm_create>;
+using asm_access_ptr = std::unique_ptr<node_asm_access>;
+using asm_remove_ptr = std::unique_ptr<node_asm_remove>;
+using asm_clear_ptr = std::unique_ptr<node_asm_clear>;
 
 union expr_call_type_ptr
 {
@@ -386,6 +398,8 @@ union expr_ptr
     expr_assign_bitwise_exor_ptr as_assign_bw_xor;
     expr_increment_ptr as_increment;
     expr_decrement_ptr as_decrement;
+    asm_create_ptr as_asm_create;
+    asm_access_ptr as_asm_access;
 
     expr_ptr() {}
     expr_ptr(node_ptr val): as_node(std::move(val)) {}
@@ -426,13 +440,16 @@ union stmt_ptr
     stmt_break_ptr as_break;
     stmt_continue_ptr as_continue;
     stmt_return_ptr as_return;
-
     asm_loc_ptr as_loc;
     asm_jump_cond_ptr as_cond;
     asm_jump_ptr as_jump;
     asm_jump_back_ptr as_jump_back;
     asm_switch_ptr as_asm_switch;
     asm_endswitch_ptr as_asm_endswitch;
+    asm_create_ptr as_asm_create;
+    asm_access_ptr as_asm_access;
+    asm_remove_ptr as_asm_remove;
+    asm_clear_ptr as_asm_clear;
 
     stmt_ptr() {}
     stmt_ptr(node_ptr val): as_node(std::move(val)) {}
@@ -481,6 +498,37 @@ protected:
         static char buff[100];
         snprintf(buff, sizeof(buff), "%*s", indent, "");
         return std::string(buff);
+    }
+
+public:
+    static auto is_special_stmt(const gsc::stmt_ptr& stmt) -> bool
+    {
+        switch(stmt.as_node->type)
+        {
+            case gsc::node_t::stmt_if:
+            case gsc::node_t::stmt_ifelse:
+            case gsc::node_t::stmt_while:
+            case gsc::node_t::stmt_for:
+            case gsc::node_t::stmt_foreach:
+            case gsc::node_t::stmt_switch:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    static auto is_special_stmt_noif(const stmt_ptr& stmt) -> bool
+    {
+        switch(stmt.as_node->type)
+        {
+            case gsc::node_t::stmt_while:
+            case gsc::node_t::stmt_for:
+            case gsc::node_t::stmt_foreach:
+            case gsc::node_t::stmt_switch:
+                return true;
+            default:
+                return false;
+        }
     }
 };
 
@@ -1420,40 +1468,57 @@ struct node_stmt_list : public node
     auto print() -> std::string override
     {
         std::string data;
-
-        indent_ += 4;
-
-        std::string pad = indented(indent_);
-
+        bool in_switch = false;
+        bool last_case = false;
         bool last_special = false;
+        auto block_pad = indented(indent_);
+        indent_ += 4;
+        auto cases_pad = indented(indent_);
+
         for (const auto& stmt : stmts)
         {
-            if (&stmt != &stmts.front()
-                && (stmt.as_node->type == node_t::stmt_if || stmt.as_node->type == node_t::stmt_ifelse
-                || stmt.as_node->type == node_t::stmt_for || stmt.as_node->type == node_t::stmt_foreach
-                || stmt.as_node->type == node_t::stmt_while || stmt.as_node->type == node_t::stmt_switch))
+            if(stmt.as_node->type == node_t::stmt_case || stmt.as_node->type == node_t::stmt_default)
             {
-                data += "\n";
-            }
-            else if(last_special) data += "\n";
-
-            data += pad + stmt.as_node->print();
-
-            if (&stmt != &stmts.back())
-            {
-                data += "\n";
-
-                if(stmt.as_node->type == node_t::stmt_if || stmt.as_node->type == node_t::stmt_ifelse
-                || stmt.as_node->type == node_t::stmt_for || stmt.as_node->type == node_t::stmt_foreach
-                || stmt.as_node->type == node_t::stmt_while || stmt.as_node->type == node_t::stmt_switch)
-                {
-                    last_special = true;
-                }
-                else last_special = false;
+                in_switch = true;
+                break;
             }
         }
 
+        if(in_switch) indent_ += 4;
+
+        auto stmts_pad = indented(indent_);
+
+        data += block_pad + "{\n";
+
+        for (const auto& stmt : stmts)
+        {
+            if (&stmt != &stmts.front() && !last_case && is_special_stmt(stmt) || last_special)
+                data += "\n";
+
+            if(stmt.as_node->type == node_t::stmt_case || stmt.as_node->type == node_t::stmt_default) 
+            {
+                data += cases_pad + stmt.as_node->print();
+                last_case = true;
+            }
+            else
+            {
+                data += stmts_pad + stmt.as_node->print();
+                last_case = false;
+            }
+
+            if (&stmt != &stmts.back())
+                data += "\n";
+
+            if(is_special_stmt(stmt))
+                last_special = true;
+            else
+                last_special = false;
+        }
+
+        if(in_switch) indent_ -= 4;
         indent_ -= 4;
+
+        data += "\n" + block_pad + "}";
 
         return data;
     }
@@ -1523,13 +1588,9 @@ struct node_stmt_notify : public node
     auto print() -> std::string override
     {
         if (args->list.size() == 0)
-        {
             return obj.as_node->print() + " notify( " + expr.as_node->print() + " );"; 
-        }
         else
-        {
             return obj.as_node->print() + " notify( " + expr.as_node->print() + ", " + args->print() + " );";
-        }
     };
 };
 
@@ -1567,13 +1628,9 @@ struct node_stmt_waittill : public node
     auto print() -> std::string override
     {
         if (args->list.size() == 0)
-        {
             return obj.as_node->print() + " waittill( " + expr.as_node->print() + " );";
-        }
         else
-        {
             return obj.as_node->print() + " waittill( " + expr.as_node->print() + ", " + args->print() + " );";
-        }
     };
 };
 
@@ -1592,11 +1649,9 @@ struct node_stmt_waittillmatch : public node
     auto print() -> std::string override
     {
         if (args->list.size() == 0)
-        {
             return obj.as_node->print() + " waittillmatch( " + expr.as_node->print() + " );";
-        }
-
-        return obj.as_node->print() + " waittillmatch( " + expr.as_node->print() + ", " + args->print() + " );";
+        else
+            return obj.as_node->print() + " waittillmatch( " + expr.as_node->print() + ", " + args->print() + " );";
     };
 };
 
@@ -1640,11 +1695,9 @@ struct node_stmt_if : public node
     {
         std::string data = "if ( " + expr.as_node->print() + " )\n";
 
-        std::string pad = indented(indent_);
-
         if (stmt.as_node->type == node_t::stmt_list)
         {
-            data += pad + "{\n" + stmt.as_list->print() + "\n" + pad + "}";
+            data += stmt.as_list->print();
         }
         else
         {
@@ -1675,10 +1728,10 @@ struct node_stmt_ifelse : public node
     {
         std::string pad = indented(indent_);
         std::string data = "if ( " + expr.as_node->print() + " )\n";
-        
+
         if (stmt_if.as_node->type == node_t::stmt_list)
         {
-            data += pad + "{\n" + stmt_if.as_node->print() + "\n" + pad + "}";
+            data += stmt_if.as_node->print();
         }
         else
         {
@@ -1691,7 +1744,7 @@ struct node_stmt_ifelse : public node
 
         if (stmt_else.as_node->type == node_t::stmt_list)
         {
-            data += "\n" + pad + "{\n" + stmt_else.as_list->print() + "\n" + pad + "}";
+            data += "\n" + stmt_else.as_list->print();
         }
         else
         {
@@ -1740,7 +1793,7 @@ struct node_stmt_while : public node
 
         if (stmt.as_node->type == node_t::stmt_list)
         {
-            data += pad + "{\n" + stmt.as_node->print() + "\n" + pad + "}";
+            data += stmt.as_node->print();
         }
         else
         {
@@ -1760,6 +1813,7 @@ struct node_stmt_for : public node
     expr_ptr post_expr;
     stmt_ptr stmt;
     context_ptr ctx;
+    std::vector<std::string> inter_vars;
 
     node_stmt_for(expr_ptr pre_expr, expr_ptr expr, expr_ptr post_expr, stmt_ptr stmt)
         : node(node_t::stmt_for), pre_expr(std::move(pre_expr)), expr(std::move(expr)),
@@ -1779,14 +1833,23 @@ struct node_stmt_for : public node
         }
         else
         {
-            data += "for ( " + pre_expr.as_node->print() + "; " + expr.as_node->print() + "; " + post_expr.as_node->print() + " )\n";
-        }
+            data += "for ( " + pre_expr.as_node->print() + "; " + expr.as_node->print() + "; " + post_expr.as_node->print() + " )";
 
-        std::string pad = indented(indent_);
+            if(inter_vars.size() > 0)
+            {
+                data += " // vars";
+                for(auto& var : inter_vars)
+                {
+                    data += " " + var;
+                }
+            }
+
+            data += "\n";
+        }
 
         if (stmt.as_node->type == node_t::stmt_list)
         {
-            data += pad + "{\n" + stmt.as_node->print() + "\n" + pad + "}";
+            data += stmt.as_node->print();
         }
         else
         {
@@ -1808,6 +1871,9 @@ struct node_stmt_foreach : public node
     stmt_ptr stmt;
     context_ptr ctx;
     bool use_key;
+    std::vector<std::string> inter_vars;
+    std::string array_idx;
+    std::string elem_idx;
 
     node_stmt_foreach(name_ptr element, expr_ptr container, stmt_ptr stmt)
         : node(node_t::stmt_foreach), element(std::move(element)), container(std::move(container)),
@@ -1833,18 +1899,27 @@ struct node_stmt_foreach : public node
         
         if(use_key)
         {
-            data += key->print() + ", " + element->print() + " in " + container.as_node->print() + " )\n";
+            data += key->print() + ", " + element->print() + " in " + container.as_node->print() + " )";
         }
         else
         {
-            data += element->print() + " in " + container.as_node->print() + " )\n";
+            data += element->print() + " in " + container.as_node->print() + " )";
         }
 
-        std::string pad = indented(indent_);
+        if(inter_vars.size() > 0)
+            {
+                data += " // vars";
+                for(auto& var : inter_vars)
+                {
+                    data += " " + var;
+                }
+            }
+
+        data += "\n";
 
         if (stmt.as_node->type == node_t::stmt_list)
         {
-            data += pad + "{\n" + stmt.as_node->print() + "\n" + pad + "}";
+            data += stmt.as_node->print();
         }
         else
         {
@@ -1872,10 +1947,9 @@ struct node_stmt_switch : public node
     auto print() -> std::string override
     {
         std::string data;
-        std::string pad = indented(indent_);
 
         data += "switch ( " + expr.as_node->print() + " )\n";
-        data +=  pad + "{\n" + stmt->print() + "\n" + pad + "}";
+        data += stmt->print();
 
         return data;
     };
@@ -1996,7 +2070,7 @@ struct node_thread : public node
 
     auto print() -> std::string override
     {
-        return name->print() + "(" + params->print() + ")" + "\n{\n" + block->print() + "\n}\n";
+        return name->print() + "(" + params->print() + ")" + "\n" + block->print() + "\n";
     }
 };
 
@@ -2244,6 +2318,70 @@ struct node_asm_voidcodepos : public node
     auto print() -> std::string override
     {
         return "voidcodepos";
+    }
+};
+
+struct node_asm_create : public node
+{
+    std::string index;
+
+    node_asm_create(const std::string& index)
+        : node(node_t::asm_create), index(index) {}
+
+    node_asm_create(const location& loc, const std::string& index)
+        : node(node_t::asm_create, loc), index(index) {}
+
+    auto print() -> std::string override
+    {
+        return "var_create_" + index;
+    }
+};
+
+struct node_asm_access : public node
+{
+    std::string index;
+
+    node_asm_access(const std::string& index)
+        : node(node_t::asm_access), index(index) {}
+
+    node_asm_access(const location& loc, const std::string& index)
+        : node(node_t::asm_access, loc), index(index) {}
+
+    auto print() -> std::string override
+    {
+        return "var_access_" + index;
+    }
+};
+
+struct node_asm_remove : public node
+{
+    std::string index;
+
+    node_asm_remove(const std::string& index)
+        : node(node_t::asm_remove), index(index) {}
+
+    node_asm_remove(const location& loc, const std::string& index)
+        : node(node_t::asm_remove, loc), index(index) {}
+
+    auto print() -> std::string override
+    {
+        return "var_remove_" + index;
+    }
+};
+
+struct node_asm_clear : public node
+{
+    std::string index;
+
+    node_asm_clear(const std::string& index)
+        : node(node_t::asm_clear), index(index) {}
+
+    node_asm_clear(const location& loc, const std::string& index)
+        : node(node_t::asm_clear, loc), index(index) {}
+
+    auto print() -> std::string override
+    {
+        return "var_clear_" + index;
     }
 };
 

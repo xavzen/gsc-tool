@@ -14,7 +14,7 @@ auto decompiler::output() -> std::vector<std::uint8_t>
     std::vector<std::uint8_t> output;
 
     auto data = std::make_unique<utils::byte_buffer>(0x100000);
-    data->write_string("// IW6 PC GSC\n// Decompiled by https://github.com/xensik/gsc-tool\n");
+    data->write_string("// IW7 PC GSC\n// Decompiled by https://github.com/xensik/gsc-tool\n");
     data->write_string(program_->print());
 
     output.resize(data->pos());
@@ -36,13 +36,12 @@ void decompiler::decompile(const std::string& file, std::vector<gsc::function_pt
         func_ = std::make_unique<gsc::node_thread>(std::move(name),std::move(params),std::move(block));
 
         labels_ = func->labels;
-        params_ = 0;
-        create_local_vars_.clear();
-        stack_local_vars_.clear();
         expr_labels_.clear();
         stack_ = std::stack<gsc::node_ptr>();
-        
+
         this->decompile_function(func);
+
+        this->process_stack(func_);
 
         program_->definitions.push_back(gsc::define_ptr(std::move(func_)));
     }
@@ -51,9 +50,6 @@ void decompiler::decompile(const std::string& file, std::vector<gsc::function_pt
 void decompiler::decompile_function(const gsc::function_ptr& func)
 {
     this->decompile_statements(func);
-
-    if(unhandled_function(func->name))
-        return;
 
     auto& block = func_->block;
 
@@ -68,6 +64,8 @@ void decompiler::decompile_function(const gsc::function_ptr& func)
 
 void decompiler::decompile_statements(const gsc::function_ptr& func)
 {
+    std::uint32_t last_null_loc = 0;
+
     for (auto& inst : func->instructions)
     {
         auto loc = gsc::location(&filename_, inst->index);
@@ -200,6 +198,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
                 auto animtree = std::make_unique<gsc::node_usingtree>(loc, std::move(treename));
                 program_->definitions.push_back(gsc::define_ptr(std::move(animtree)));
             }
+
             auto node = std::make_unique<gsc::node_animation>(loc, utils::string::unquote(inst->data[1]));
             stack_.push(std::move(node));
         }
@@ -214,6 +213,9 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
                 auto animtree = std::make_unique<gsc::node_usingtree>(loc, std::move(treename));
                 program_->definitions.push_back(gsc::define_ptr(std::move(animtree)));
             }
+
+            auto node = std::make_unique<gsc::node_animtree>(loc);
+            stack_.push(std::move(node));
         }
         break;
         case opcode::OP_GetThisthread:
@@ -249,86 +251,65 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         break;
         case opcode::OP_CreateLocalVariable:
         {
-            const auto itr = std::find(create_local_vars_.begin(), create_local_vars_.end(), "var" + inst->data[0]);
-
-            if (itr != create_local_vars_.end())
+            if(!stack_.empty())
             {
-                const auto itr = std::find(stack_local_vars_.begin(), stack_local_vars_.end(), "var" + inst->data[0]);
-                if (itr == stack_local_vars_.end())
+                if(last_null_loc != stack_.top()->loc.begin.line)
                 {
-                    stack_local_vars_.push_back(*itr);
-                }
-            }
-            else
-            {
-                create_local_vars_.push_back("var" + inst->data[0]);
-                stack_local_vars_.push_back("var" + inst->data[0]);
+                    last_null_loc = stack_.top()->loc.begin.line;
+                    auto nullstmt = std::make_unique<gsc::node>(gsc::node_t::null, stack_.top()->loc);
+                    func_->block->stmts.push_back(gsc::stmt_ptr(std::move(nullstmt)));
+                }    
             }
 
-            // for locations
-            const auto it = func->labels.find(inst->index);
-
-            if (it != func->labels.end())
-            {
-                auto stmt = std::make_unique<gsc::node>();
-                stmt->loc = loc;
-                func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
-            }	
+            auto stmt = std::make_unique<gsc::node_asm_create>(loc, inst->data[0]);
+            func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_RemoveLocalVariables:
         {
-            auto count = std::atoi(inst->data[0].data());
-            while(count)
-            {
-                stack_local_vars_.pop_back();
-                count--;
-            }
-
-            auto stmt = std::make_unique<gsc::node>();
-            stmt->loc = loc;
+            auto stmt = std::make_unique<gsc::node_asm_remove>(loc, inst->data[0]);
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_EvalLocalVariableCached0:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1));
+            auto node = std::make_unique<gsc::node_asm_access>(loc, "0");
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached1:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 2));
+            auto node = std::make_unique<gsc::node_asm_access>(loc, "1");
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached2:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 3));
+            auto node = std::make_unique<gsc::node_asm_access>(loc, "2");
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached3:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 4));
+            auto node = std::make_unique<gsc::node_asm_access>(loc, "3");
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached4:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 5));
+            auto node = std::make_unique<gsc::node_asm_access>(loc, "4");
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached5:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 6));
+            auto node = std::make_unique<gsc::node_asm_access>(loc, "5");
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableCached:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0])));
+            auto node = std::make_unique<gsc::node_asm_access>(loc, inst->data[0]);
             stack_.push(std::move(node));
         }
         break;
@@ -336,7 +317,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0]))));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_asm_access>(loc, inst->data[0]));
             auto node = std::make_unique<gsc::node_expr_array>(key.as_node->loc, std::move(obj), std::move(key));
             stack_.push(std::move(node));
         }
@@ -353,21 +334,9 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         break;
         case opcode::OP_EvalNewLocalArrayRefCached0:
         {
-            const auto itr = std::find(create_local_vars_.begin(), create_local_vars_.end(), "var" + inst->data[0]);
-            
-            if (itr != create_local_vars_.end())
-            {
-                stack_local_vars_.push_back(*itr);
-            }
-            else
-            {
-                create_local_vars_.push_back("var" + inst->data[0]);
-                stack_local_vars_.push_back("var" + inst->data[0]);
-            }
-
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1)));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_asm_create>(loc, inst->data[0]));
             auto node = std::make_unique<gsc::node_expr_array>(key.as_node->loc, std::move(obj), std::move(key));
             stack_.push(std::move(node));
         }
@@ -376,7 +345,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1)));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_asm_access>(loc, "0"));
             auto node = std::make_unique<gsc::node_expr_array>(key.as_node->loc, std::move(obj), std::move(key));
             stack_.push(std::move(node));	
         }
@@ -385,7 +354,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         {
             auto key = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
-            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0]))));
+            auto obj = gsc::expr_ptr(std::make_unique<gsc::node_asm_access>(loc, inst->data[0]));
             auto node = std::make_unique<gsc::node_expr_array>(key.as_node->loc, std::move(obj), std::move(key));
             stack_.push(std::move(node));
         }
@@ -1597,26 +1566,24 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         break;
         case opcode::OP_SafeCreateVariableFieldCached:
         {
-            create_local_vars_.push_back("var" + inst->data[0]);
-            stack_local_vars_.push_back("var" + inst->data[0]);
-            func_->params->list.push_back(std::make_unique<gsc::node_name>(loc, stack_local_vars_.back()));
+            func_->params->list.push_back(std::make_unique<gsc::node_name>(loc, "var_" + inst->data[0]));
         }
         break;
         case opcode::OP_SafeSetWaittillVariableFieldCached:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0])));
+            auto node = std::make_unique<gsc::node_asm_access>(loc, inst->data[0]);
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableRefCached0:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.back());
+            auto node = std::make_unique<gsc::node_asm_access>(loc, "0");
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_EvalLocalVariableRefCached:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0])));
+            auto node = std::make_unique<gsc::node_asm_access>(loc, inst->data[0]);
             stack_.push(std::move(node));
         }
         break;
@@ -1688,7 +1655,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         break;
         case opcode::OP_SetLocalVariableFieldCached0:
         {
-            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.back()));
+            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_asm_access>(loc, "0"));
             auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
             loc = rvalue.as_node->loc;
@@ -1699,19 +1666,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         break;
         case opcode::OP_SetNewLocalVariableFieldCached0:
         {
-            const auto itr = std::find(create_local_vars_.begin(), create_local_vars_.end(), "var" + inst->data[0]);
-            
-            if (itr != create_local_vars_.end())
-            {
-                stack_local_vars_.push_back(*itr);
-            }
-            else
-            {
-                create_local_vars_.push_back("var" + inst->data[0]);
-                stack_local_vars_.push_back("var" + inst->data[0]);
-            }
-
-            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.back()));
+            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_asm_create>(loc, inst->data[0]));
             auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
             loc = rvalue.as_node->loc;
@@ -1722,7 +1677,7 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         break;
         case opcode::OP_SetLocalVariableFieldCached:
         {
-            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0]))));
+            auto lvalue = gsc::expr_ptr(std::make_unique<gsc::node_asm_access>(loc, inst->data[0]));
             auto rvalue = gsc::expr_ptr(std::move(stack_.top()));
             stack_.pop();
             loc = rvalue.as_node->loc;
@@ -1733,34 +1688,24 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
         break;
         case opcode::OP_ClearLocalVariableFieldCached:
         {
-            // TODO: used in for, foreach
-            // make a null node to save locations
-            auto stmt = std::make_unique<gsc::node>();
-            stmt->loc = loc;
+            auto stmt = std::make_unique<gsc::node_asm_clear>(loc, inst->data[0]);
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_ClearLocalVariableFieldCached0:
         {
-            // TODO: used in for, foreach
-            // make a null node to save locations
-            auto stmt = std::make_unique<gsc::node>();
-            stmt->loc = loc;
+            auto stmt = std::make_unique<gsc::node_asm_clear>(loc,"0");
             func_->block->stmts.push_back(gsc::stmt_ptr(std::move(stmt)));
         }
         break;
         case opcode::OP_EvalLocalVariableObjectCached:
         {
-            auto node = std::make_unique<gsc::node_name>(loc, stack_local_vars_.at(stack_local_vars_.size() - 1 - std::stoul(inst->data[0])));
+            auto node = std::make_unique<gsc::node_asm_access>(loc, inst->data[0]);
             stack_.push(std::move(node));
         }
         break;
         case opcode::OP_CastFieldObject:
-        {
-            //continue;
-        }
-        break;
-        case  opcode::OP_CastBool:
+        case opcode::OP_CastBool:
         {
             //continue;
         }
@@ -2030,7 +1975,7 @@ void decompiler::decompile_search_ifelse(const gsc::stmt_list_ptr& block)
                 }
                 else
                 {
-                    decompile_ifelse(block, index, end);
+                    decompile_ifelse(block, index, end); // TODO: if else block is empty, convert it to only if!
                 }
             }
             else if(block->stmts.at(end).as_node->type == gsc::node_t::stmt_return
@@ -2310,8 +2255,14 @@ void decompiler::decompile_loop(const gsc::stmt_list_ptr& block, std::uint32_t s
 
         if(start > 0) // while at func start
         {
-            auto& first_stmt = block->stmts.at(start - 1);
-            if(first_stmt.as_node->type == gsc::node_t::stmt_assign)
+            auto index = 1;
+            while(block->stmts.at(start - index).as_node->type == gsc::node_t::asm_create)
+            {
+                if(start - index > 0)
+                    index++;
+            }
+
+            if(block->stmts.at(start - index).as_node->type == gsc::node_t::stmt_assign)
             {
                 auto ref = utils::string::va("loc_%X", block->stmts.at(end).as_node->loc.begin.line);
                 auto ref2 = utils::string::va("loc_%X", block->stmts.at(start).as_node->loc.begin.line);
@@ -2377,6 +2328,25 @@ void decompiler::decompile_for(const gsc::stmt_list_ptr& block, std::uint32_t st
     ctx.loc_end = utils::string::va("loc_%X", block->stmts.at(end - 1).as_node->loc.begin.line);
     ctx.loc_continue = utils::string::va("loc_%X", block->stmts.at(end - 1).as_node->loc.begin.line);
 
+    // remove begin-2 var_creates
+    std::vector<std::string> creates;
+    while(block->stmts.at(start - 1).as_node->type == gsc::node_t::asm_create)
+    {
+        creates.push_back(block->stmts.at(start - 1).as_asm_create->index);
+        block->stmts.erase(block->stmts.begin() + start - 1);
+        start--;
+        end--;
+    }
+
+    while(block->stmts.at(start - 1).as_node->type == gsc::node_t::null)
+    {
+        block->stmts.erase(block->stmts.begin() + start - 1);
+        start--;
+        end--;
+    }
+
+    std::reverse(creates.begin(), creates.end());
+
     auto loc = block->stmts.at(start - 1).as_node->loc;
     auto expr = std::move(block->stmts.at(start).as_cond->expr);
     auto pre_expr = gsc::expr_ptr(std::move(block->stmts.at(start - 1).as_assign->expr));
@@ -2408,6 +2378,7 @@ void decompiler::decompile_for(const gsc::stmt_list_ptr& block, std::uint32_t st
     blocks_.pop_back();
 
     auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_for>(loc, std::move(pre_expr), std::move(expr), std::move(post_expr), gsc::stmt_ptr(std::move(for_block))));
+    stmt.as_for->inter_vars = creates;
     block->stmts.insert(block->stmts.begin() + start, std::move(stmt));
 }
 
@@ -2418,7 +2389,28 @@ void decompiler::decompile_foreach(const gsc::stmt_list_ptr& block, std::uint32_
     ctx.loc_end = utils::string::va("loc_%X", block->stmts.at(end - 1).as_node->loc.begin.line);
     ctx.loc_continue = utils::string::va("loc_%X", block->stmts.at(end - 1).as_node->loc.begin.line);
 
+    // remove begin-2 var_creates
+    std::vector<std::string> creates;
+    while(block->stmts.at(begin - 2).as_node->type == gsc::node_t::asm_create)
+    {
+        creates.push_back(block->stmts.at(begin - 2).as_asm_create->index);
+        block->stmts.erase(block->stmts.begin() + begin - 2);
+        begin--;
+        end--;
+    }
+
+    while(block->stmts.at(begin - 2).as_node->type == gsc::node_t::null)
+    {
+        block->stmts.erase(block->stmts.begin() + begin - 2);
+        begin--;
+        end--;
+    }
+
+    std::reverse(creates.begin(), creates.end());
+
     auto loc = block->stmts.at(begin - 2).as_node->loc;
+    auto array_idx = block->stmts[begin-2].as_assign->expr->lvalue.as_asm_create->index;
+    auto elem_idx = block->stmts[begin-1].as_assign->expr->lvalue.as_asm_create->index;
     auto array = std::move(block->stmts[begin-2].as_assign->expr->rvalue);
     auto element = std::move(block->stmts[begin+1].as_assign->expr->lvalue.as_name);
 
@@ -2436,6 +2428,19 @@ void decompiler::decompile_foreach(const gsc::stmt_list_ptr& block, std::uint32_
         block->stmts.erase(block->stmts.begin() + end);
     }
 
+    if(block->stmts.size() > end && block->stmts.at(end).as_node->type == gsc::node_t::asm_clear)
+    {
+        block->stmts.erase(block->stmts.begin() + end);
+    }
+
+    auto use_key = true;
+    
+    if(block->stmts.size() > end && block->stmts.at(end).as_node->type == gsc::node_t::asm_clear)
+    {
+        block->stmts.erase(block->stmts.begin() + end);
+        use_key = false;
+    }
+
     auto foreach_block = std::make_unique<gsc::node_stmt_list>(loc);
 
     for(auto i = begin; i < end; i++)
@@ -2449,6 +2454,13 @@ void decompiler::decompile_foreach(const gsc::stmt_list_ptr& block, std::uint32_
     blocks_.pop_back();
 
     auto foreach_stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_foreach>(loc, std::move(element), std::move(array), gsc::stmt_ptr(std::move(foreach_block))));
+    foreach_stmt.as_foreach->inter_vars = creates;
+    foreach_stmt.as_foreach->array_idx = array_idx;
+    foreach_stmt.as_foreach->elem_idx = elem_idx;
+    foreach_stmt.as_foreach->use_key = use_key;
+    
+    if(use_key) foreach_stmt.as_foreach->key = std::make_unique<gsc::node_name>(loc, "var_" + elem_idx);
+
     block->stmts.insert(block->stmts.begin() + begin, std::move(foreach_stmt));
 }
 
@@ -2456,6 +2468,7 @@ void decompiler::decompile_switch(const gsc::stmt_list_ptr& block, std::uint32_t
 {
     gsc::context ctx;
     ctx.loc_continue = blocks_.back().loc_continue;
+    ctx.loc_end = block->stmts.at(start).as_asm_switch->value;
 
     auto loc = block->stmts.at(start).as_node->loc;
     auto expr = std::move(block->stmts.at(start).as_asm_switch->expr);
@@ -2553,7 +2566,6 @@ auto decompiler::find_location_index(const gsc::stmt_list_ptr& block, const std:
     }
 
     throw gsc::decomp_error("LOCATION NOT FOUND! (" + location + ")");
-    return 0;
 }
 
 auto decompiler::last_location_index(const gsc::stmt_list_ptr& block, std::uint32_t index) -> bool
@@ -2564,17 +2576,475 @@ auto decompiler::last_location_index(const gsc::stmt_list_ptr& block, std::uint3
     return false;
 }
 
-// testing stuff
-std::vector<std::string> unhandled =
+void decompiler::process_stack(const gsc::thread_ptr& thread)
 {
-};
+    auto ctx = std::make_unique<gsc::context>();
 
-auto decompiler::unhandled_function(const std::string& function) -> bool
+    process_parameters(ctx, thread->params);
+    process_stmt_list(ctx, thread->block);
+
+}
+
+void decompiler::process_parameters(const gsc::context_ptr& ctx, const gsc::parameters_ptr& params)
 {
-    if (std::find(std::begin(unhandled), std::end(unhandled), function) != std::end(unhandled))
-        return true;
+    for(const auto& param : params->list)
+    {
+        ctx->local_vars.push_back({ param->value, static_cast<uint8_t>(std::stoi(param->value.substr(4))), true });
+        ctx->local_vars_create_count++;
+    }
+}
 
-    return false;
+void decompiler::process_stmt(const gsc::context_ptr& ctx, const gsc::stmt_ptr& stmt)
+{
+    switch(stmt.as_node->type)
+    {
+        case gsc::node_t::stmt_list:             process_stmt_list(ctx, stmt.as_list); break;
+        case gsc::node_t::stmt_call:             process_stmt_call(ctx, stmt.as_call); break;
+        case gsc::node_t::stmt_assign:           process_stmt_assign(ctx, stmt.as_assign); break;
+        case gsc::node_t::stmt_endon:            process_stmt_endon(ctx, stmt.as_endon); break;
+        case gsc::node_t::stmt_notify:           process_stmt_notify(ctx, stmt.as_notify); break;
+        case gsc::node_t::stmt_wait:             process_stmt_wait(ctx, stmt.as_wait); break;
+        case gsc::node_t::stmt_waittill:         process_stmt_waittill(ctx, stmt.as_waittill); break;
+        case gsc::node_t::stmt_waittillmatch:    process_stmt_waittillmatch(ctx, stmt.as_waittillmatch); break;
+        case gsc::node_t::stmt_if:               process_stmt_if(ctx, stmt.as_if); break;
+        case gsc::node_t::stmt_ifelse:           process_stmt_ifelse(ctx, stmt.as_ifelse); break;
+        case gsc::node_t::stmt_while:            process_stmt_while(ctx, stmt.as_while); break;
+        case gsc::node_t::stmt_for:              process_stmt_for(ctx, stmt.as_for); break;
+        case gsc::node_t::stmt_foreach:          process_stmt_foreach(ctx, stmt.as_foreach); break;
+        case gsc::node_t::stmt_switch:           process_stmt_switch(ctx, stmt.as_switch); break;
+        case gsc::node_t::stmt_return:           process_stmt_return(ctx, stmt.as_return); break;
+        case gsc::node_t::asm_remove:            process_var_remove(ctx, stmt.as_asm_remove); break;
+        case gsc::node_t::asm_create:
+        {
+            auto expr = gsc::expr_ptr(std::make_unique<gsc::node_asm_create>(stmt.as_asm_create->index));
+            process_var_create(ctx, expr, true);
+        } 
+        break;
+        default: break;
+    }
+}
+
+void decompiler::process_stmt_list(const gsc::context_ptr& ctx, const gsc::stmt_list_ptr& stmt)
+{
+    for (const auto& entry : stmt->stmts)
+    {
+        process_stmt(ctx, entry);
+    }
+
+    for(auto i = 0; i < stmt->stmts.size(); i++)
+    {
+        auto type = stmt->stmts.at(i).as_node->type;
+
+        if(type == gsc::node_t::asm_create || type == gsc::node_t::asm_remove)
+        {
+            stmt->stmts.erase(stmt->stmts.begin() + i);
+            i--;
+        }
+    }
+}
+
+void decompiler::process_stmt_call(const gsc::context_ptr& ctx, const gsc::stmt_call_ptr& stmt)
+{
+    process_expr_call(ctx, stmt->expr);
+}
+
+void decompiler::process_stmt_assign(const gsc::context_ptr& ctx, const gsc::stmt_assign_ptr& stmt)
+{
+    process_expr_assign(ctx, stmt->expr);
+}
+
+void decompiler::process_stmt_endon(const gsc::context_ptr& ctx, const gsc::stmt_endon_ptr& stmt)
+{
+    process_expr(ctx, stmt->expr);
+    process_expr(ctx, stmt->obj);
+}
+
+void decompiler::process_stmt_notify(const gsc::context_ptr& ctx, const gsc::stmt_notify_ptr& stmt)
+{
+    process_expr_arguments(ctx, stmt->args);
+    process_expr(ctx, stmt->expr);
+    process_expr(ctx, stmt->obj);
+}
+
+void decompiler::process_stmt_wait(const gsc::context_ptr& ctx, const gsc::stmt_wait_ptr& stmt)
+{
+    process_expr(ctx, stmt->expr);
+}
+
+void decompiler::process_stmt_waittill(const gsc::context_ptr& ctx, const gsc::stmt_waittill_ptr& stmt)
+{
+    process_expr(ctx, stmt->expr);
+    process_expr(ctx, stmt->obj);
+    process_expr_arguments(ctx, stmt->args);
+}
+
+void decompiler::process_stmt_waittillmatch(const gsc::context_ptr& ctx, const gsc::stmt_waittillmatch_ptr& stmt)
+{
+    process_expr_arguments(ctx, stmt->args);
+    process_expr(ctx, stmt->expr);
+    process_expr(ctx, stmt->obj);
+}
+
+void decompiler::process_stmt_if(const gsc::context_ptr& ctx, const gsc::stmt_if_ptr& stmt)
+{
+    process_expr(ctx, stmt->expr);
+
+    stmt->ctx = std::make_unique<gsc::context>();
+    ctx->transfer_decompiler(stmt->ctx);
+
+    process_stmt(stmt->ctx, stmt->stmt);
+
+    if(stmt->stmt.as_list->stmts.size() == 1 && !gsc::node::is_special_stmt(stmt->stmt.as_list->stmts.at(0)))
+    {
+        stmt->stmt = std::move(stmt->stmt.as_list->stmts.back());
+    }
+}
+
+void decompiler::process_stmt_ifelse(const gsc::context_ptr& ctx, const gsc::stmt_ifelse_ptr& stmt)
+{
+    process_expr(ctx, stmt->expr);
+
+    stmt->ctx_if = std::make_unique<gsc::context>();
+    ctx->transfer_decompiler(stmt->ctx_if);
+
+    process_stmt(stmt->ctx_if, stmt->stmt_if);
+
+    stmt->ctx_else = std::make_unique<gsc::context>();
+    ctx->transfer_decompiler(stmt->ctx_else);
+
+    process_stmt(stmt->ctx_else, stmt->stmt_else);
+
+    std::vector<gsc::context*> childs({ stmt->ctx_if.get(), stmt->ctx_else.get() });
+
+    ctx->append(childs);
+    //ctx->merge(childs);
+
+    if(stmt->stmt_if.as_list->stmts.size() == 1 && !gsc::node::is_special_stmt(stmt->stmt_if.as_list->stmts.at(0)))
+    {
+        stmt->stmt_if = std::move(stmt->stmt_if.as_list->stmts.back());
+    }
+
+    if(stmt->stmt_else.as_list->stmts.size() == 1 && !gsc::node::is_special_stmt_noif(stmt->stmt_else.as_list->stmts.at(0)))
+    {
+        stmt->stmt_else = std::move(stmt->stmt_else.as_list->stmts.back());
+    }
+}
+
+void decompiler::process_stmt_while(const gsc::context_ptr& ctx, const gsc::stmt_while_ptr& stmt)
+{
+    process_expr(ctx, stmt->expr);
+
+    stmt->ctx = std::make_unique<gsc::context>();
+    ctx->transfer(stmt->ctx);
+
+    process_stmt(stmt->ctx, stmt->stmt);
+
+    std::vector<gsc::context*> childs({ stmt->ctx.get() });
+
+    //ctx->merge(childs);
+
+    if(stmt->stmt.as_list->stmts.size() == 1 && !gsc::node::is_special_stmt(stmt->stmt.as_list->stmts.at(0)))
+    {
+        stmt->stmt = std::move(stmt->stmt.as_list->stmts.back());
+    }
+}
+
+void decompiler::process_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_for_ptr& stmt)
+{
+    process_expr(ctx, stmt->pre_expr);
+
+    for(auto& index : stmt->inter_vars)
+    {
+        auto var = utils::string::va("var_%d", std::stoi(index));
+        ctx->local_vars.push_back({ var, static_cast<uint8_t>(std::stoi(index)), true });
+        ctx->local_vars_create_count++;
+    }
+
+    stmt->ctx = std::make_unique<gsc::context>();
+    ctx->transfer(stmt->ctx);
+
+    process_expr(ctx, stmt->expr);
+
+    process_stmt(stmt->ctx, stmt->stmt);
+
+    process_expr(ctx, stmt->post_expr);
+
+    std::vector<gsc::context*> childs({ stmt->ctx.get() });
+
+    if(stmt->expr.as_node->type == gsc::node_t::null)
+        ctx->append(childs);
+
+    //ctx->merge(childs);
+
+    if(stmt->stmt.as_list->stmts.size() == 1 && !gsc::node::is_special_stmt(stmt->stmt.as_list->stmts.at(0)))
+    {
+        stmt->stmt = std::move(stmt->stmt.as_list->stmts.back());
+    }
+}
+
+void decompiler::process_stmt_foreach(const gsc::context_ptr& ctx, const gsc::stmt_foreach_ptr& stmt)
+{
+
+    auto var0 = utils::string::va("var_%d", std::stoi(stmt->array_idx));
+    ctx->local_vars.push_back({ var0, static_cast<uint8_t>(std::stoi(stmt->array_idx)), true });
+    ctx->local_vars_create_count++;
+
+    for(auto& index : stmt->inter_vars)
+    {
+        auto var1 = utils::string::va("var_%d", std::stoi(index));
+        ctx->local_vars.push_back({ var1, static_cast<uint8_t>(std::stoi(index)), true });
+        ctx->local_vars_create_count++;
+    }
+
+    auto var2 = utils::string::va("var_%d", std::stoi(stmt->elem_idx));
+    ctx->local_vars.push_back({ var2, static_cast<uint8_t>(std::stoi(stmt->elem_idx)), true });
+    ctx->local_vars_create_count++;
+
+    stmt->ctx = std::make_unique<gsc::context>();
+    ctx->transfer(stmt->ctx);
+
+    process_stmt(stmt->ctx, stmt->stmt);
+
+    if(stmt->stmt.as_list->stmts.size() == 1 && !gsc::node::is_special_stmt(stmt->stmt.as_list->stmts.at(0)))
+    {
+        stmt->stmt = std::move(stmt->stmt.as_list->stmts.back());
+    }
+}
+
+void decompiler::process_stmt_switch(const gsc::context_ptr& ctx, const gsc::stmt_switch_ptr& stmt)
+{
+    process_expr(ctx, stmt->expr);
+
+    stmt->ctx = std::make_unique<gsc::context>();
+    ctx->transfer(stmt->ctx);
+
+    process_stmt_list(stmt->ctx, stmt->stmt);
+
+    std::vector<gsc::context*> childs({ stmt->ctx.get() });
+
+    if(stmt->expr.as_node->type == gsc::node_t::null)
+        ctx->append(childs);
+}
+
+void decompiler::process_stmt_return(const gsc::context_ptr& ctx, const gsc::stmt_return_ptr& stmt)
+{
+    if(stmt->expr.as_node->type == gsc::node_t::null)
+    {
+        return; 
+    }
+
+    process_expr(ctx, stmt->expr);
+}
+
+void decompiler::process_expr(const gsc::context_ptr& ctx, gsc::expr_ptr& expr)
+{
+    switch(expr.as_node->type)
+    {
+        case gsc::node_t::expr_increment:        process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_decrement:        process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_equal:     process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_add:       process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_sub:       process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_mult:      process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_div:       process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_mod:       process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_shift_left:   process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_shift_right:  process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_bitwise_or:   process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_bitwise_and:  process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_assign_bitwise_exor: process_expr_assign(ctx, expr.as_assign); break;
+        case gsc::node_t::expr_and:              process_expr_and(ctx, expr.as_and); break;
+        case gsc::node_t::expr_or:               process_expr_or(ctx, expr.as_or); break;
+        case gsc::node_t::expr_equality:         process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_inequality:       process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_less:             process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_greater:          process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_less_equal:       process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_greater_equal:    process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_bitwise_or:       process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_bitwise_and:      process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_bitwise_exor:     process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_shift_left:       process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_shift_right:      process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_add:              process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_sub:              process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_mult:             process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_div:              process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_mod:              process_expr_binary(ctx, expr.as_binary); break;
+        case gsc::node_t::expr_complement:       process_expr_complement(ctx, expr.as_complement); break;
+        case gsc::node_t::expr_not:              process_expr_not(ctx, expr.as_not); break;
+        case gsc::node_t::expr_call:             process_expr_call(ctx, expr.as_call); break;
+        case gsc::node_t::expr_function:         process_expr_function(ctx, expr.as_function); break;
+        case gsc::node_t::expr_add_array:        process_expr_add_array(ctx, expr.as_add_array); break;
+        case gsc::node_t::expr_array:            process_array_variable(ctx, expr.as_array); break;
+        case gsc::node_t::expr_field:            process_field_variable(ctx, expr.as_field); break;
+        case gsc::node_t::expr_size:             process_expr_size(ctx, expr.as_size); break;
+        case gsc::node_t::data_name:             process_local_variable(ctx, expr.as_name); break;
+        case gsc::node_t::data_vector:           process_vector(ctx, expr.as_vector); break;
+        case gsc::node_t::asm_create:            process_var_create(ctx, expr); break;
+        case gsc::node_t::asm_access:            process_var_access(ctx, expr); break;
+        default: break;
+    }
+}
+
+void decompiler::process_expr_assign(const gsc::context_ptr& ctx, const gsc::expr_assign_ptr& expr)
+{
+    if(expr->type == gsc::node_t::expr_increment)
+    {
+        process_expr(ctx, expr->lvalue);
+    }
+    else if(expr->type == gsc::node_t::expr_decrement)
+    {
+        process_expr(ctx, expr->lvalue);
+    }
+    else
+    {
+        process_expr(ctx, expr->rvalue);
+        process_expr(ctx, expr->lvalue);
+    }
+}
+
+void decompiler::process_expr_binary(const gsc::context_ptr& ctx, const gsc::expr_binary_ptr& expr)
+{
+    process_expr(ctx, expr->lvalue);
+    process_expr(ctx, expr->rvalue);
+}
+
+void decompiler::process_expr_and(const gsc::context_ptr& ctx, const gsc::expr_and_ptr& expr)
+{
+    process_expr(ctx, expr->lvalue);
+    process_expr(ctx, expr->rvalue);
+}
+
+void decompiler::process_expr_or(const gsc::context_ptr& ctx, const gsc::expr_or_ptr& expr)
+{
+    process_expr(ctx, expr->lvalue);
+    process_expr(ctx, expr->rvalue);
+}
+
+void decompiler::process_expr_complement(const gsc::context_ptr& ctx, const gsc::expr_complement_ptr& expr)
+{
+    process_expr(ctx, expr->rvalue);
+}
+
+void decompiler::process_expr_not(const gsc::context_ptr& ctx, const gsc::expr_not_ptr& expr)
+{
+    process_expr(ctx, expr->rvalue);
+}
+
+void decompiler::process_expr_call(const gsc::context_ptr& ctx, const gsc::expr_call_ptr& expr)
+{
+    if(expr->func.as_node->type == gsc::node_t::expr_call_pointer)
+    {
+        process_expr_call_pointer(ctx, expr);
+    }
+    else
+    {
+        process_expr_call_function(ctx, expr);
+    }
+}
+
+void decompiler::process_expr_call_pointer(const gsc::context_ptr& ctx, const gsc::expr_call_ptr& expr)
+{
+    process_expr_arguments(ctx, expr->func.as_pointer->args);
+
+    if(expr->obj.as_node->type != gsc::node_t::null)
+        process_expr(ctx, expr->obj);
+
+    process_expr(ctx, expr->func.as_pointer->expr);
+}
+
+void decompiler::process_expr_call_function(const gsc::context_ptr& ctx, const gsc::expr_call_ptr& expr)
+{
+    process_expr_arguments(ctx, expr->func.as_func->args);
+
+    if(expr->obj.as_node->type != gsc::node_t::null)
+        process_expr(ctx, expr->obj);
+}
+
+void decompiler::process_expr_arguments(const gsc::context_ptr& ctx, const gsc::expr_arguments_ptr& args)
+{
+    for(auto i = args->list.size(); i > 0; i--)
+    {
+        process_expr(ctx, args->list.at(i - 1));
+    }
+}
+
+void decompiler::process_expr_function(const gsc::context_ptr& ctx, const gsc::expr_function_ptr& expr)
+{
+    return;
+}
+
+void decompiler::process_expr_add_array(const gsc::context_ptr& ctx, const gsc::expr_add_array_ptr& expr)
+{
+    for(auto& arg : expr->args->list)
+    {
+        process_expr(ctx, arg);
+    }
+}
+
+void decompiler::process_expr_size(const gsc::context_ptr& ctx, const gsc::expr_size_ptr& expr)
+{
+    process_expr(ctx, expr->obj);
+}
+
+void decompiler::process_array_variable(const gsc::context_ptr& ctx, const gsc::expr_array_ptr& expr)
+{
+    process_expr(ctx, expr->key);
+    process_expr(ctx, expr->obj);
+}
+
+void decompiler::process_field_variable(const gsc::context_ptr& ctx, const gsc::expr_field_ptr& expr)
+{
+    process_expr(ctx, expr->obj);
+}
+
+void decompiler::process_local_variable(const gsc::context_ptr& ctx, const gsc::name_ptr& expr)
+{
+    return;
+}
+
+void decompiler::process_vector(const gsc::context_ptr& ctx, const gsc::vector_ptr& vec)
+{
+    process_expr(ctx, vec->z);
+    process_expr(ctx, vec->y);
+    process_expr(ctx, vec->x);
+}
+
+void decompiler::process_var_create(const gsc::context_ptr& ctx, gsc::expr_ptr& expr, bool fromstmt)
+{
+    if(fromstmt)
+    {
+        auto var = utils::string::va("var_%d", std::stoi(expr.as_asm_create->index));
+        ctx->local_vars.push_back({ var, static_cast<uint8_t>(std::stoi(expr.as_asm_create->index)), true });
+        ctx->local_vars_create_count++;
+    }
+    else
+    {
+        auto var = utils::string::va("var_%d", std::stoi(expr.as_asm_create->index));
+        ctx->local_vars.push_back({ var, static_cast<uint8_t>(std::stoi(expr.as_asm_create->index)), true });
+        ctx->local_vars_create_count++;
+
+        expr = gsc::expr_ptr(std::make_unique<gsc::node_name>(var));
+    }
+}
+
+void decompiler::process_var_access(const gsc::context_ptr& ctx, gsc::expr_ptr& expr)
+{
+    if(ctx->local_vars.size() <= std::stoi(expr.as_asm_access->index))
+    {
+        printf("WARNING: bad local var access\n");
+    }
+    else
+    {
+        auto var = ctx->local_vars.at(ctx->local_vars.size() - 1 - std::stoi(expr.as_asm_access->index)).name;
+        expr = gsc::expr_ptr(std::make_unique<gsc::node_name>(var));
+    }
+}
+
+void decompiler::process_var_remove(const gsc::context_ptr& ctx, const gsc::asm_remove_ptr& expr)
+{
+
 }
 
 } // namespace xsk::gsc::iw7
