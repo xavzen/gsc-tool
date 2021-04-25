@@ -11,6 +11,14 @@ namespace xsk::gsc
 struct context;
 using context_ptr = std::unique_ptr<context>;
 
+enum class abort_t
+{
+    abort_none = 0,
+    abort_continue = 1,
+    abort_break = 2,
+    abort_return = 3,
+};
+
 struct local_var
 {
     std::string name;
@@ -26,6 +34,7 @@ struct context
     std::string loc_end;
     std::string loc_break;
     std::string loc_continue;
+    abort_t abort;
 
     std::vector<std::string> case_id;
     std::vector<std::string> case_loc;
@@ -34,7 +43,7 @@ struct context
     std::uint32_t local_vars_public_count;
     std::vector<local_var> local_vars;
     
-	context() : is_last(false), is_loop(false), is_switch(false), 
+	context() : is_last(false), is_loop(false), is_switch(false), abort(abort_t::abort_none),
         local_vars_create_count(0), local_vars_public_count(0) { }
 
     void transfer(const context_ptr& child)
@@ -74,6 +83,9 @@ struct context
     void append(const std::vector<context*>& childs)
     {
         bool glob = true;
+
+        if(childs.size() == 0) return;
+
         for (std::size_t i = 0; i < childs.at(0)->local_vars.size(); i++ )
         {
             glob = true;
@@ -161,8 +173,22 @@ struct context
 
     void transfer_decompiler(const context_ptr& child)
     {
-        this->transfer(child);
-        child->local_vars_public_count = child->local_vars_create_count;
+        for (std::uint32_t i = 0; i < this->local_vars.size(); i++ )
+        {
+            child->local_vars.push_back(this->local_vars.at(i));
+        }
+
+        child->local_vars_public_count = this->local_vars.size();
+    }
+
+    void append_decompiler(const context_ptr& child, bool all = false)
+    {
+        auto total = all ? child->local_vars.size() : child->local_vars_public_count;
+
+        for (std::uint32_t i = this->local_vars.size(); i < total; i++ )
+        {
+            this->local_vars.push_back(child->local_vars.at(i));
+        }
     }
 };
 

@@ -1460,6 +1460,7 @@ struct node_expr_decrement : public node_expr_assign
 struct node_stmt_list : public node
 {
     std::vector<stmt_ptr> stmts;
+    bool is_case = false;
 
     node_stmt_list() : node(node_t::stmt_list) {}
 
@@ -1473,38 +1474,18 @@ struct node_stmt_list : public node
         bool last_special = false;
         auto block_pad = indented(indent_);
         indent_ += 4;
-        auto cases_pad = indented(indent_);
-
-        for (const auto& stmt : stmts)
-        {
-            if(stmt.as_node->type == node_t::stmt_case || stmt.as_node->type == node_t::stmt_default)
-            {
-                in_switch = true;
-                break;
-            }
-        }
-
-        if(in_switch) indent_ += 4;
 
         auto stmts_pad = indented(indent_);
 
-        data += block_pad + "{\n";
+        if(!is_case)
+            data += block_pad + "{\n";
 
         for (const auto& stmt : stmts)
         {
             if (&stmt != &stmts.front() && !last_case && is_special_stmt(stmt) || last_special)
                 data += "\n";
 
-            if(stmt.as_node->type == node_t::stmt_case || stmt.as_node->type == node_t::stmt_default) 
-            {
-                data += cases_pad + stmt.as_node->print();
-                last_case = true;
-            }
-            else
-            {
-                data += stmts_pad + stmt.as_node->print();
-                last_case = false;
-            }
+            data += stmts_pad + stmt.as_node->print();
 
             if (&stmt != &stmts.back())
                 data += "\n";
@@ -1515,10 +1496,10 @@ struct node_stmt_list : public node
                 last_special = false;
         }
 
-        if(in_switch) indent_ -= 4;
         indent_ -= 4;
 
-        data += "\n" + block_pad + "}";
+        if(!is_case)
+            data += "\n" + block_pad + "}";
 
         return data;
     }
@@ -1954,9 +1935,12 @@ struct node_stmt_switch : public node
         return data;
     };
 };
+
 struct node_stmt_case : public node
 {
     expr_ptr value;
+    stmt_list_ptr stmt;
+    context_ptr ctx;
 
     node_stmt_case(expr_ptr value)
         : node(node_t::stmt_case), value(std::move(value)) {}
@@ -1964,23 +1948,38 @@ struct node_stmt_case : public node
     node_stmt_case(const location& loc, expr_ptr value)
         : node(node_t::stmt_case, loc), value(std::move(value)) {}
 
+    node_stmt_case(const location& loc, expr_ptr value, stmt_list_ptr stmt)
+        : node(node_t::stmt_case, loc), value(std::move(value)), stmt(std::move(stmt)) {}
+
     auto print() -> std::string override
     {
-        return "case " + value.as_node->print() + ":";
+        if(stmt->stmts.size() == 0)
+            return "case " + value.as_node->print() + ":";
+        else
+            return "case " + value.as_node->print() + ":\n" + stmt->print();
     };
 };
 
 struct node_stmt_default : public node
 {
+    stmt_list_ptr stmt;
+    context_ptr ctx;
+
     node_stmt_default()
         : node(node_t::stmt_default) {}
 
     node_stmt_default(const location& loc)
         : node(node_t::stmt_default, loc) {}
 
+    node_stmt_default(const location& loc, stmt_list_ptr stmt)
+        : node(node_t::stmt_default, loc), stmt(std::move(stmt)) {}
+
     auto print() -> std::string override
     {
-        return "default:";
+        if(stmt->stmts.size() == 0)
+            return "default:";
+        else
+            return "default:\n" + stmt->print();
     };
 };
 

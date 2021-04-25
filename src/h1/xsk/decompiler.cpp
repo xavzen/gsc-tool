@@ -2505,8 +2505,11 @@ void decompiler::decompile_switch(const gsc::stmt_list_ptr& block, std::uint32_t
         {
             auto loc_str = data.at(idx+2);
             auto loc_idx = find_location_index(block, loc_str);
-            auto value = gsc::expr_ptr(std::make_unique<gsc::node_string>(loc, data.at(idx+1)));
-            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_case>(loc, std::move(value)));
+            auto loc_pos = gsc::location(&filename_, std::stol(loc_str.substr(4), 0, 16));
+            auto value = gsc::expr_ptr(std::make_unique<gsc::node_string>(loc_pos, data.at(idx+1)));
+            auto list = std::make_unique<gsc::node_stmt_list>(loc);
+            list->is_case = true;
+            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_case>(loc_pos, std::move(value), std::move(list)));
             block->stmts.insert(block->stmts.begin() + loc_idx, std::move(stmt));
             idx += 3;
         }
@@ -2514,7 +2517,10 @@ void decompiler::decompile_switch(const gsc::stmt_list_ptr& block, std::uint32_t
         {
             auto loc_str = data.at(idx+1);
             auto loc_idx = find_location_index(block, loc_str);
-            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_default>(loc));
+            auto loc_pos = gsc::location(&filename_, std::stol(loc_str.substr(4), 0, 16));
+            auto list = std::make_unique<gsc::node_stmt_list>(loc);
+            list->is_case = true;
+            auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_default>(loc_pos, std::move(list)));
             block->stmts.insert(block->stmts.begin() + loc_idx, std::move(stmt));
             idx += 2;
         }
@@ -2537,7 +2543,53 @@ void decompiler::decompile_switch(const gsc::stmt_list_ptr& block, std::uint32_t
     decompile_block(sw_block);
     blocks_.pop_back();
 
-    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_switch>(loc, std::move(expr), std::move(sw_block)));
+    auto stmt_list = std::make_unique<gsc::node_stmt_list>(loc);
+    gsc::stmt_ptr current_case = gsc::stmt_ptr(std::make_unique<gsc::node>());
+
+    auto num = sw_block->stmts.size();
+    for(auto i = 0; i < num; i++)
+    {
+        auto& entry = sw_block->stmts[0];
+
+        if(entry.as_node->type == gsc::node_t::stmt_case || entry.as_node->type == gsc::node_t::stmt_default)
+        {
+            if(current_case.as_node->type != gsc::node_t::null)
+            {
+                stmt_list->stmts.push_back(std::move(current_case));
+            //    current_case = gsc::stmt_ptr(std::make_unique<gsc::node>());
+            }
+
+            current_case = std::move(sw_block->stmts[0]);
+            sw_block->stmts.erase(sw_block->stmts.begin());
+        }
+        else
+        {
+            if(current_case.as_node->type != gsc::node_t::null)
+            {
+                if(current_case.as_node->type == gsc::node_t::stmt_case)
+                {
+                    current_case.as_case->stmt->stmts.push_back(std::move(sw_block->stmts[0]));
+                    sw_block->stmts.erase(sw_block->stmts.begin());
+                }
+                else
+                {
+                    current_case.as_default->stmt->stmts.push_back(std::move(sw_block->stmts[0]));
+                    sw_block->stmts.erase(sw_block->stmts.begin());
+                }
+            }
+            else
+            {
+                gsc::decomp_error("missing case before stmt inside switch!");
+            }
+        }
+    }
+
+    if(current_case.as_node->type != gsc::node_t::null)
+    {
+        stmt_list->stmts.push_back(std::move(current_case));
+    }
+
+    auto stmt = gsc::stmt_ptr(std::make_unique<gsc::node_stmt_switch>(loc, std::move(expr), std::move(stmt_list)));
     block->stmts.insert(block->stmts.begin() + start, std::move(stmt));
 }
 
@@ -2622,6 +2674,7 @@ void decompiler::process_stmt(const gsc::context_ptr& ctx, const gsc::stmt_ptr& 
         case gsc::node_t::stmt_for:              process_stmt_for(ctx, stmt.as_for); break;
         case gsc::node_t::stmt_foreach:          process_stmt_foreach(ctx, stmt.as_foreach); break;
         case gsc::node_t::stmt_switch:           process_stmt_switch(ctx, stmt.as_switch); break;
+        case gsc::node_t::stmt_break:            process_stmt_break(ctx, stmt.as_break); break;
         case gsc::node_t::stmt_return:           process_stmt_return(ctx, stmt.as_return); break;
         case gsc::node_t::asm_remove:            process_var_remove(ctx, stmt.as_asm_remove); break;
         case gsc::node_t::asm_create:
@@ -2724,10 +2777,7 @@ void decompiler::process_stmt_ifelse(const gsc::context_ptr& ctx, const gsc::stm
 
     process_stmt(stmt->ctx_else, stmt->stmt_else);
 
-    std::vector<gsc::context*> childs({ stmt->ctx_if.get(), stmt->ctx_else.get() });
-
-    ctx->append(childs);
-    //ctx->merge(childs);
+    ctx->append_decompiler(stmt->ctx_if);
 
     if(stmt->stmt_if.as_list->stmts.size() == 1 && !gsc::node::is_special_stmt(stmt->stmt_if.as_list->stmts.at(0)))
     {
@@ -2745,13 +2795,14 @@ void decompiler::process_stmt_while(const gsc::context_ptr& ctx, const gsc::stmt
     process_expr(ctx, stmt->expr);
 
     stmt->ctx = std::make_unique<gsc::context>();
-    ctx->transfer(stmt->ctx);
+    ctx->transfer_decompiler(stmt->ctx);
 
     process_stmt(stmt->ctx, stmt->stmt);
 
     std::vector<gsc::context*> childs({ stmt->ctx.get() });
 
-    //ctx->merge(childs);
+    if(stmt->expr.as_node->type == gsc::node_t::null)
+        ctx->append_decompiler(stmt->ctx);
 
     if(stmt->stmt.as_list->stmts.size() == 1 && !gsc::node::is_special_stmt(stmt->stmt.as_list->stmts.at(0)))
     {
@@ -2771,7 +2822,7 @@ void decompiler::process_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_f
     }
 
     stmt->ctx = std::make_unique<gsc::context>();
-    ctx->transfer(stmt->ctx);
+    ctx->transfer_decompiler(stmt->ctx);
 
     process_expr(ctx, stmt->expr);
 
@@ -2779,12 +2830,8 @@ void decompiler::process_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_f
 
     process_expr(ctx, stmt->post_expr);
 
-    std::vector<gsc::context*> childs({ stmt->ctx.get() });
-
     if(stmt->expr.as_node->type == gsc::node_t::null)
-        ctx->append(childs);
-
-    //ctx->merge(childs);
+        ctx->append_decompiler(stmt->ctx);
 
     if(stmt->stmt.as_list->stmts.size() == 1 && !gsc::node::is_special_stmt(stmt->stmt.as_list->stmts.at(0)))
     {
@@ -2794,10 +2841,23 @@ void decompiler::process_stmt_for(const gsc::context_ptr& ctx, const gsc::stmt_f
 
 void decompiler::process_stmt_foreach(const gsc::context_ptr& ctx, const gsc::stmt_foreach_ptr& stmt)
 {
+    process_expr(ctx, stmt->container);
 
+    bool found = false;
     auto var0 = utils::string::va("var_%d", std::stoi(stmt->array_idx));
-    ctx->local_vars.push_back({ var0, static_cast<uint8_t>(std::stoi(stmt->array_idx)), true });
-    ctx->local_vars_create_count++;
+    for(auto& var : ctx->local_vars)
+    {
+        if(var.name == var0)
+        {
+            found = true;
+            break;
+        }
+    }
+    if(!found)
+    {
+        ctx->local_vars.push_back({ var0, static_cast<uint8_t>(std::stoi(stmt->array_idx)), true });
+        ctx->local_vars_create_count++;
+    }
 
     for(auto& index : stmt->inter_vars)
     {
@@ -2806,12 +2866,28 @@ void decompiler::process_stmt_foreach(const gsc::context_ptr& ctx, const gsc::st
         ctx->local_vars_create_count++;
     }
 
+    found = false;
     auto var2 = utils::string::va("var_%d", std::stoi(stmt->elem_idx));
-    ctx->local_vars.push_back({ var2, static_cast<uint8_t>(std::stoi(stmt->elem_idx)), true });
-    ctx->local_vars_create_count++;
+    for(auto& var : ctx->local_vars)
+    {
+        if(var.name == var2)
+        {
+            found = true;
+            break;
+        }
+    }
+    if(!found)
+    {
+        ctx->local_vars.push_back({ var2, static_cast<uint8_t>(std::stoi(stmt->elem_idx)), true });
+        ctx->local_vars_create_count++;
+    }
+
+    auto elem = gsc::expr_ptr(std::move(stmt->element));
+    process_expr(ctx, elem);
+    stmt->element = std::move(elem.as_name);
 
     stmt->ctx = std::make_unique<gsc::context>();
-    ctx->transfer(stmt->ctx);
+    ctx->transfer_decompiler(stmt->ctx);
 
     process_stmt(stmt->ctx, stmt->stmt);
 
@@ -2826,14 +2902,51 @@ void decompiler::process_stmt_switch(const gsc::context_ptr& ctx, const gsc::stm
     process_expr(ctx, stmt->expr);
 
     stmt->ctx = std::make_unique<gsc::context>();
-    ctx->transfer(stmt->ctx);
+    ctx->transfer_decompiler(stmt->ctx);
 
-    process_stmt_list(stmt->ctx, stmt->stmt);
+    process_stmt_cases(stmt->ctx, stmt->stmt);
 
-    std::vector<gsc::context*> childs({ stmt->ctx.get() });
+    ctx->append_decompiler(stmt->ctx, true);
+}
 
-    if(stmt->expr.as_node->type == gsc::node_t::null)
-        ctx->append(childs);
+void decompiler::process_stmt_cases(const gsc::context_ptr& ctx, const gsc::stmt_list_ptr& stmt)
+{
+    std::vector<gsc::context*> childs;
+
+    for(auto& entry : stmt->stmts)
+    {
+        if(entry.as_node->type == gsc::node_t::stmt_case)
+        {
+            entry.as_case->ctx = std::make_unique<gsc::context>();
+            ctx->transfer_decompiler(entry.as_case->ctx);
+
+            process_stmt_list(entry.as_case->ctx, entry.as_case->stmt);
+
+            if(entry.as_case->ctx->abort == gsc::abort_t::abort_break)
+            {
+                childs.push_back(entry.as_case->ctx.get());
+            }
+        }
+        else if(entry.as_node->type == gsc::node_t::stmt_default)
+        {
+            entry.as_default->ctx = std::make_unique<gsc::context>();
+            ctx->transfer_decompiler(entry.as_default->ctx);
+
+            process_stmt_list(entry.as_default->ctx, entry.as_default->stmt);
+
+            if(entry.as_default->ctx->abort == gsc::abort_t::abort_break)
+            {
+                childs.push_back(entry.as_default->ctx.get());
+            }
+        }
+    }
+
+    ctx->append(childs);
+}
+
+void decompiler::process_stmt_break(const gsc::context_ptr& ctx, const gsc::stmt_break_ptr& stmt)
+{
+    ctx->abort = gsc::abort_t::abort_break;
 }
 
 void decompiler::process_stmt_return(const gsc::context_ptr& ctx, const gsc::stmt_return_ptr& stmt)
@@ -3054,7 +3167,7 @@ void decompiler::process_var_access(const gsc::context_ptr& ctx, gsc::expr_ptr& 
 
 void decompiler::process_var_remove(const gsc::context_ptr& ctx, const gsc::asm_remove_ptr& expr)
 {
-
+    ctx->local_vars_public_count = ctx->local_vars.size() - std::stoi(expr->index);
 }
 
 } // namespace xsk::gsc::h1
