@@ -25,5 +25,11 @@ A utility to compile & decompile IW engine game scripts.
 |`-decomp` |decompile a `file.gscbin`  |`file.gsc`   |
 
 for zonetool files (*.cgsc*, *.cgsc.stack*) use: `-zasm`, `-zdisasm`, `-zcomp`, `-zdecomp`
+## Format
+- gsc-tool ``.gscbin`` format is a serialized ScriptFile struct: ***name***: null-term string, ***compressedLen***: 4 byte uint, ***len***: 4 byte uint, ***bytecodeLen***: 4 byte uint, ***buffer***: byte array[compressedLen], ***bytecode***: byte array[bytecodeLen].
+
+- zonetool format made of bytecode file ``.cgsc`` and decompressed stack buffer ``.cgsc.stack``.
 ## Credits
 This project is based on  [*RektInator's* gsc-asm](https://github.com/ZoneTool/gsc-asm). Special thanks to **RektInator**, **JTAG** & **Dasfonia**.
+## Disclaimer
+This software has been created purely for the purposes of academic research. Project maintainers are not responsible or liable for misuse of the software. Use responsibly.
