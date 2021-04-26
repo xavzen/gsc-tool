@@ -104,7 +104,7 @@ void assemble_file(gsc::assembler& assembler, std::string file, bool zonetool)
             {
                 utils::file::save(file + ".cgsc", assembler.output_script());
                 utils::file::save(file + ".cgsc.stack", assembler.output_stack());
-                std::cout << "assembled " << file << ".cgsc'.\n";
+                std::cout << "assembled " << file << ".cgsc\n";
             }
             else
             {
@@ -122,7 +122,7 @@ void assemble_file(gsc::assembler& assembler, std::string file, bool zonetool)
 
                 auto output = script.serialize();
                 utils::file::save(file + ".gscbin", output);
-                std::cout << "assembled " << file << ".gscbin'.\n";
+                std::cout << "assembled " << file << ".gscbin\n";
             }
         }
     }
@@ -183,7 +183,7 @@ void disassemble_file(gsc::disassembler& disassembler, std::string file, game& g
         if (!isdigit(scriptid.data()[0]))
         {
             utils::file::save(file + ".gscasm", disassembler.output_data());
-            std::cout << "disassembled " << file << ".gscasm'.\n";
+            std::cout << "disassembled " << file << ".gscasm\n";
         }
         else
         {
@@ -199,7 +199,7 @@ void disassemble_file(gsc::disassembler& disassembler, std::string file, game& g
             }
 
             utils::file::save(file + filename + ".gscasm", disassembler.output_data());
-            std::cout << "disassembled " << file << filename << ".gscasm'.\n";
+            std::cout << "disassembled " << file << filename << ".gscasm\n";
         }
     }
     catch(const std::exception& e)
@@ -234,7 +234,7 @@ void compile_file(gsc::assembler& assembler, gsc::compiler& compiler, std::strin
             {
                 utils::file::save(file + ".cgsc", assembler.output_script());
                 utils::file::save(file + ".cgsc.stack", assembler.output_stack());
-                std::cout << "compiled " << file << ".cgsc'.\n";
+                std::cout << "compiled " << file << ".cgsc\n";
             }
             else
             {
@@ -252,7 +252,7 @@ void compile_file(gsc::assembler& assembler, gsc::compiler& compiler, std::strin
 
                 auto output = script.serialize();
                 utils::file::save(file + ".gscbin", output);
-                std::cout << "compiled " << file << ".gscbin'.\n";
+                std::cout << "compiled " << file << ".gscbin\n";
             }
         }
     }
@@ -317,7 +317,7 @@ void decompile_file(gsc::disassembler& disassembler, gsc::decompiler& decompiler
         if (!isdigit(scriptid.data()[0]))
         {
             utils::file::save(file + ".gsc", decompiler.output());
-            std::cout << "decompiled " << file << ".gsc'.\n";
+            std::cout << "decompiled " << file << ".gsc\n";
         }
         else
         {
@@ -333,7 +333,7 @@ void decompile_file(gsc::disassembler& disassembler, gsc::decompiler& decompiler
             }
 
             utils::file::save(file + filename + ".gsc", decompiler.output());
-            std::cout << "decompiled " << file << filename << ".gsc'.\n";
+            std::cout << "decompiled " << file << filename << ".gsc\n";
         }
     }
     catch(const std::exception& e)
@@ -392,7 +392,7 @@ void print_usage()
 
 std::uint32_t main(std::uint32_t argc, char** argv)
 {
-    std::string file = argv[argc - 1];
+    std::string file = utils::string::fordslash(argv[argc - 1]);
     mode mode = mode::__;
     game game = game::__;
     bool zonetool = false;
