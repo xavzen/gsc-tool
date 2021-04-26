@@ -66,17 +66,18 @@ auto overwrite_prompt(const std::string& file) -> bool
     return overwrite;
 }
 
-auto choose_resolver_file_name(uint16_t id, game& game) -> std::string
+auto choose_resolver_file_name(uint32_t id, game& game) -> std::string
 {
     switch (game)
     {
-        case game::IW5: return iw5::resolver::file_name(id);
-        case game::IW6: return iw6::resolver::file_name(id);
+        case game::IW5: return iw5::resolver::file_name(static_cast<std::uint16_t>(id));
+        case game::IW6: return iw6::resolver::file_name(static_cast<std::uint16_t>(id));
         case game::IW7: return iw7::resolver::file_name(id);
-        case game::S1: return s1::resolver::file_name(id);
-        case game::S2: return s2::resolver::file_name(id);
-        case game::H1: return h1::resolver::file_name(id);
-        case game::H2: return h2::resolver::file_name(id);
+        case game::IW8: return iw8::resolver::file_name(id);
+        case game::S1: return s1::resolver::file_name(static_cast<std::uint16_t>(id));
+        case game::S2: return s2::resolver::file_name(static_cast<std::uint16_t>(id));
+        case game::H1: return h1::resolver::file_name(static_cast<std::uint16_t>(id));
+        case game::H2: return h2::resolver::file_name(static_cast<std::uint16_t>(id));
         default: return "";
     }
 }
@@ -411,6 +412,11 @@ std::uint32_t main(std::uint32_t argc, char** argv)
             iw7::assembler assembler;
             assemble_file(assembler, file, zonetool);
         }
+        else if (game == game::IW8)
+        {
+            iw8::assembler assembler;
+            assemble_file(assembler, file, zonetool);
+        }
         else if (game == game::S1)
         {
             s1::assembler assembler;
@@ -447,6 +453,11 @@ std::uint32_t main(std::uint32_t argc, char** argv)
         else if (game == game::IW7)
         {
             iw7::disassembler disassembler;
+            disassemble_file(disassembler, file, game, zonetool);
+        }
+        else if (game == game::IW8)
+        {
+            iw8::disassembler disassembler;
             disassemble_file(disassembler, file, game, zonetool);
         }
         else if (game == game::S1)
@@ -489,6 +500,10 @@ std::uint32_t main(std::uint32_t argc, char** argv)
             iw7::assembler assembler;
             iw7::compiler compiler;
             compile_file(assembler, compiler, file ,zonetool);
+        }
+        else if (game == game::IW8)
+        {
+            printf("iw8 not implemented!\n");
         }
         else if (game == game::S1)
         {
@@ -534,6 +549,10 @@ std::uint32_t main(std::uint32_t argc, char** argv)
             iw7::disassembler disassembler;
             iw7::decompiler decompiler;
             decompile_file(disassembler, decompiler, file, game, zonetool);
+        }
+        else if (game == game::IW8)
+        {
+            printf("iw8 not implemented!\n");
         }
         else if (game == game::S1)
         {
