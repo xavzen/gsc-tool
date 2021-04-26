@@ -7806,6 +7806,17 @@ struct __init__
         static bool init = false;
         if(init) return;
         init = true;
+
+        opcode_map.reserve(opcode_list.size());
+        opcode_map_rev.reserve(opcode_list.size());
+        function_map.reserve(function_list.size());
+        function_map_rev.reserve(function_list.size());
+        method_map.reserve(method_list.size());
+        method_map_rev.reserve(method_list.size());
+        file_map.reserve(file_list.size());
+        file_map_rev.reserve(file_list.size());
+        token_map.reserve(token_list.size());
+        token_map_rev.reserve(token_list.size());
         
         for(const auto& entry : opcode_list)
         {
