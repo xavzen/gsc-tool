@@ -1816,6 +1816,7 @@ struct node_stmt_for : public node
         {
             data += "for ( " + pre_expr.as_node->print() + "; " + expr.as_node->print() + "; " + post_expr.as_node->print() + " )";
 
+#ifdef DEBUG
             if(inter_vars.size() > 0)
             {
                 data += " // vars";
@@ -1824,7 +1825,7 @@ struct node_stmt_for : public node
                     data += " " + var;
                 }
             }
-
+#endif
             data += "\n";
         }
 
@@ -1886,7 +1887,7 @@ struct node_stmt_foreach : public node
         {
             data += element->print() + " in " + container.as_node->print() + " )";
         }
-
+#ifdef DEBUG
         if(inter_vars.size() > 0)
             {
                 data += " // vars";
@@ -1895,7 +1896,7 @@ struct node_stmt_foreach : public node
                     data += " " + var;
                 }
             }
-
+#endif
         data += "\n";
 
         if (stmt.as_node->type == node_t::stmt_list)
