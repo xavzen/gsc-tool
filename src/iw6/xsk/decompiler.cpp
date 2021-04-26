@@ -2771,7 +2771,8 @@ void decompiler::process_stmt_ifelse(const gsc::context_ptr& ctx, const gsc::stm
 
     process_stmt(stmt->ctx_else, stmt->stmt_else);
 
-    ctx->append_decompiler(stmt->ctx_if);
+    std::vector<gsc::context*> childs({stmt->ctx_if.get(), stmt->ctx_else.get()});
+    ctx->append(childs);
 
     if(stmt->stmt_if.as_list->stmts.size() == 1 && !gsc::node::is_special_stmt(stmt->stmt_if.as_list->stmts.at(0)))
     {
