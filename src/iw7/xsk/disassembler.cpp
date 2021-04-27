@@ -488,6 +488,9 @@ void disassembler::resolve_local_functions()
 
 auto disassembler::resolve_function(const std::string& index) -> std::string
 {
+    // HOTFIX!
+    return "sub_local_func_" + index;
+
     if (utils::string::is_hex_number(index))
     {
         std::uint32_t idx = std::stoul(index, nullptr, 16);
@@ -509,7 +512,7 @@ auto disassembler::resolve_function(const std::string& index) -> std::string
 void disassembler::print_function(const gsc::function_ptr& func)
 {
     output_->write_string("\n");
-    output_->write_string(utils::string::va("%s\n", func->name.data()));
+    output_->write_string(utils::string::va("%s %X\n", func->name.data(), func->index));
 
     for (auto& inst : func->instructions)
     {
