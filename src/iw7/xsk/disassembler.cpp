@@ -456,7 +456,7 @@ auto disassembler::disassemble_offset() -> std::int32_t
 
     std::int32_t offset = *reinterpret_cast<std::int32_t*>(bytes.data());
 
-    offset = (offset << 8) >> 10;
+    offset = (offset << 8) >> 9;
 
     return offset;
 }
@@ -488,9 +488,6 @@ void disassembler::resolve_local_functions()
 
 auto disassembler::resolve_function(const std::string& index) -> std::string
 {
-    // HOTFIX!
-    return "sub_local_func_" + index;
-
     if (utils::string::is_hex_number(index))
     {
         std::uint32_t idx = std::stoul(index, nullptr, 16);

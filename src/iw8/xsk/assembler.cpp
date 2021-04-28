@@ -628,7 +628,7 @@ void assembler::assemble_offset(std::int32_t offset)
 {
     std::array<std::uint8_t, 4> bytes = {};
 
-    offset = (offset << 10) >> 8;
+    offset = (offset << 9) >> 8;
 
     *reinterpret_cast<std::int32_t*>(bytes.data()) = offset;
 
