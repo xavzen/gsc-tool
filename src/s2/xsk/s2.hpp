@@ -172,7 +172,8 @@ enum class opcode : std::uint8_t
     OP_CallBuiltinMethod5 = 0xAE,
     OP_CallBuiltinMethod = 0xAF,
     OP_JumpOnFalse = 0xB0,
-    OP_Count = 0xB1,
+    OP_BoolNotAfterAnd = 0xB1,
+    OP_Count = 0xB2,
 };
 
 auto opcode_size(std::uint8_t op) -> std::uint32_t;

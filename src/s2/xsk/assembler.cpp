@@ -217,6 +217,7 @@ void assembler::assemble_instruction(const gsc::instruction_ptr& inst)
     case opcode::OP_AddArray:
     case opcode::OP_waittillmatch2:
     case opcode::OP_shift_right:
+    case opcode::OP_BoolNotAfterAnd:
         script_->write<std::uint8_t>(static_cast<std::uint8_t>(inst->opcode));
         break;
     case opcode::OP_GetByte:
@@ -564,7 +565,7 @@ void assembler::assemble_offset(std::int32_t offset)
 {
     std::array<std::uint8_t, 4> bytes = {};
 
-    offset = (offset << 10) >> 8;
+    offset = (offset << 8) >> 8;
 
     *reinterpret_cast<std::int32_t*>(bytes.data()) = offset;
 

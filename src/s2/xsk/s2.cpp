@@ -83,6 +83,7 @@ auto opcode_size(std::uint8_t id) -> std::uint32_t
     case opcode::OP_AddArray:
     case opcode::OP_waittillmatch2:
     case opcode::OP_shift_right:
+    case opcode::OP_BoolNotAfterAnd:
         return 1;
     case opcode::OP_SetNewLocalVariableFieldCached0:
     case opcode::OP_EvalNewLocalArrayRefCached0:

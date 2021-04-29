@@ -164,7 +164,7 @@ auto resolver::find_method(const std::string& name) -> bool
     return false;
 }
 
-const std::array<gsc::pair_8C, 154> opcode_list
+const std::array<gsc::pair_8C, 155> opcode_list
 {{
     { std::uint8_t(opcode::OP_End),"END" },
     { std::uint8_t(opcode::OP_Return),"RETN" },
@@ -320,6 +320,7 @@ const std::array<gsc::pair_8C, 154> opcode_list
     { std::uint8_t(opcode::OP_BoolNot),"BOOL_NOT" },
     { std::uint8_t(opcode::OP_BoolComplement),"BOOL_COMPLEMENT" },
     { std::uint8_t(opcode::OP_waitFrame), "WAITFRAME" },
+    { std::uint8_t(opcode::OP_BoolNotAfterAnd), "BOOL_NOT_AFTER_AND" },
 }};
 
 const std::array<gsc::pair_16C, 807> function_list

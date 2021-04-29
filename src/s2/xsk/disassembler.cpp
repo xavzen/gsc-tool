@@ -155,6 +155,7 @@ void disassembler::dissasemble_instruction(const gsc::instruction_ptr& inst)
     case opcode::OP_AddArray:
     case opcode::OP_waittillmatch2:
     case opcode::OP_shift_right:
+    case opcode::OP_BoolNotAfterAnd:
         break;
     case opcode::OP_GetByte:
     case opcode::OP_GetNegByte:
@@ -457,7 +458,7 @@ auto disassembler::disassemble_offset() -> std::int32_t
 
     std::int32_t offset = *reinterpret_cast<std::int32_t*>(bytes.data());
 
-    offset = (offset << 8) >> 10;
+    offset = (offset << 8) >> 8;
 
     return offset;
 }

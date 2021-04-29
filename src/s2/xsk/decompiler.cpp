@@ -1804,6 +1804,15 @@ void decompiler::decompile_statements(const gsc::function_ptr& func)
             expr_labels_.push_back(inst->data[0]);
         }
         break;
+        case opcode::OP_BoolNotAfterAnd:
+        {
+            auto lvalue = gsc::expr_ptr(std::move(stack_.top()));
+            stack_.pop();
+            loc = lvalue.as_node->loc;
+            auto expr = std::make_unique<gsc::node_expr_not>(loc, std::move(lvalue));
+            stack_.push(std::move(expr));
+        }
+        break;
         default:
             throw gsc::decomp_error("unhandled opcode " + resolver::opcode_name(inst->opcode));
         break;
